@@ -1,24 +1,5 @@
-# Локальное состояние Quarto. Сохраняйте записи, автоматически добавляемые Quarto.
-/.quarto/
-**/.quarto/
-**/*.quarto_ipynb
-/_*.local
-
-# Результаты сборки, созданные модели курса и кэши на любой глубине.
-**/.qrc/
-**/_generated/
-**/_site/
-**/_book/
-**/_output/
-**/site_libs/
-**/*_files/
-**/*_cache/
-
-.DS_Store
-
-# Зависимости примеров; авторские исходники /_extensions отслеживаются Git.
-/examples/**/_extensions/
-node_modules/
-
-# Quarto управляет встроенным Deno; локальная проверка не закрепляет его зависимости.
-/deno.lock
+.quarto/
+_generated/
+_site/
+_downloads/
+examples/**/_extensions/

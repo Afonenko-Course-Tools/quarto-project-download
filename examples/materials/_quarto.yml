@@ -1,0 +1,15 @@
+project:
+  type: website
+  output-dir: _site
+  render: [index.qmd]
+  resources: ["!data/**"]
+  pre-render: _extensions/project-download/entrypoints/pre.ts
+  post-render: _extensions/project-download/entrypoints/post.ts
+format: html
+lang: ru
+filters: [project-download]
+project-download:
+  resources:
+    seminar-data:
+      path: /data
+      include: ["**/*.csv", "**/*.md"]

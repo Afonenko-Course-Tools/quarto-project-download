@@ -1,0 +1,24 @@
+name: Проверка материалов Quarto
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        quarto: [release, pre-release]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
+        with:
+          version: ${{ matrix.quarto }}
+      - name: Отбор файлов и архивы
+        run: quarto run tests/archive.ts
+      - name: Сборка и границы профилей
+        run: quarto run tests/render.ts
