@@ -22,3 +22,5 @@ jobs:
         run: quarto run tests/archive.ts
       - name: Сборка и границы профилей
         run: quarto run tests/render.ts
+      - name: Публичное владение заявками
+        run: quarto run tests/ownership.ts
