@@ -1,7 +1,7 @@
 name: Проверка материалов Quarto
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -12,12 +12,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        quarto: [release, pre-release]
+        quarto: ["1.10.18", "1.11.5"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
           version: ${{ matrix.quarto }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Afonenko-Course-Tools/quarto-course
+          ref: 27d7c437d386f5489c8a0a4c09ed1afeb07c7967 # Tested native Core provider
+          path: core-fixture
+      - uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
+        with:
+          version: v0.17.1
+      - name: Native Core bridge and public ZIP policy
+        env:
+          CORE: ${{ github.workspace }}/core-fixture
+        run: |
+          quarto run tests/native.ts
+          quarto run tests/native-installed.ts
+          quarto run tests/install-context.ts namespaced
+          quarto run tests/install-context.ts plain
+          quarto run tests/install-context.ts active
       - name: Отбор файлов и архивы
         run: quarto run tests/archive.ts
       - name: Сборка и границы профилей
