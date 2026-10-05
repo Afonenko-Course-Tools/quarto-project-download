@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 992759e12924a3117ac92163ec51d62d59bb3267 # Tested native Core provider
+          ref: 1e377a882dd26cc28dc064eecbf9fa1d6c59bc5a # Tested native Core provider
           path: core-fixture
       - uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
         with:

@@ -32,7 +32,14 @@ try {
   }
   await Deno.mkdir(root + "/data");
   await Deno.writeTextFile(root + "/data/public.txt", "PUBLIC");
+  const starterFiles = ["starter.py", "run.sh", "app.ts", "settings.yaml", "pyproject.toml", "README.md"];
+  for (const name of starterFiles) await Deno.writeTextFile(join(root, "data", name), "PUBLIC_STARTER_" + name);
   await Deno.writeTextFile(root + "/data/private.txt", "PRIVATE");
+  await Deno.writeTextFile(root + "/data/source.qmd", "# AUTHORED_INPUT");
+  await Deno.writeTextFile(root + "/data/_quarto.yml", "format: html\n");
+  await Deno.writeTextFile(root + "/data/service.py", "print('SERVICE_HOOK')\n");
+  await Deno.mkdir(root + "/data/reference");
+  await Deno.writeTextFile(root + "/data/reference/answer.py", "PRIVATE_REFERENCE");
   const active = mode !== "plain";
   const nativeHooks = active
     ? `${prefix}/course-core/entrypoints/pre.ts, `
@@ -45,8 +52,9 @@ try {
     `project:
   type: website
   output-dir: _site
+  render: [index.qmd]
   resources: ["!data/**"]
-  pre-render: [${nativeHooks}${prefix}/project-download/entrypoints/pre.ts]
+  pre-render: [${nativeHooks}${prefix}/project-download/entrypoints/pre.ts, "python3 data/service.py"]
   post-render: [${nativePost}${prefix}/project-download/entrypoints/post.ts]
 format: html
 ${active ? "course: {id: course-a, view: student}\n" : ""}filters: [${
@@ -55,8 +63,12 @@ ${active ? "course: {id: course-a, view: student}\n" : ""}filters: [${
 project-download:
   course-model: ${mode === "namespaced"}
   resources:
-    public-data: {path: data, include: [public.txt]}
+    public-data: {path: data, include: [public.txt, starter.py, run.sh, app.ts, settings.yaml, pyproject.toml, README.md]}
     private-data: {path: data, include: [private.txt]}
+    course-input: {path: data, include: [source.qmd]}
+    build-service: {path: data, include: [service.py]}
+    course-config: {path: data, include: [_quarto.yml]}
+    private-reference: {path: data/reference}
 `,
   );
   const body = `# Materials {#sec-materials}\n\n[Public](data/public.txt)\n\n${
@@ -68,6 +80,11 @@ project-download:
     await Deno.readFile(root + "/_site/_downloads/public-data.zip"),
   );
   if (!zip.includes("PUBLIC")) throw Error("public ZIP missing");
+  for (const name of starterFiles) if (!zip.includes("PUBLIC_STARTER_" + name)) throw Error("public starter missing: " + name);
+  for (const id of ["course-input", "build-service", "course-config", "private-reference"]) {
+    await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download " + id + " >}}\n");
+    await native(["render", "--profile", "student"], false, "RESOURCE.PRIVATE_OR_SOURCE");
+  }
   if (active) {
     await Deno.writeTextFile(
       root + "/index.qmd",

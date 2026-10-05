@@ -5,35 +5,40 @@ const quarto = Deno.env.get("QUARTO") || "quarto";
 const assert = (v: unknown, m: string) => {
   if (!v) throw Error(m);
 };
-async function native(args: string[], success = true) {
+async function native(args: string[], success = true, expected = "") {
   const result = await new Deno.Command(quarto, {
     args,
     cwd: root,
     stdout: "piped",
     stderr: "piped",
   }).output();
-  assert(
-    result.success === success,
-    new TextDecoder().decode(result.stdout) +
-      new TextDecoder().decode(result.stderr),
-  );
+  const text = new TextDecoder().decode(result.stdout) + new TextDecoder().decode(result.stderr);
+  assert(result.success === success && (!expected || text.includes(expected)), `Expected native ${success ? "success" : "refusal"}:\n${text}`);
 }
 try {
   await native(["add", core, "--no-prompt"]);
   await native(["add", repo, "--no-prompt"]);
   await Deno.mkdir(root + "/projects/demo/student", { recursive: true });
   await Deno.mkdir(root + "/projects/demo/reference", { recursive: true });
+  await Deno.mkdir(root + "/projects/demo/tests", { recursive: true });
+  await Deno.mkdir(root + "/projects/demo/student/tests", { recursive: true });
+  await Deno.writeTextFile(root + "/projects/demo/tests/Closed.java", "PRIVATE_CLOSED_TEST");
+  await Deno.writeTextFile(root + "/projects/demo/check.sh", "PRIVATE_SERVICE_CHECKER");
+  await Deno.writeTextFile(root + "/projects/demo/student/tests/Open.py", "PUBLIC_OPEN_TEST");
   await Deno.mkdir(root + "/data");
   await Deno.writeTextFile(
     root + "/projects/demo/student/Main.java",
     "PUBLIC_STARTER",
   );
+  const starterFiles = ["starter.py", "run.sh", "app.ts", "settings.yaml", "pyproject.toml", "README.md"];
+  for (const name of starterFiles) await Deno.writeTextFile(join(root, "projects/demo/student", name), "PUBLIC_STARTER_" + name);
   await Deno.writeTextFile(
     root + "/projects/demo/reference/Secret.java",
     "PRIVATE_SOLUTION",
   );
   await Deno.writeTextFile(root + "/data/public.txt", "PUBLIC_DATA");
   await Deno.writeTextFile(root + "/data/private.txt", "PRIVATE_RESOURCE");
+  await Deno.writeTextFile(root + "/data/private.py", "PRIVATE_PYTHON_RESOURCE");
   await Deno.writeTextFile(
     root + "/_quarto.yml",
     `project:
@@ -51,6 +56,10 @@ project-download:
   resources:
     public-data: {path: data, include: [public.txt]}
     private-data: {path: data, include: [private.txt]}
+    private-code: {path: data, include: [private.py]}
+    whole-project: {path: projects/demo}
+    closed-tests: {path: projects/demo/tests}
+    root-checker: {path: projects/demo, include: [check.sh]}
 `,
   );
   for (const view of ["full", "student"]) {
@@ -72,6 +81,7 @@ PUBLIC_TASK
 
 ::: {.content-visible when-profile="full"}
 [Hidden](data/private.txt)
+[Hidden Python](data/private.py)
 :::
 
 {{< project-download public-data >}}
@@ -84,10 +94,16 @@ PUBLIC_TASK
       await Deno.readFile(root + `/_site-${view}/_downloads/exr-demo.zip`),
     );
     assert(
-      zip.includes("PUBLIC_STARTER") && !zip.includes("PRIVATE_SOLUTION"),
+      zip.includes("PUBLIC_STARTER") && zip.includes("PUBLIC_OPEN_TEST") && !zip.includes("PRIVATE_SOLUTION") && !zip.includes("PRIVATE_CLOSED_TEST"),
       "private starter sibling leaked",
     );
+    for (const name of starterFiles) assert(zip.includes("PUBLIC_STARTER_" + name), "missing student starter: " + name);
   }
+  for (const id of ["whole-project", "closed-tests", "root-checker"]) {
+    await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download " + id + " >}}\n");
+    await native(["render", "index.qmd", "--profile", "full"], false, "RESOURCE.PRIVATE_OR_SOURCE");
+  }
+  await Deno.writeTextFile(root + "/index.qmd", body);
   // Selected native document produces current request/result inventory, ignoring retained pages.
   await Deno.writeTextFile(
     root + "/other.qmd",
@@ -111,7 +127,9 @@ PUBLIC_TASK
     root + "/index.qmd",
     body + "\n{{< project-download private-data >}}\n",
   );
-  await native(["render", "index.qmd", "--profile", "full"], false);
+  await native(["render", "index.qmd", "--profile", "full"], false, "RESOURCE.PRIVATE_OR_SOURCE");
+  await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download private-code >}}\n");
+  await native(["render", "index.qmd", "--profile", "full"], false, "RESOURCE.PRIVATE_OR_SOURCE");
   await Deno.writeTextFile(root + "/index.qmd", body);
   await Deno.remove(root + "/data/public.txt");
   await native(["render", "index.qmd", "--profile", "student"], false);

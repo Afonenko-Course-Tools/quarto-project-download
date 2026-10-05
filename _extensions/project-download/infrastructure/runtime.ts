@@ -70,9 +70,10 @@ export interface NativeDownloadContext {
     outputDirectory: string;
     profiles: string[];
     documents: any[];
+    inputFiles?: string[];
   };
   evaluateResources(
-    options: { facts: any[]; selected: string[]; projectRoot: string },
+    options: { facts: any[]; selected: string[]; projectRoot: string; publicPayload?: boolean; authoredInputs?: string[] },
   ): Promise<unknown>;
 }
 /** Explicit current native inventory; the caller also requires successful process exit. */
@@ -132,6 +133,31 @@ export async function finish(
   const facts =
     current?.run.documents.flatMap((d) => d.resources ? [d.resources] : []) ??
       [];
+  const authoredInputs = new Set<string>([
+    ...inspected.files.input,
+    ...(current?.run.inputFiles ?? []),
+    ...(current?.run.documents.map((d) => resolve(root, d.source)) ?? []),
+  ].map((path) => resolve(root, path)));
+  const projectDirectories = (current?.run.documents ?? []).flatMap((document) =>
+    [...(document.exercises ?? []), ...(document.body?.publicExercises ?? [])]
+      .filter((exercise) => typeof exercise.project === "string")
+      .map((exercise) => resolve(root, exercise.project.replace(/^\//, "")))
+  );
+  const closedProjectRoots = projectDirectories.flatMap((project) =>
+    ["tests", "closed-tests"].map((directory) => resolve(project, directory))
+  );
+  for (const project of projectDirectories) authoredInputs.add(join(project, "check.sh"));
+  // Configured build/filter scripts are service inputs, even outside _extensions.
+  for (const value of [inspected.config.project?.["pre-render"], inspected.config.project?.["post-render"], inspected.config.filters]) {
+    for (const command of Array.isArray(value) ? value : typeof value === "string" ? [value] : []) {
+      if (typeof command !== "string") continue;
+      for (const token of command.match(/"[^"]*"|'[^']*'|[^\s]+/g) ?? []) {
+        const path = token.replace(/^["']|["']$/g, "");
+        const input = resolve(root, path);
+        if (await exists(input) && (await Deno.stat(input)).isFile) authoredInputs.add(input);
+      }
+    }
+  }
   return await publish(config, profiles, {
     async requests() {
       for (const request of requests) {
@@ -162,21 +188,25 @@ export async function finish(
     async files(resource) {
       const files = await resourceFiles(root, resource);
       const directory = resource.path.replace(/^\//, "");
+      for (const file of files) {
+        const path = join(directory, file.name).replaceAll("\\", "/");
+        if (
+          /(^|\/)(?:\.[^/]+|_extensions|_freeze|_generated|reference|solutions?)(\/|$)/.test(path) ||
+          /\.(?:qmd|rmd|ipynb)$/i.test(file.name) ||
+          /(^|\/)(?:_quarto(?:[-.][^/]*)?|_metadata\.ya?ml)$/i.test(path) ||
+          authoredInputs.has(resolve(root, path)) ||
+          closedProjectRoots.some((directory) => resolve(root, path).replaceAll("\\", "/").startsWith(directory.replaceAll("\\", "/") + "/"))
+        ) throw Error("RESOURCE.PRIVATE_OR_SOURCE: " + file.name);
+      }
       if (current) {
         await current.evaluateResources({
           facts,
           selected: files.map((file) => join(directory, file.name)),
           projectRoot: root,
+          publicPayload: true,
+          authoredInputs: [...authoredInputs],
         });
-      } else {for (const file of files) {
-          if (
-            /(^|\/)(?:\.[^/]+|_extensions|_freeze|_generated|reference|solutions?)(\/|$)/
-              .test(join(directory, file.name)) ||
-            /\.(?:qmd|rmd|ipynb|ya?ml|lua|ts|cue|r|py|sh|toml)$/i.test(
-              file.name,
-            )
-          ) throw Error("RESOURCE.PRIVATE_OR_SOURCE: " + file.name);
-        }}
+      }
       return files;
     },
     async save(archives) {
