@@ -32,12 +32,13 @@ try {
   }
   await Deno.mkdir(root + "/data");
   await Deno.writeTextFile(root + "/data/public.txt", "PUBLIC");
-  const starterFiles = ["starter.py", "run.sh", "app.ts", "settings.yaml", "pyproject.toml", "README.md"];
+  const starterFiles = ["starter.py", "run.sh", "app.ts", "settings.yaml", "pyproject.toml", "README.md", "starter.lua"];
   for (const name of starterFiles) await Deno.writeTextFile(join(root, "data", name), "PUBLIC_STARTER_" + name);
   await Deno.writeTextFile(root + "/data/private.txt", "PRIVATE");
   await Deno.writeTextFile(root + "/data/source.qmd", "# AUTHORED_INPUT");
   await Deno.writeTextFile(root + "/data/_quarto.yml", "format: html\n");
   await Deno.writeTextFile(root + "/data/service.py", "print('SERVICE_HOOK')\n");
+  await Deno.writeTextFile(root + "/data/service.lua", '-- BUILD_SERVICE_SECRET\nreturn {{Pandoc=function(doc) io.stderr:write("OBJECT_FILTER_EXECUTED\\n"); return doc end}}\n');
   await Deno.mkdir(root + "/data/reference");
   await Deno.writeTextFile(root + "/data/reference/answer.py", "PRIVATE_REFERENCE");
   const active = mode !== "plain";
@@ -59,14 +60,15 @@ try {
 format: html
 ${active ? "course: {id: course-a, view: student}\n" : ""}filters: [${
       active ? "course-core, " : ""
-    }project-download]
+    }project-download, {path: data/service.lua}]
 project-download:
   course-model: ${mode === "namespaced"}
   resources:
-    public-data: {path: data, include: [public.txt, starter.py, run.sh, app.ts, settings.yaml, pyproject.toml, README.md]}
+    public-data: {path: data, include: [public.txt, starter.py, run.sh, app.ts, settings.yaml, pyproject.toml, README.md, starter.lua]}
     private-data: {path: data, include: [private.txt]}
     course-input: {path: data, include: [source.qmd]}
     build-service: {path: data, include: [service.py]}
+    object-filter: {path: data, include: [service.lua]}
     course-config: {path: data, include: [_quarto.yml]}
     private-reference: {path: data/reference}
 `,
@@ -75,13 +77,13 @@ project-download:
     active ? "::: {.when-full}\n[Hidden](data/private.txt)\n:::\n" : ""
   }\n{{< project-download public-data >}}\n`;
   await Deno.writeTextFile(root + "/index.qmd", body);
-  await native(["render", "--profile", "student", "--fail-if-warnings"]);
+  await native(["render", "--profile", "student", "--fail-if-warnings"], true, "OBJECT_FILTER_EXECUTED");
   const zip = new TextDecoder().decode(
     await Deno.readFile(root + "/_site/_downloads/public-data.zip"),
   );
   if (!zip.includes("PUBLIC")) throw Error("public ZIP missing");
   for (const name of starterFiles) if (!zip.includes("PUBLIC_STARTER_" + name)) throw Error("public starter missing: " + name);
-  for (const id of ["course-input", "build-service", "course-config", "private-reference"]) {
+  for (const id of ["object-filter", "course-input", "build-service", "course-config", "private-reference"]) {
     await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download " + id + " >}}\n");
     await native(["render", "--profile", "student"], false, "RESOURCE.PRIVATE_OR_SOURCE");
   }

@@ -138,21 +138,25 @@ export async function finish(
     ...(current?.run.inputFiles ?? []),
     ...(current?.run.documents.map((d) => resolve(root, d.source)) ?? []),
   ].map((path) => resolve(root, path)));
-  const projectDirectories = (current?.run.documents ?? []).flatMap((document) =>
+  const projectDirectories = [...facts.flatMap((fact) => fact.rawProjectRoots ?? []), ...(current?.run.documents ?? []).flatMap((document) =>
     [...(document.exercises ?? []), ...(document.body?.publicExercises ?? [])]
       .filter((exercise) => typeof exercise.project === "string")
       .map((exercise) => resolve(root, exercise.project.replace(/^\//, "")))
-  );
+  )].map((project) => resolve(root, project));
   const closedProjectRoots = projectDirectories.flatMap((project) =>
     ["tests", "closed-tests"].map((directory) => resolve(project, directory))
   );
   for (const project of projectDirectories) authoredInputs.add(join(project, "check.sh"));
   // Configured build/filter scripts are service inputs, even outside _extensions.
   for (const value of [inspected.config.project?.["pre-render"], inspected.config.project?.["post-render"], inspected.config.filters]) {
-    for (const command of Array.isArray(value) ? value : typeof value === "string" ? [value] : []) {
+    for (const declaration of Array.isArray(value) ? value : value ? [value] : []) {
+      const command = typeof declaration === "string" ? declaration : declaration?.path;
       if (typeof command !== "string") continue;
-      for (const token of command.match(/"[^"]*"|'[^']*'|[^\s]+/g) ?? []) {
-        const path = token.replace(/^["']|["']$/g, "");
+      // Object-form filter paths are literal filenames, including spaces.
+      const paths = typeof declaration === "string"
+        ? [command, ...(command.match(/"[^"]*"|'[^']*'|[^\s]+/g) ?? []).map((token) => token.replace(/^["']|["']$/g, ""))]
+        : [command];
+      for (const path of paths) {
         const input = resolve(root, path);
         if (await exists(input) && (await Deno.stat(input)).isFile) authoredInputs.add(input);
       }

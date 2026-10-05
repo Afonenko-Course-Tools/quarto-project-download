@@ -22,6 +22,9 @@ try {
   await Deno.mkdir(root + "/projects/demo/reference", { recursive: true });
   await Deno.mkdir(root + "/projects/demo/tests", { recursive: true });
   await Deno.mkdir(root + "/projects/demo/student/tests", { recursive: true });
+  await Deno.mkdir(root + "/projects/hidden/tests", { recursive: true });
+  await Deno.writeTextFile(root + "/projects/hidden/tests/Closed.py", "PRIVATE_CLOSED_TEST_HIDDEN");
+  await Deno.writeTextFile(root + "/projects/hidden/check.sh", "PRIVATE_HIDDEN_SERVICE_CHECKER");
   await Deno.writeTextFile(root + "/projects/demo/tests/Closed.java", "PRIVATE_CLOSED_TEST");
   await Deno.writeTextFile(root + "/projects/demo/check.sh", "PRIVATE_SERVICE_CHECKER");
   await Deno.writeTextFile(root + "/projects/demo/student/tests/Open.py", "PUBLIC_OPEN_TEST");
@@ -60,6 +63,8 @@ project-download:
     whole-project: {path: projects/demo}
     closed-tests: {path: projects/demo/tests}
     root-checker: {path: projects/demo, include: [check.sh]}
+    hidden-tests: {path: projects/hidden/tests}
+    hidden-checker: {path: projects/hidden, include: [check.sh]}
 `,
   );
   for (const view of ["full", "student"]) {
@@ -85,6 +90,13 @@ PUBLIC_TASK
 :::
 
 {{< project-download public-data >}}
+
+:::: {.when-full}
+::: {#exr-hidden target="manual" project="/projects/hidden" course-role="control" difficulty="introductory"}
+## Hidden task
+PRIVATE_HIDDEN_TASK
+:::
+::::
 `;
   await Deno.writeTextFile(root + "/index.qmd", body);
   await Deno.writeTextFile(root + "/other.qmd", "# Other {#sec-other}\n");
@@ -98,6 +110,12 @@ PUBLIC_TASK
       "private starter sibling leaked",
     );
     for (const name of starterFiles) assert(zip.includes("PUBLIC_STARTER_" + name), "missing student starter: " + name);
+  }
+  for (const profile of [undefined, "student", "full"]) {
+    for (const id of ["hidden-tests", "hidden-checker"]) {
+      await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download " + id + " >}}\n");
+      await native(["render", "index.qmd", ...(profile ? ["--profile", profile] : [])], false, "RESOURCE.PRIVATE_OR_SOURCE");
+    }
   }
   for (const id of ["whole-project", "closed-tests", "root-checker"]) {
     await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download " + id + " >}}\n");

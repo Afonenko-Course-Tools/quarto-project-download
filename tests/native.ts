@@ -33,7 +33,11 @@ try {
       course: { view: "full" },
       resources: {
         source: "index.qmd",
+        format: "html",
+        view: "full",
         effectiveBase: root,
+        outputDirectory: root + "/_site",
+        outputFile: "index.html",
         rawUses: ["data/private.txt", "data/public.txt"],
         projectedUses: ["data/public.txt"],
       },
