@@ -7,3 +7,7 @@ cd "$repo"
 for test in archive render ownership native native-installed; do
   "$quarto" run "tests/$test.ts"
 done
+
+for mode in namespaced plain active; do
+  "$quarto" run tests/install-context.ts "$mode"
+done

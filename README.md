@@ -181,6 +181,8 @@ project-download:
 
 Если ID не объявлен непосредственно, мост получает задание с тем же ID и источником из текущего NativeRun Core и архивирует только `<project>/student`. При full используется сохранённая публичная проекция `body.publicExercises`. `course.json` не читается. Явный ресурс имеет приоритет, но также проходит публичную resource policy Core, включая full: hidden-only файлы, исходники, служебные файлы и отсутствующие generated ресурсы отклоняются.
 
+Установка Core сама по себе не активирует мост. Если Core обработал текущий AST, его публичная resource policy применяется и при `course-model: false`. Runtime находит Core рядом с установленным Download, включая каталог владельца GitHub.
+
 Подключите `course-core` перед `project-download`, native Core pre-hook перед Download pre-hook и Core post-hook перед Download post-hook. После успешного native процесса координатор может вызвать `finish(root, {run, evaluateResources})` с явным текущим NativeRun и публичным API Core. Проверяется совпадение project/output и наличие текущего DocumentResult для каждой заявки. Старые страницы выбранного проекта не становятся текущим inventory.
 
 Обычные явно объявленные ресурсы работают без Core/CUE и сохраняют собственные ограничения исходных/служебных каталогов. Не помещайте закрытые материалы в публичный каталог. Каждый native pre-hook очищает только выбранный output архивов и текущие заявки; другие audience outputs и native caches сохраняются.

@@ -32,6 +32,9 @@ jobs:
         run: |
           quarto run tests/native.ts
           quarto run tests/native-installed.ts
+          quarto run tests/install-context.ts namespaced
+          quarto run tests/install-context.ts plain
+          quarto run tests/install-context.ts active
       - name: Отбор файлов и архивы
         run: quarto run tests/archive.ts
       - name: Сборка и границы профилей

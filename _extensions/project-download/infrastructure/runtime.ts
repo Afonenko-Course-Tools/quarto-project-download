@@ -1,4 +1,11 @@
-import { join, relative, resolve, toFileUrl } from "stdlib/path";
+import {
+  dirname,
+  fromFileUrl,
+  join,
+  relative,
+  resolve,
+  toFileUrl,
+} from "stdlib/path";
 import { configuration, type Resource, RESOURCE_ID } from "../domain/config.ts";
 import { publish, type Request } from "../application/publish.ts";
 import { child, exists, noSymlinks, resourceFiles } from "./files.ts";
@@ -85,14 +92,26 @@ export async function finish(
   const profiles = (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(
     Boolean,
   );
+  const directory = join(root, "_generated/project-download/requests");
+  const requests: Request[] = [];
+  if (await exists(directory)) {
+    for await (const entry of Deno.readDir(directory)) {
+      if (entry.isFile && entry.name.endsWith(".json")) {
+        const request: Request = JSON.parse(
+          await Deno.readTextFile(join(directory, entry.name)),
+        );
+        if (selected.has(request.source)) requests.push(request);
+      }
+    }
+  }
   if (
     !current &&
     (config["course-model"] ||
-      await exists(
-        join(root, "_extensions/course-core/infrastructure/native-run.ts"),
-      ))
+      requests.some((request) => request.courseProcessed === true))
   ) {
-    const core = join(root, "_extensions/course-core");
+    // Core and Download installed from GitHub share the provider directory.
+    const extension = dirname(dirname(fromFileUrl(import.meta.url)));
+    const core = join(dirname(extension), "course-core");
     const { loadNativeRun } = await import(
       toFileUrl(join(core, "infrastructure/native-run.ts")).href
     );
@@ -115,24 +134,15 @@ export async function finish(
       [];
   return await publish(config, profiles, {
     async requests() {
-      const directory = join(root, "_generated/project-download/requests"),
-        requests: Request[] = [];
-      if (!await exists(directory)) return requests;
-      for await (const entry of Deno.readDir(directory)) {
-        if (entry.isFile && entry.name.endsWith(".json")) {
-          const request: Request = JSON.parse(
-            await Deno.readTextFile(join(directory, entry.name)),
+      for (const request of requests) {
+        if (
+          current &&
+          !current.run.documents.some((d) => d.source === request.source)
+        ) {
+          throw Error(
+            "Download request has no current native document: " +
+              request.source,
           );
-          if (
-            current &&
-            !current.run.documents.some((d) => d.source === request.source)
-          ) {
-            throw Error(
-              "Download request has no current native document: " +
-                request.source,
-            );
-          }
-          if (selected.has(request.source)) requests.push(request);
         }
       }
       return requests;
