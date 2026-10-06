@@ -91,7 +91,7 @@ PUBLIC_TASK
 
 {{< project-download public-data >}}
 
-:::: {.when-full}
+:::: {.content-visible when-profile="full"}
 ::: {#exr-hidden target="manual" project="/projects/hidden" course-role="control" difficulty="introductory"}
 ## Hidden task
 PRIVATE_HIDDEN_TASK

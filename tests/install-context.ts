@@ -74,7 +74,7 @@ project-download:
 `,
   );
   const body = `# Materials {#sec-materials}\n\n[Public](data/public.txt)\n\n${
-    active ? "::: {.when-full}\n[Hidden](data/private.txt)\n:::\n" : ""
+    active ? "::: {.content-visible when-profile=\"full\"}\n[Hidden](data/private.txt)\n:::\n" : ""
   }\n{{< project-download public-data >}}\n`;
   await Deno.writeTextFile(root + "/index.qmd", body);
   await native(["render", "--profile", "student", "--fail-if-warnings"], true, "OBJECT_FILTER_EXECUTED");
