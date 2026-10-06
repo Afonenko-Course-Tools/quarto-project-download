@@ -7,7 +7,7 @@
 ## Подключение
 
 ```sh
-quarto add Afonenko-Course-Tools/quarto-project-download
+quarto add Afonenko-Course-Tools/quarto-project-download@v1.0.1
 ```
 
 Установка пассивна. Подключите фильтр, обработчики и ресурсы явно:
@@ -224,3 +224,7 @@ quarto run tests/ownership.ts
 расширения, пустых результатов, повреждённых и чужих записях, ссылках и точных SHA-256.
 
 Native installed acceptance additionally runs `CORE=../quarto-course quarto run tests/native.ts` and `CORE=../quarto-course quarto run tests/native-installed.ts` on Quarto 1.10.18/1.11.5, CUE 0.17.1. It covers selected-document freshness, student/full/student isolation, hidden-only ZIP resources and missing current resources.
+
+## Версии и обновление
+
+Релиз `v1.0.1` соответствует версии в `_extension.yml`. Устанавливайте явный тег, как в команде выше, и сохраняйте установленные файлы `_extensions` в Git курса. Для обновления установите следующий опубликованный тег через `quarto add`, проверьте diff и выполните проверки курса. Опубликованные теги неизменяемы: исправления получают новую версию и новый тег.
