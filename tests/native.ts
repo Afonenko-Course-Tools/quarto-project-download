@@ -50,12 +50,20 @@ try {
     refused = String(e).includes("PRIVATE");
   }
   assert(refused, "full native Download copied hidden-only bytes");
+  await Deno.writeTextFile(root+"/_quarto.yml","project:\n  type: website\n  output-dir: _site\nproject-download:\n  resources:\n    data: {path: data, include: [public.txt]}\n");
+  await Deno.mkdir(root+"/_site/_downloads",{recursive:true});
+  const foreignArchive=root+"/_site/_downloads/data.zip";
+  await Deno.writeTextFile(foreignArchive,"FOREIGN_ZIP_BYTES");
+  let collision=false;
+  try { await finish(root,{run,evaluateResources:policy.evaluateResources}); }
+  catch(error) { collision=error instanceof Error && (error as Error & {code?:string}).code==="DOWNLOAD.OUTPUT_CONFLICT" && error.message.includes("data.zip"); }
+  assert(collision && await Deno.readTextFile(foreignArchive)==="FOREIGN_ZIP_BYTES","Конфликт ZIP сохраняет ID, путь и чужие байты");
   run.documents = [];
   let stale = false;
   try {
     await finish(root, { run, evaluateResources: policy.evaluateResources });
   } catch (e) {
-    stale = String(e).includes("current");
+    stale = e instanceof Error && (e as Error & {code?:string}).code === "DOWNLOAD.REQUEST_INVALID" && e.message.includes("index.qmd");
   }
   assert(stale, "request from a stale unselected document accepted");
 } finally {

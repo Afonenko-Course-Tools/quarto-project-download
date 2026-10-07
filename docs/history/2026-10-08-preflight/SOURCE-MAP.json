@@ -117,5 +117,29 @@
     "bytes": 3660,
     "sha256": "4793211923664290dde5cf15e6db2c74a8afb766a22237cf8a11a17941cf1928",
     "status": "historical"
+  },
+  {
+    "sourcePath": "/home/tolya/course-tools/quarto-project-download/docs/plans/diagnostics-refactoring-plan.md",
+    "sourceRef": "6801f71fd5e93994b178f5a3dea7c5e4c7504473",
+    "snapshot": "docs/history/2026-10-08-preflight/owner-snapshot/before-origin-update/docs/plans/diagnostics-refactoring-plan.md",
+    "bytes": 5473,
+    "sha256": "4a80a338f6a159308ddbbb7f7c154f88fdec59ec30d26ddf4d36c85ee589d0b5",
+    "status": "historical-owner"
+  },
+  {
+    "sourcePath": "/home/tolya/course-tools/quarto-project-download/docs/plans/diagnostics-refactoring-plan.md",
+    "sourceRef": "fc8b517995a4a2d3a179a08f916e5ff2b0ee87f9",
+    "snapshot": "docs/history/2026-10-08-preflight/owner-snapshot/origin-main/docs/plans/diagnostics-refactoring-plan.md",
+    "bytes": 7694,
+    "sha256": "d5bcaa9a239cd130cf58c3d547378e8805e237d39692385e70e28a294aeb0b0d",
+    "status": "historical-owner"
+  },
+  {
+    "sourcePath": "/home/tolya/course-tools/quarto-project-download/docs/plans/2026-10-08-implementation.md",
+    "sourceRef": "6801f71fd5e93994b178f5a3dea7c5e4c7504473",
+    "snapshot": "docs/history/2026-10-08-preflight/owner-snapshot/before-origin-update/docs/plans/2026-10-08-implementation.md",
+    "bytes": 3590,
+    "sha256": "9bde8f34fb94b0b1a6a64a193fd8d87e3d01bd9146b7aae9c500ca998fd1c198",
+    "status": "historical-owner"
   }
 ]

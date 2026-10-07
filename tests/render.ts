@@ -18,6 +18,7 @@ async function render(profile: string, success = true) {
     r.success === success,
     new TextDecoder().decode(r.stdout) + new TextDecoder().decode(r.stderr),
   );
+  return r;
 }
 try {
   await copy(join(repo, "_extensions"), join(root, "_extensions"));
@@ -90,7 +91,9 @@ project-download:
     root + "/nested/page.qmd",
     "# Ошибка\n\n{{< project-download missing >}}\n",
   );
-  await render("student", false);
+  const invalid = await render("student", false);
+  const diagnostics = new TextDecoder().decode(invalid.stderr);
+  assert(diagnostics.includes("DOWNLOAD.RESOURCE_UNAVAILABLE") && diagnostics.includes("nested/page.qmd") && diagnostics.includes("missing"), "Нативный guard содержит ID, исходник и ресурс: "+diagnostics);
   absent = false;
   try {
     await Deno.stat(root + "/_site/_downloads/public-data.zip");
@@ -98,6 +101,10 @@ project-download:
     absent = true;
   }
   assert(absent, "Старый архив пережил ошибку новой сборки");
+  await Deno.writeTextFile(root+"/nested/page.qmd", "# Ошибка параметра\n\n{{< project-download public-data unknown=1 >}}\n");
+  const invalidParameter=await render("student",false);
+  const parameterDiagnostics=new TextDecoder().decode(invalidParameter.stderr);
+  assert(parameterDiagnostics.includes("DOWNLOAD.REQUEST_INVALID") && parameterDiagnostics.includes("unknown") && parameterDiagnostics.includes("nested/page.qmd"),"Shortcode guard завершает рендер и сохраняет ID/поле/исходник: "+parameterDiagnostics);
   console.log(
     "Quarto: независимость от Core/CUE, вложенные ссылки, full → student, очистка после ошибки проверены.",
   );
