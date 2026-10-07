@@ -76,3 +76,11 @@ exit0 оба. Включены diagnostics/archive/render/ownership/native/nativ
 tests прошли bundled Deno check; diff и новый purehelper/test fmt check проходят.
 Независимое ревью, финальные coordinated pins, PR/CI/merge и выпуск остаются
 координатору; старые релизы не менялись. Отдельная demo-группа не создавалась.
+
+Независимое ревью DL1/DL2 не нашло важных runtime замечаний. Малые M3/M4
+исправлены: ZIP-диагностика показывает измеренные count/UTF-8 length/entry size/
+данные+каталог и прежние пределы; README полностью русифицирован, видимость
+описана через native content-visible/content-hidden. RED на отсутствующем
+значении65536; GREEN всех четырёх ZIP-limit assertions плюс diagnostics/archive
+на обеих версиях Quarto, bundledtypecheck/fmt/diff check проходят. Ограничения
+и ZIPwriter не менялись; синтетические длины тестируют guard без GiB allocations.

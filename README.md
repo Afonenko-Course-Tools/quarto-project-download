@@ -51,8 +51,8 @@ ID состоит из латинских строчных букв, цифр и
 Неизвестные поля отклоняются. Ссылка на необъявленный ресурс — ошибка сборки.
 
 Архив создаётся только при наличии видимого shortcode после отбора содержимого
-Quarto. Условия видимости задаются стандартным `.content-visible when-profile`,
-либо кратким условием Core, если он отдельно подключён. `profiles` проверяет
+Quarto. Условия видимости задаются нативными `.content-visible` / `.content-hidden`
+и атрибутом `when-profile`. `profiles` проверяет
 разрешённость уже видимой ссылки, а не автоматически скрывает её.
 
 ```qmd
@@ -223,7 +223,12 @@ quarto run tests/ownership.ts
 Публичный API дополнительно проверяется на заявках нативно установленного
 расширения, пустых результатов, повреждённых и чужих записях, ссылках и точных SHA-256.
 
-Native installed acceptance additionally runs `CORE=../quarto-course quarto run tests/native.ts` and `CORE=../quarto-course quarto run tests/native-installed.ts` on Quarto 1.10.18/1.11.5, CUE 0.17.1. It covers selected-document freshness, student/full/student isolation, hidden-only ZIP resources and missing current resources.
+Установленная поставка дополнительно проверяется командами
+`CORE=../quarto-course quarto run tests/native.ts` и
+`CORE=../quarto-course quarto run tests/native-installed.ts` на Quarto 1.10.18
+и 1.11.5 с CUE 0.17.1. Проверки охватывают актуальность выбранного документа,
+изоляцию последовательности student/full/student, скрытые ресурсы ZIP
+и отсутствие ресурсов текущей сборки.
 
 ## Версии и обновление
 

@@ -49,6 +49,36 @@ try {
     "DOWNLOAD.ZIP_INVALID",
     ["../escape"],
   );
+  await refuses(
+    () => zip(Array(65536).fill({ name: "data", bytes: new Uint8Array() })),
+    "DOWNLOAD.ZIP_INVALID",
+    ["65536", "65535"],
+  );
+  await refuses(
+    () => zip([{ name: "я".repeat(32768), bytes: new Uint8Array() }]),
+    "DOWNLOAD.ZIP_INVALID",
+    ["65536", "65535", "0"],
+  );
+  // Синтетическая длина проверяет guard ZIP32 без выделения нескольких GiB.
+  const measuredBytes = (length: number) =>
+    ({
+      length,
+      [Symbol.iterator]: function* () {},
+    }) as unknown as Uint8Array;
+  await refuses(
+    () => zip([{ name: "oversize.bin", bytes: measuredBytes(0x100000000) }]),
+    "DOWNLOAD.ZIP_INVALID",
+    ["oversize.bin", "4294967296", "4294967295"],
+  );
+  await refuses(
+    () =>
+      zip([
+        { name: "first.bin", bytes: measuredBytes(0x80000000) },
+        { name: "second.bin", bytes: measuredBytes(0x80000000) },
+      ]),
+    "DOWNLOAD.ZIP_INVALID",
+    ["4294967486", "4294967295"],
+  );
   await Deno.mkdir(root + "/data");
   await refuses(
     () => resourceFiles(root, { path: "/data" }),
