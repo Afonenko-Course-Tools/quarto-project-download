@@ -1,0 +1,37 @@
+{
+  "inputs": [
+    {
+      "owner": "quarto-project-download",
+      "source": "/tmp/course-release-20261008/receipts/releases/quarto-project-download/v2.0.0/RELEASE.json",
+      "stagedPath": "sources/tmp/course-release-20261008/receipts/releases/quarto-project-download/v2.0.0/RELEASE.json",
+      "sha256": "47817831b607f8784e2c73cc2ed3f44c9a30175bef48f07d012081a0dc7f8caa",
+      "bytes": 405
+    },
+    {
+      "owner": "quarto-project-download",
+      "source": "/tmp/course-release-20261008/receipts/releases/quarto-project-download/v2.0.0/download-verified.json",
+      "stagedPath": "sources/tmp/course-release-20261008/receipts/releases/quarto-project-download/v2.0.0/download-verified.json",
+      "sha256": "7cbb2fb7f43d510d9e48266028b41dfd9adcf8a91c439d32f1586e2a58460741",
+      "bytes": 278
+    },
+    {
+      "owner": "quarto-project-download",
+      "source": "/tmp/course-release-20261008/receipts/releases/quarto-project-download/v2.0.0/published.json",
+      "stagedPath": "sources/tmp/course-release-20261008/receipts/releases/quarto-project-download/v2.0.0/published.json",
+      "sha256": "db11ab9ab5a58c38407c851e4440aa4b7115c5213554041fab69c0ef155fae16",
+      "bytes": 6207
+    }
+  ],
+  "latestPlans": [
+    {
+      "source": "docs/plans/2026-10-08-implementation.md",
+      "sha256": "a5fc033f826b4f78701b75605ed22bdc09561fbdc0638a7fef22ca518112415a",
+      "bytes": 20471
+    }
+  ],
+  "courseGate": {
+    "coursePRNumber": 4,
+    "courseHead": "b6b085cf0541785d11159bd9a106cd131dfabaf0",
+    "courseCIRun": 37743840665
+  }
+}
