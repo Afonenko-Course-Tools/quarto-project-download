@@ -44,3 +44,23 @@ owned архивы выбранного output; post-hook публикует `_d
 делает solution/teacher материал публичным. Подключение, ограничения и точная
 сигнатура ownership приведены в [README](../README.md), IDs — в
 [диагностике](../docs/diagnostics.md).
+
+## Restricted условия и ZIP сайта
+
+StatementVisibility описывает публикацию условия. В student мост не получает
+restricted задачу и не создаёт из её проекта download-заявку. В full используется
+безопасная `body.publicExercises`, а не teacher payload. Participant-safe
+`visibility: public` выбранного Print/PrairieLearn экспорта не даёт разрешения
+публиковать restricted условие на student-сайте. Current Core resource policy,
+включая `RESOURCE.PRIVATE_OR_SOURCE` и raw project roots, сохраняется.
+
+Полная проверка переключения full → student охватывает current ZIP, HTML,
+search, QRC и ресурсы. Pre-hook удаляет только свои заявки и owned архивы
+выбранного output, сохраняя чужие ZIP и другие audience outputs.
+Native GitHub source action может вести к QMD, но source modal и копирование
+raw QMD с закрытыми телами в student output не включаются. Автор отдельно
+исключает закрытые каталоги из обычного `project.resources`.
+
+[Пример](../examples/materials/index.qmd) остаётся обычным native проектом с
+набором данных без банка. Отдельного Download demo Release нет; интеграционные
+resource сценарии входят в готовые группы их производителей.

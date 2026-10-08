@@ -13,25 +13,17 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 
 | Документ | type | component | status |
 | --- | --- | --- | --- |
-| [Подготовка авторства](../docs/authoring-next.md) | authoring-guide | project-download | accepted-next |
 | [Контракт Download](contract.md) | contract | project-download | current |
 | [Поля конфигурации](../_extensions/project-download/domain/config.ts) | contract/API | project-download | current |
 | [Ownership API](../_extensions/project-download/ownership.ts) | contract/API | project-download | current |
 | [Диагностика](../docs/diagnostics.md) | reference | project-download | current |
-| [Целевой authoring contract Core](../../quarto-course/spec/authoring-model-next.md) | contract | core | accepted-next |
-| [План владельца](../docs/plans/2026-10-08-implementation.md) | plan | project-download | accepted-next |
+| [Авторская модель Core](../../quarto-course/spec/index.md) | specification/index | course-core | current |
+| [План владельца](../docs/plans/2026-10-08-implementation.md) | plan | project-download | in-progress |
 | [Карта сохранённой истории](../docs/history-index.md) | history-index | project-download | current |
 
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
 
-Версия пакета определяется только
-[`_extension.yml`](../_extensions/project-download/_extension.yml) **того же Git ref**.
-Последний проверенный опубликованный tool tag — `v1.1.1`; его descriptor
-содержит `1.1.1`. `main` до нового выпуска — **unreleased**, даже если
-число в descriptor пока совпадает с предыдущим выпуском. Документация выпуска
-читается из того же immutable tag, рабочий план не заменяет контракт этого tag.
-
-Новая модель банка/assignments и минимум Quarto 1.11.5 / CUE 0.17.1 принимаются
-по `accepted-next` одновременно с кодом, fixtures, README и выпуском владельца.
-Этот индекс сам по себе не включает новый синтаксис. Существующие машинные
-дескрипторы/workflow baseline пока сохраняются до соответствующего runtime шага.
+Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
+Quarto 1.11.5 и CUE 0.17.1 согласованы с текущими правилами Core.
+Изменения main после выпущенного тега — **unreleased**.
+Документация установленного выпуска читается из того же immutable tag, что и код.
