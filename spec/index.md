@@ -13,6 +13,7 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 
 | Документ | type | component | status |
 | --- | --- | --- | --- |
+| [Подготовка авторства](../docs/authoring-next.md) | authoring-guide | project-download | accepted-next |
 | [Контракт Download](contract.md) | contract | project-download | current |
 | [Поля конфигурации](../_extensions/project-download/domain/config.ts) | contract/API | project-download | current |
 | [Ownership API](../_extensions/project-download/ownership.ts) | contract/API | project-download | current |
