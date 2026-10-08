@@ -18,7 +18,7 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 | [Ownership API](../_extensions/project-download/ownership.ts) | contract/API | project-download | current |
 | [Диагностика](../docs/diagnostics.md) | reference | project-download | current |
 | [Авторская модель Core](../../quarto-course/spec/index.md) | specification/index | course-core | current |
-| [План владельца](../docs/plans/2026-10-08-implementation.md) | plan | project-download | in-progress |
+| [Результат реализации](../docs/releases/2026-10-08-implementation.md) | implementation-report | project-download | historical |
 | [Карта сохранённой истории](../docs/history-index.md) | history-index | project-download | current |
 
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
