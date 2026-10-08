@@ -28,6 +28,8 @@ try {
   await Deno.writeTextFile(root + "/projects/demo/tests/Closed.java", "PRIVATE_CLOSED_TEST");
   await Deno.writeTextFile(root + "/projects/demo/check.sh", "PRIVATE_SERVICE_CHECKER");
   await Deno.writeTextFile(root + "/projects/demo/student/tests/Open.py", "PUBLIC_OPEN_TEST");
+  await Deno.mkdir(root + "/projects/restricted/student", { recursive: true });
+  await Deno.writeTextFile(root + "/projects/restricted/student/private.py", "RESTRICTED_STARTER");
   await Deno.mkdir(root + "/data");
   await Deno.writeTextFile(
     root + "/projects/demo/student/Main.java",
@@ -52,6 +54,8 @@ try {
   pre-render: [_extensions/course-core/entrypoints/pre.ts, _extensions/project-download/entrypoints/pre.ts]
   post-render: [_extensions/course-core/entrypoints/post.ts, _extensions/project-download/entrypoints/post.ts]
 format: html
+exercise-bank: true
+exercise-statement-visibility: open
 course: {id: course-a}
 filters: [course-core, project-download]
 project-download:
@@ -75,11 +79,20 @@ project-download:
   }
   const body = `# Native projects {#sec-projects}
 
-::: {#exr-demo target="manual" project="/projects/demo" course-role="independent-study" difficulty="introductory"}
+::: {#exr-demo target="manual" project="/projects/demo" course-role="independent-study" difficulty="introductory" time="10"}
 ## Starter
 PUBLIC_TASK
 
 {{< project-download exr-demo >}}
+:::
+
+::: {#exr-restricted target="manual" project="/projects/restricted" difficulty="advanced" time="20" statement-visibility="restricted"}
+## Restricted condition
+RESTRICTED_CONDITION
+
+::: {.solution}
+RESTRICTED_SOLUTION
+:::
 :::
 
 [Public](data/public.txt)
@@ -92,7 +105,7 @@ PUBLIC_TASK
 {{< project-download public-data >}}
 
 :::: {.content-visible when-profile="full"}
-::: {#exr-hidden target="manual" project="/projects/hidden" course-role="control" difficulty="introductory"}
+::: {#exr-hidden target="manual" project="/projects/hidden" course-role="control" difficulty="introductory" time="10"}
 ## Hidden task
 PRIVATE_HIDDEN_TASK
 :::
@@ -110,6 +123,15 @@ PRIVATE_HIDDEN_TASK
       "private starter sibling leaked",
     );
     for (const name of starterFiles) assert(zip.includes("PUBLIC_STARTER_" + name), "missing student starter: " + name);
+    const html = await Deno.readTextFile(root + `/_site-${view}/index.html`);
+    if (view === "student") assert(!html.includes("RESTRICTED_CONDITION") && !html.includes("RESTRICTED_SOLUTION"), "restricted condition or solution survived student HTML");
+    assert(!zip.includes("RESTRICTED_") && !zip.includes("PUBLIC_TASK"), "condition, solution or restricted starter entered participant archive");
+
+  }
+  // Even full-site raw facts cannot supply a restricted website task as a public ZIP.
+  for (const profile of ["student", "full"]) {
+    await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download exr-restricted >}}\n");
+    await native(["render", "index.qmd", "--profile", profile], false, "DOWNLOAD.RESOURCE_UNAVAILABLE");
   }
   for (const profile of [undefined, "student", "full"]) {
     for (const id of ["hidden-tests", "hidden-checker"]) {
