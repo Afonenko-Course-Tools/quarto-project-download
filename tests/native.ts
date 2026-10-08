@@ -66,6 +66,21 @@ try {
     stale = e instanceof Error && (e as Error & {code?:string}).code === "DOWNLOAD.REQUEST_INVALID" && e.message.includes("index.qmd");
   }
   assert(stale, "request from a stale unselected document accepted");
+  // Canonical exercises are raw facts, never a substitute for website projection.
+  await Deno.mkdir(root + "/projects/demo/student", { recursive: true });
+  await Deno.writeTextFile(root + "/projects/demo/student/Main.py", "PUBLIC_STARTER");
+  await Deno.remove(foreignArchive);
+  await Deno.writeTextFile(root + "/_quarto.yml", "project:\n  type: website\n  output-dir: _site\nproject-download:\n  course-model: true\n");
+  await Deno.writeTextFile(root + "/_generated/project-download/requests/one.json", JSON.stringify({ source: "index.qmd", resources: ["exr-demo"] }));
+  run.profiles = ["student"];
+  run.documents = [{ source: "index.qmd", course: { view: "student" }, exercises: [{ id: "exr-demo", project: "/projects/demo", statementVisibility: "restricted" }] }];
+  let missingProjection = false;
+  try { await finish(root, { run, evaluateResources: async () => {} }); }
+  catch (error) { missingProjection = error instanceof Error && (error as Error & {code?:string}).code === "DOWNLOAD.RESOURCE_UNAVAILABLE"; }
+  assert(missingProjection, "raw restricted exercise substituted for missing publicExercises projection");
+  run.documents[0].body = { publicExercises: [{ id: "exr-demo", project: "/projects/demo", statementVisibility: "open" }] };
+  assert(await finish(root, { run, evaluateResources: async () => {} }) === 1, "explicit public exercise starter was not archived");
+
 } finally {
   await Deno.remove(root, { recursive: true });
 }
