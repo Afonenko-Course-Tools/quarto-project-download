@@ -5,6 +5,10 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5; при использовании Core требуется CUE 0.17.1.
 
+В этой ветке разрабатывается невыпущенный контракт 3.0.0. Модельные комплекты
+требуют нового совместимого Core; опубликованный v2.0.0 имеет прежний контракт.
+Для проверки кандидата установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
+
 `project-download` создаёт воспроизводимые ZIP-архивы явно перечисленных
 материалов: наборов данных, демонстраций, карточек семинара или стартовых проектов.
 Расширение работает без учебной модели, адаптеров оценивания и CUE. Его результат — архив выбранных файлов; компиляция стартового проекта, проверка программы и доставка задания в LMS выполняются другими инструментами.
@@ -190,24 +194,60 @@ export function clearOwnedRequests(
 Этот API не отбирает содержимое профиля и не меняет правила доступности архивов.
 Обычное подключение shortcode, фильтра и обработчиков остаётся прежним.
 
-## Необязательная связь с Core
+## Комплекты учебной модели
 
-Для уже существующей разметки `{{< project-download exr-example >}}` доступен
-явный мост:
+Подключите `course-core` перед Download и его pre/post hooks перед соответствующими
+Download hooks. Для модельных упражнений достаточно включить мост:
 
 ```yaml
 project-download:
   course-model: true
-  resources: {}
 ```
 
-Если ID не объявлен непосредственно, мост получает задание с тем же ID и источником из текущего NativeRun Core и архивирует только `<project>/student`. При full используется сохранённая публичная проекция `body.publicExercises`. `course.json` не читается. Явный ресурс имеет приоритет, но также проходит публичную resource policy Core, включая full: hidden-only файлы, учебные входы, служебные файлы и отсутствующие generated ресурсы отклоняются. Мост передаёт явно выбранные файлы как публичный payload с перечнем известных учебных и build-входов; исходники программы из `student/` не считаются учебным исходником по одному расширению.
+Путь проекта задаётся один раз в упражнении. Shortcode с ID упражнения создаёт одну
+контекстную ссылку; повторять путь в `resources` не требуется:
 
-Установка Core сама по себе не активирует мост. Если Core обработал текущий AST, его публичная resource policy применяется и при `course-model: false`. Runtime находит Core рядом с установленным Download, включая каталог владельца GitHub.
+```qmd
+{{< project-download exr-example >}}
+{{< project-download exr-example kind="conditions" text="Условие для работы вне сети" >}}
+```
 
-Подключите `course-core` перед `project-download`, native Core pre-hook перед Download pre-hook и Core post-hook перед Download post-hook. После успешного native процесса координатор может вызвать `finish(root, {run, evaluateResources})` с явным текущим NativeRun и публичным API Core. Проверяется совпадение project/output и наличие текущего DocumentResult для каждой заявки. Старые страницы выбранного проекта не становятся текущим inventory.
+| Модель и audience | Контекстный комплект |
+| --- | --- |
+| Обычное упражнение, student | student partition в корне ZIP |
+| Обычное упражнение, full | Полный проект с student/reference/tests |
+| Открытая demonstration, student или full | Полный проект |
+| Явный kind=conditions | Переносимое условие и разрешённые ресурсы, без решения |
 
-Обычные явно объявленные ресурсы работают без Core/CUE и сохраняют собственные ограничения исходных/служебных каталогов. Не помещайте закрытые материалы в публичный каталог. Каждый native pre-hook очищает только выбранный output архивов и текущие заявки; другие audience outputs и native caches сохраняются.
+Restricted упражнение не создаёт запрос в student projection. Полный проект в
+student разрешён только при effective `course-role=demonstration` и открытом условии.
+Демонстрация может оставаться вне банка. Профиль сайта и вид архива — разные поля;
+права определяются текущим NativeRun Core, не параметром shortcode. Неизвестный
+ID, отсутствующий проект и запрещённый kind завершают сборку с диагностикой.
+
+Модельные архивы называются `ID-starter.zip`, `ID-full.zip`, `ID-conditions.zip`.
+Пустая или отсутствующая подпись получает соответственно «Скачать заготовку»,
+«Скачать полный проект» или «Скачать условие»; явная подпись сохраняется.
+Обычные resources сохраняют `ID.zip` и подпись «Скачать материалы».
+
+README копируется как непрозрачный payload: shortcodes/includes в нём не исполняются.
+Корневой student/.gitignore сохраняется; Quarto inputs/configuration, extensions,
+caches, build outputs и class/jar исключаются. Автор обеспечивает самостоятельные
+команды и ссылки README. Весь разрешённый full project упаковывается после
+Core authorization, а public guards обычных resources сохраняются.
+
+`finish(root, {run, evaluateResources, resolveArtifact})` принимает явный текущий
+контекст и публичные API Core. Модельные заявки имеют отдельный typed transport
+`artifacts: [{exerciseId, kind}]`; они не преобразуются в ID старого resources map.
+При обычном post-hook контекст загружается из установленного соседнего Core.
+Private `_generated/project-download/artifacts-receipt.json` фиксирует SHA256
+архивов, kind/source и hash текущего NativeRun; он исключается из сайта вместе
+с остальными generated inputs. Он не подтверждает выполнение Java-проектов.
+
+Обычные resources работают без Core/CUE. Если Core обработал AST, generic resource
+policy действует и при `course-model: false`. `course.json` и retained HTML предыдущей
+сборки не заменяют текущий NativeRun. Audience wrappers в authoring Core запрещены;
+доступ материала определяется моделью или full-only страницами книги.
 
 ## Архитектура и проверки
 
@@ -222,6 +262,8 @@ project-download:
 quarto run tests/archive.ts
 quarto run tests/render.ts
 quarto run tests/ownership.ts
+quarto run tests/model-artifacts.ts
+CORE=/path/to/compatible/quarto-course quarto run tests/model-installed.ts
 ```
 
 Проверяются `.gitignore` без репозитория и внутри игнорируемой копии, границы

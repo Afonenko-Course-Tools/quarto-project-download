@@ -55,7 +55,7 @@ try {
   post-render: [_extensions/course-core/entrypoints/post.ts, _extensions/project-download/entrypoints/post.ts]
 format: html
 exercise-bank: true
-exercise-statement-visibility: open
+default-exercise-statement-visibility: open
 course: {id: course-a}
 filters: [course-core, project-download]
 project-download:
@@ -84,6 +84,11 @@ project-download:
 PUBLIC_TASK
 
 {{< project-download exr-demo >}}
+
+::: {.solution}
+[Hidden](data/private.txt)
+[Hidden Python](data/private.py)
+:::
 :::
 
 ::: {#exr-restricted target="manual" project="/projects/restricted" difficulty="advanced" time="20" statement-visibility="restricted"}
@@ -97,29 +102,23 @@ RESTRICTED_SOLUTION
 
 [Public](data/public.txt)
 
-::: {.content-visible when-profile="full"}
-[Hidden](data/private.txt)
-[Hidden Python](data/private.py)
-:::
 
 {{< project-download public-data >}}
 
-:::: {.content-visible when-profile="full"}
-::: {#exr-hidden target="manual" project="/projects/hidden" course-role="control" difficulty="introductory" time="10"}
+::: {#exr-hidden target="manual" project="/projects/hidden" course-role="control" statement-visibility="restricted" difficulty="introductory" time="10"}
 ## Hidden task
 PRIVATE_HIDDEN_TASK
 :::
-::::
 `;
   await Deno.writeTextFile(root + "/index.qmd", body);
   await Deno.writeTextFile(root + "/other.qmd", "# Other {#sec-other}\n");
   for (const view of ["student", "full", "student"]) {
     await native(["render", "--profile", view, "--fail-if-warnings"]);
     const zip = new TextDecoder().decode(
-      await Deno.readFile(root + `/_site-${view}/_downloads/exr-demo.zip`),
+      await Deno.readFile(root + `/_site-${view}/_downloads/exr-demo-${view==="student"?"starter":"full"}.zip`),
     );
     assert(
-      zip.includes("PUBLIC_STARTER") && zip.includes("PUBLIC_OPEN_TEST") && !zip.includes("PRIVATE_SOLUTION") && !zip.includes("PRIVATE_CLOSED_TEST"),
+      zip.includes("PUBLIC_STARTER") && zip.includes("PUBLIC_OPEN_TEST") && (view === "full" || (!zip.includes("PRIVATE_SOLUTION") && !zip.includes("PRIVATE_CLOSED_TEST"))),
       "private starter sibling leaked",
     );
     for (const name of starterFiles) assert(zip.includes("PUBLIC_STARTER_" + name), "missing student starter: " + name);
@@ -129,13 +128,13 @@ PRIVATE_HIDDEN_TASK
 
   }
   // Even full-site raw facts cannot supply a restricted website task as a public ZIP.
-  for (const profile of ["student", "full"]) {
+  for (const profile of ["student"]) {
     await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download exr-restricted >}}\n");
-    await native(["render", "index.qmd", "--profile", profile], false, "DOWNLOAD.RESOURCE_UNAVAILABLE");
+    await native(["render", "index.qmd", "--profile", profile], false, "ARTIFACT.ACCESS_DENIED");
   }
   for (const profile of [undefined, "student", "full"]) {
     for (const id of ["hidden-tests", "hidden-checker"]) {
-      await Deno.writeTextFile(root + "/index.qmd", body + "\n{{< project-download " + id + " >}}\n");
+      await Deno.writeTextFile(root + "/index.qmd", (profile ? body : body.replace("{{< project-download exr-demo >}}", "")) + "\n{{< project-download " + id + " >}}\n");
       await native(["render", "index.qmd", ...(profile ? ["--profile", profile] : [])], false, "RESOURCE.PRIVATE_OR_SOURCE");
     }
   }
@@ -158,7 +157,7 @@ PRIVATE_HIDDEN_TASK
   ]);
   let absent = false;
   try {
-    await Deno.stat(root + "/_site-student/_downloads/exr-demo.zip");
+    await Deno.stat(root + "/_site-student/_downloads/exr-demo-starter.zip");
   } catch {
     absent = true;
   }

@@ -44,7 +44,7 @@ project-download:
   );
   await Deno.writeTextFile(root + "/index.qmd", "# Материалы\n");
   const body =
-    '# Данные\n\n{{< project-download public-data >}}\n\n::: {.content-visible when-profile="full"}\n{{< project-download private-data >}}\n:::\n';
+    '# Данные\n\n{{< project-download public-data text="" >}}\n\n::: {.content-visible when-profile="full"}\n{{< project-download private-data >}}\n:::\n';
   await Deno.writeTextFile(root + "/nested/page.qmd", body);
   for (const profile of ["full", "student"]) {
     await Deno.writeTextFile(root + `/_quarto-${profile}.yml`, "lang: ru\n");
@@ -68,6 +68,7 @@ project-download:
       !html.includes("private-data"),
     "Относительная ссылка и отбор профиля",
   );
+  assert(/class="project-download"[^>]*>Скачать материалы<\/a>/.test(html), "Empty caption must produce an accessible link name");
   // Координатор может переопределить output-dir за пределами исходников.
   const outside = await Deno.makeTempDir({ prefix: "download-output-" });
   try {
