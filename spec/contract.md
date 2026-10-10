@@ -1,7 +1,7 @@
 ---
 type: contract
 component: project-download
-status: unreleased
+status: current
 ---
 
 # Контракт Download 3
