@@ -73,8 +73,8 @@ project-download:
     private-reference: {path: data/reference}
 `,
   );
-  const body = `# Materials {#sec-materials}\n\n[Public](data/public.txt)\n\n${
-    active ? "::: {.content-visible when-profile=\"full\"}\n[Hidden](data/private.txt)\n:::\n" : ""
+  const body = `${active ? "---\nexercise-bank: true\n---\n" : ""}# Materials {#sec-materials}\n\n[Public](data/public.txt)\n\n${
+    active ? '::: {#exr-hidden target="manual" statement-visibility="restricted" difficulty="introductory" time="10"}\n## Hidden\n[Hidden](data/private.txt)\n:::\n' : ""
   }\n{{< project-download public-data >}}\n`;
   await Deno.writeTextFile(root + "/index.qmd", body);
   await native(["render", "--profile", "student", "--fail-if-warnings"], true, "OBJECT_FILTER_EXECUTED");

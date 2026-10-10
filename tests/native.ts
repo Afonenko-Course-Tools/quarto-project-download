@@ -8,11 +8,12 @@ try {
   await Deno.mkdir(root + "/data");
   await Deno.writeTextFile(root + "/data/private.txt", "PRIVATE");
   await Deno.writeTextFile(root + "/data/public.txt", "PUBLIC");
+  const sourceHash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-1",new TextEncoder().encode("index.qmd"))),v=>v.toString(16).padStart(2,"0")).join("");
   await Deno.mkdir(root + "/_generated/project-download/requests", {
     recursive: true,
   });
   await Deno.writeTextFile(
-    root + "/_generated/project-download/requests/one.json",
+    root + "/_generated/project-download/requests/"+sourceHash+".json",
     JSON.stringify({ source: "index.qmd", resources: ["data"] }),
   );
   await Deno.writeTextFile(root + "/index.qmd", "# Index");
@@ -71,7 +72,7 @@ try {
   await Deno.writeTextFile(root + "/projects/demo/student/Main.py", "PUBLIC_STARTER");
   await Deno.remove(foreignArchive);
   await Deno.writeTextFile(root + "/_quarto.yml", "project:\n  type: website\n  output-dir: _site\nproject-download:\n  course-model: true\n");
-  await Deno.writeTextFile(root + "/_generated/project-download/requests/one.json", JSON.stringify({ source: "index.qmd", resources: ["exr-demo"] }));
+  await Deno.writeTextFile(root + "/_generated/project-download/requests/"+sourceHash+".json", JSON.stringify({ source: "index.qmd", resources: ["exr-demo"] }));
   run.profiles = ["student"];
   run.documents = [{ source: "index.qmd", course: { view: "student" }, exercises: [{ id: "exr-demo", project: "/projects/demo", statementVisibility: "restricted" }] }];
   let missingProjection = false;
