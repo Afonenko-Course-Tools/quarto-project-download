@@ -34,6 +34,7 @@ project-download:
   course-model: true
   resources:
     exr-ordinary: {path: projects/exr-demo, include: [reference/Example.java]}
+    exr-demo-full: {path: data, include: [diagram.svg]}
 `);
   for(const view of ["student","full"]) await Deno.writeTextFile(join(root,`_quarto-${view}.yml`),`course: {view: ${view}}\nproject: {output-dir: _site-${view}}\n`);
   for(const id of ["exr-ordinary","exr-demo"]) {
@@ -54,6 +55,8 @@ project-download:
   let first:Uint8Array|undefined;
   for(const view of ["student","full","student"]) {
     await native(["render","--profile",view,"--fail-if-warnings"]);
+    const receipt=JSON.parse(await Deno.readTextFile(join(root,"_generated/project-download/artifacts-receipt.json")));
+    assert(receipt.audience===view && receipt.archives.every((a:any)=>a.audience===view),"receipt uses trusted audience, including student demonstration full ZIP");
     const output=join(root,`_site-${view}`);
     const kind=view==="student"?"starter":"full";
     const ordinary=await unzip(join(output,"_downloads",`exr-ordinary-${kind}.zip`));
@@ -71,6 +74,13 @@ project-download:
     const bytes=await Deno.readFile(join(output,"_downloads/exr-demo-full.zip"));
     if(first)assert(bytes.length===first.length && bytes.every((b,i)=>b===first![i]),"fresh deterministic ZIP bytes");else first=bytes;
   }
+  const originalDemo=await Deno.readTextFile(join(root,"demo.qmd"));
+  for(const genericFirst of [false,true]) {
+    const generic="{{< project-download exr-demo-full >}}\n\n";
+    await Deno.writeTextFile(join(root,"demo.qmd"),genericFirst ? generic+originalDemo : originalDemo+"\n"+generic);
+    await native(["render","--profile","student"],false,"DOWNLOAD.OUTPUT_CONFLICT");
+  }
+  await Deno.writeTextFile(join(root,"demo.qmd"),originalDemo);
   const originalOrdinary=await Deno.readTextFile(join(root,"ordinary.qmd"));
   await Deno.writeTextFile(join(root,"ordinary.qmd"),"---\nexercise-bank: true\n---\n# Ordinary {#sec-ordinary}\n\n"+content("exr-ordinary",'difficulty="introductory" time="10"').replace("exr-ordinary >}}","exr-ordinary kind=\"full\" >}}"));
   await native(["render","--profile","student"],false);

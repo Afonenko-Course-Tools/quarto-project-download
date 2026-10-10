@@ -53,3 +53,5 @@ inspect и cleanup выполняются последовательно, зак
 authoring не использует audience wrappers; full-only страницы и model permissions
 определяют преподавательское содержание. Полная acceptance проверяет реальные
 student/full/student DOM, каждый ZIP, privacy, QRC/search/hrefs и установленный пакет.
+
+Receipt audience берётся из trusted NativeRun course.view, независимо от названий profiles и kind. Каждому модельному архиву соответствует audience его source документа; общий audience задан для однородного run, при смешанном run — null и явный список audiences. ZIP basename collision между generic/model заявками — ошибка независимо от порядка ссылок.

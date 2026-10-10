@@ -44,9 +44,10 @@ return {{Pandoc = function(doc)
       end
       name = id .. "-" .. kind
     end
-    if not seen[name] then
+    local identity = kind and ("artifact:" .. id .. ":" .. kind) or ("resource:" .. id)
+    if not seen[identity] then
       if kind then artifacts:insert({exerciseId=id,kind=kind}) else requests:insert(id) end
-      seen[name] = true
+      seen[identity] = true
     end
     local content = span.content
     if pandoc.utils.stringify(content):match("^%s*$") then content = {pandoc.Str(kind and captions[kind] or "Скачать материалы")} end

@@ -85,7 +85,6 @@ export interface NativeDownloadContext {
     profiles: string[];
     documents: any[];
     inputFiles?: string[];
-    audience?: string;
   };
   resolveArtifact?(run:any, request:{source:string;exerciseId:string;kind:string}):Promise<any>;
   evaluateResources(
@@ -278,12 +277,14 @@ export async function finish(
         await Deno.remove(receiptPath);
       }
       const artifactRequests=requests.flatMap(request=>(request.artifacts??[]).map(artifact=>({...artifact,source:request.source})));
+      const audienceValues=[...new Set((current?.run.documents ?? []).map(d=>d.course?.view).filter(v=>v==="student" || v==="full"))].sort();
+      const audience=audienceValues.length===1 ? audienceValues[0] : null;
       const entries=[];
       for(const archive of archives) {
         const request=artifactRequests.find(a=>a.exerciseId+"-"+a.kind+".zip"===archive.name);
-        entries.push({name:archive.name,sha256:await sha256(archive.bytes),...(request?{exerciseId:request.exerciseId,kind:request.kind,source:request.source}:{} )});
+        entries.push({name:archive.name,audience,sha256:await sha256(archive.bytes),...(request?{exerciseId:request.exerciseId,kind:request.kind,source:request.source,audience:current?.run.documents.find(d=>d.source===request.source)?.course?.view??null}:{} )});
       }
-      await Deno.writeTextFile(receiptPath,JSON.stringify({schema:"project-download-artifacts-v1",profiles,sourceRunHash:current?await sha256(new TextEncoder().encode(JSON.stringify(current.run))):null,archives:entries},null,2)+"\n",{createNew:true});
+      await Deno.writeTextFile(receiptPath,JSON.stringify({schema:"project-download-artifacts-v1",audience,audiences:audienceValues,profiles,sourceRunHash:current?await sha256(new TextEncoder().encode(JSON.stringify(current.run))):null,archives:entries},null,2)+"\n",{createNew:true});
     },
   });
 }
