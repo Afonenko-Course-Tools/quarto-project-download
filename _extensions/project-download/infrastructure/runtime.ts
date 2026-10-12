@@ -1,3 +1,5 @@
+import {createMetrics as __createMetrics} from "../observability/bridge.ts";
+const __metrics=__createMetrics("project-download");
 import { inspectOwnedRequests } from "../ownership.ts";
 import { diagnostic, externalFailure } from "../diagnostics.ts";
 import {
@@ -288,3 +290,10 @@ export async function finish(
     },
   });
 }
+
+// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
+clearOwned=__metrics.wrapAsync({id:"project-download.infrastructure.runtime.clearOwned",kind:"io"},clearOwned);
+// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
+prepare=__metrics.wrapAsync({id:"project-download.infrastructure.runtime.prepare",kind:"io"},prepare);
+// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
+finish=__metrics.wrapAsync({id:"project-download.infrastructure.runtime.finish",kind:"io"},finish);
