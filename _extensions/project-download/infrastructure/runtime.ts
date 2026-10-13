@@ -26,6 +26,7 @@ async function inspect(root: string) {
   try { result = await new Deno.Command(executable, {
     args: ["inspect", root],
     cwd: root,
+    env: __metrics.childEnv({}),
     stdout: "piped",
     stderr: "piped",
   }).output(); } catch(cause) { if (!Object.values(Deno.errors).some(kind => cause instanceof kind)) throw cause; throw externalFailure(executable,undefined,cause); }
