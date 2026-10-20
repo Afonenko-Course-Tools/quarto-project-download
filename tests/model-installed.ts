@@ -101,6 +101,14 @@ project-download:
     const bytes=await Deno.readFile(join(output,"_downloads/exr-demo-full.zip"));
     if(first)assert(bytes.length===first.length && bytes.every((b,i)=>b===first![i]),"fresh deterministic ZIP bytes");else first=bytes;
   }
+  const partialOriginal=await Deno.readTextFile(join(root,'ordinary.qmd'));
+  const partialMetadata=partialOriginal.replace('exr-ordinary: {common-files: [], include-git: true}', 'exr-ordinary: {common-files: [{source: data/diagram.svg, target: student/Shared.svg, audience: student}], include-git: true}\n    exr-demo: {common-files: []}\n    exr-stale: {common-files: []}');
+  await Deno.writeTextFile(join(root,'ordinary.qmd'),partialMetadata);
+  await native(['render','ordinary.qmd','--profile','student','--fail-if-warnings']);
+  const partialFiles=await unzip(join(root,'_site-student/_downloads/exr-ordinary-starter.zip'));
+  assert(partialFiles['Shared.svg']?.includes('FIGURE_ASSET')&&!partialFiles['Stale.txt'],'Partial common did not use only current selected project');
+  await native(['render','--profile','student'],false,'CORE.PROJECT_MATERIALIZATION_INVALID');
+  await Deno.writeTextFile(join(root,'ordinary.qmd'),partialOriginal);
   const originalDemo=await Deno.readTextFile(join(root,"demo.qmd"));
   for(const genericFirst of [false,true]) {
     const generic="{{< project-download exr-demo-full >}}\n\n";

@@ -132,14 +132,15 @@ export async function finish(
       toFileUrl(join(core, "infrastructure/resources.ts")).href
     );
     const { resolveArtifact } = await import(toFileUrl(join(core, "artifacts/resolve.ts")).href);
-    current = { run: await loadNativeRun(root), evaluateResources, resolveArtifact };
+    current = { run: await loadNativeRun(root,{profiles,outputDirectory:output}), evaluateResources, resolveArtifact };
   }
   if (
     current &&
     (resolve(current.run.projectRoot) !== resolve(root) ||
-      resolve(current.run.outputDirectory) !== resolve(root, output))
+      resolve(current.run.outputDirectory) !== resolve(root, output)||
+      JSON.stringify(current.run.profiles)!==JSON.stringify(profiles))
   ) {
-    throw diagnostic("DOWNLOAD.REQUEST_INVALID", "Нативный контекст не соответствует текущему проекту и каталогу вывода", {source:root,field:"projectRoot/outputDirectory",related:[{source:current.run.projectRoot},{source:current.run.outputDirectory}]});
+    throw diagnostic("DOWNLOAD.REQUEST_INVALID", "Нативный контекст не соответствует текущему проекту, профилям и каталогу вывода", {source:root,field:"projectRoot/outputDirectory/profiles",related:[{source:current.run.projectRoot},{source:current.run.outputDirectory}]});
   }
   const facts =
     current?.run.documents.flatMap((d) => d.resources ? [d.resources] : []) ??

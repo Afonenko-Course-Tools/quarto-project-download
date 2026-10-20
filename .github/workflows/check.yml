@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 57b3ed44451864c4eda8819c14328d2eee5b738e # Явный unreleased candidate Core materialization; release не требуется
+          ref: 11db2d11c500f99d0dd5b279beadc307bab8d1b5 # Явный unreleased candidate Core materialization; release не требуется
           path: core-fixture
       - uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
         with:
