@@ -197,6 +197,7 @@ export async function finish(
     async modelArtifact(request, source) {
       if (!current?.resolveArtifact) throw diagnostic("DOWNLOAD.CONFIG_INVALID", "Требуется Core с модельными комплектами", {source,id:request.exerciseId,field:"course-model"});
       const artifact = await current.resolveArtifact(current.run, {source,exerciseId:request.exerciseId,kind:request.kind});
+      if (Array.isArray(artifact.files)) return {kind:artifact.kind,files:artifact.files};
       if (artifact.kind === "conditions") {
         if (!Array.isArray(artifact.files)) throw diagnostic("DOWNLOAD.RESOURCE_UNAVAILABLE", "Core не предоставил переносимое условие", {source,id:request.exerciseId,field:"conditions"});
         return {kind:artifact.kind,files:artifact.files};
