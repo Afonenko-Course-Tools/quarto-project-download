@@ -28,7 +28,7 @@ try {
   const run: any = {
     projectRoot: root,
     outputDirectory: root + "/_site",
-    profiles: ["full"],
+    profiles: (Deno.env.get("QUARTO_PROFILE")||"").split(",").filter(Boolean),
     documents: [{
       source: "index.qmd",
       course: { view: "full" },
@@ -44,6 +44,10 @@ try {
       },
     }],
   };
+  let wrongProfile=false;
+  try{await finish(root,{run:{...run,profiles:[...run.profiles,'foreign']},evaluateResources:policy.evaluateResources})}
+  catch(error){wrongProfile=String(error).includes('DOWNLOAD.REQUEST_INVALID')}
+  assert(wrongProfile,'Injected context bypassed actual profile binding');
   let refused = false;
   try {
     await finish(root, { run, evaluateResources: policy.evaluateResources });
@@ -73,7 +77,7 @@ try {
   await Deno.remove(foreignArchive);
   await Deno.writeTextFile(root + "/_quarto.yml", "project:\n  type: website\n  output-dir: _site\nproject-download:\n  course-model: true\n");
   await Deno.writeTextFile(root + "/_generated/project-download/requests/"+sourceHash+".json", JSON.stringify({ source: "index.qmd", resources: ["exr-demo"] }));
-  run.profiles = ["student"];
+  run.profiles = (Deno.env.get("QUARTO_PROFILE")||"").split(",").filter(Boolean);
   run.documents = [{ source: "index.qmd", course: { view: "student" }, exercises: [{ id: "exr-demo", project: "/projects/demo", statementVisibility: "restricted" }] }];
   let missingProjection = false;
   try { await finish(root, { run, evaluateResources: async () => {} }); }

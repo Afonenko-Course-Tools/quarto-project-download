@@ -30,8 +30,11 @@ Typed transport хранит отдельные `artifacts: [{exerciseId, kind}]
 
 Core `artifacts/resolve.ts` предоставляет
 `resolveArtifact(run,{source,exerciseId,kind?})`; результат имеет kind/projectRoot,
-для starter partition student, для conditions — готовые файлы portable native
-condition/resources. Caller-supplied audience не принимается. Download отбирает
+для starter partition student и точный files inventory из Core materializer,
+для conditions — готовые файлы portable native condition/resources.
+Caller-supplied audience не принимается. Явный files inventory упаковывается
+без повторного generic excludes: только Core разрешает controlled учебную .git.
+Если Core не предоставил files (прежний full project API), Download отбирает
 обычные файлы разрешённой partition, сохраняя README bytes и root student/.gitignore,
 исключая source QMD/config/extensions/generated/build/cache/class/jar. README не
 проходит Quarto rendering. Generic resource guards при model full не ослабляются.

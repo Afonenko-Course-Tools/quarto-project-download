@@ -48,13 +48,40 @@ project-download:
     await Deno.writeTextFile(join(root,"projects",id,"authored.qmd"),"SOURCE_EXCLUDED\n");
     await Deno.writeTextFile(join(root,"projects",id,"binary.jar"),"BUILD_EXCLUDED\n");
   }
-  await Deno.writeTextFile(join(root,"ordinary.qmd"),"---\nexercise-bank: true\n---\n# Ordinary {#sec-ordinary}\n\n"+content("exr-ordinary",'difficulty="introductory" time="10"'));
+  const seed=join(root,'projects/exr-ordinary/student');
+  for(const args of [['init'],['add','.'],['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-m','Seed']]){
+    const result=await new Deno.Command('git',{args,cwd:seed,stdout:'piped',stderr:'piped'}).output();assert(result.success,'seed Git failed');
+  }
+  for(const args of [['branch','build'],['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','--allow-empty','-m','Second']]){
+    const result=await new Deno.Command('git',{args,cwd:seed,stdout:'piped',stderr:'piped'}).output();assert(result.success,'seed parent/ref creation failed');
+  }
+  await Deno.writeTextFile(join(root,"ordinary.qmd"),"---\nexercise-bank: true\nproject-materialization:\n  projects:\n    exr-ordinary: {common-files: [], include-git: true}\n---\n# Ordinary {#sec-ordinary}\n\n"+content("exr-ordinary",'difficulty="introductory" time="10"'));
   await Deno.writeTextFile(join(root,"demo.qmd"),"# Demonstration {#sec-demo}\n\n"+content("exr-demo",'course-role="demonstration"').replace("{{< project-download exr-demo >}}", "{{< project-download exr-demo >}}\n\n{{< project-download exr-demo kind=\"conditions\" >}}\n\n![Figure](data/diagram.svg)"));
   await Deno.mkdir(join(root,"data"));
   await Deno.writeTextFile(join(root,"data/diagram.svg"),'<svg xmlns="http://www.w3.org/2000/svg"><text>FIGURE_ASSET</text></svg>');
   let first:Uint8Array|undefined;
   for(const view of ["student","full","student"]) {
     await native(["render","--profile",view,"--fail-if-warnings"]);
+    if(view==='student'){
+      const seeded=await unzip(join(root,`_site-${view}/_downloads/exr-ordinary-starter.zip`));
+      assert(seeded['.git/HEAD'],'Core-authorized seed history was removed by Download');
+      const restored=await Deno.makeTempDir({prefix:'download-seed-unzip-'});
+      try{
+        const extraction=await new Deno.Command('unzip',{args:['-q',join(root,`_site-${view}/_downloads/exr-ordinary-starter.zip`),'-d',restored]}).output();assert(extraction.success,'Actual seed ZIP extraction failed');
+        const history=await new Deno.Command('git',{args:['log','--format=%s'],cwd:restored,stdout:'piped'}).output();
+        assert(history.success&&new TextDecoder().decode(history.stdout).trim()==='Second\nSeed','ZIP lost seed commit parents');
+        const refs=await new Deno.Command('git',{args:['rev-parse','build','HEAD^'],cwd:restored,stdout:'piped'}).output();
+        const hashes=new TextDecoder().decode(refs.stdout).trim().split('\n');assert(refs.success&&hashes.length===2&&hashes[0]===hashes[1],'ZIP lost explicit seed refs');
+      }finally{await Deno.remove(restored,{recursive:true})}
+      const model=join(root,'_generated/course-spec/native-run.json');
+      const external=await Deno.makeTempDir({prefix:'download-materialize-cli-'});
+      try{
+        const base=['run',join(root,'_extensions/course-core/entrypoints/materialize-projects.ts'),'--','--root',root,'--model',model,'--output-root',join(external,'stage'),'--audience','student','--task','exr-ordinary'];
+        await native([...base,'--write']);await native([...base,'--check']);
+        const bad=join(external,'wrong-run.json');const captured=JSON.parse(await Deno.readTextFile(model));captured.renderAll=false;await Deno.writeTextFile(bad,JSON.stringify(captured));
+        await native([...base.map(v=>v===model?bad:v),'--check'],false,'NATIVE.RUN_NOT_CURRENT');
+      }finally{await Deno.remove(external,{recursive:true})}
+    }
     const receipt=JSON.parse(await Deno.readTextFile(join(root,"_generated/project-download/artifacts-receipt.json")));
     assert(receipt.audience===view && receipt.archives.every((a:any)=>a.audience===view),"receipt uses trusted audience, including student demonstration full ZIP");
     const output=join(root,`_site-${view}`);
@@ -74,6 +101,14 @@ project-download:
     const bytes=await Deno.readFile(join(output,"_downloads/exr-demo-full.zip"));
     if(first)assert(bytes.length===first.length && bytes.every((b,i)=>b===first![i]),"fresh deterministic ZIP bytes");else first=bytes;
   }
+  const partialOriginal=await Deno.readTextFile(join(root,'ordinary.qmd'));
+  const partialMetadata=partialOriginal.replace('exr-ordinary: {common-files: [], include-git: true}', 'exr-ordinary: {common-files: [{source: data/diagram.svg, target: student/Shared.svg, audience: student}], include-git: true}\n    exr-demo: {common-files: []}\n    exr-stale: {common-files: []}');
+  await Deno.writeTextFile(join(root,'ordinary.qmd'),partialMetadata);
+  await native(['render','ordinary.qmd','--profile','student','--fail-if-warnings']);
+  const partialFiles=await unzip(join(root,'_site-student/_downloads/exr-ordinary-starter.zip'));
+  assert(partialFiles['Shared.svg']?.includes('FIGURE_ASSET')&&!partialFiles['Stale.txt'],'Partial common did not use only current selected project');
+  await native(['render','--profile','student'],false,'CORE.PROJECT_MATERIALIZATION_INVALID');
+  await Deno.writeTextFile(join(root,'ordinary.qmd'),partialOriginal);
   const originalDemo=await Deno.readTextFile(join(root,"demo.qmd"));
   for(const genericFirst of [false,true]) {
     const generic="{{< project-download exr-demo-full >}}\n\n";

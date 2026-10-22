@@ -2,6 +2,7 @@
 type: index
 component: project-download
 status: current
+version: 3.2.0
 ---
 
 # Спецификации Download
@@ -24,6 +25,8 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
 
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
-Quarto 1.11.5 и CUE 0.17.1 согласованы с текущими правилами Core.
+Quarto 1.11.5 и CUE 0.17.1 согласованы с Core 8.0.0 для необязательного
+модельного моста Download 3.2.0. Обычные resources независимы от Core;
+точный files inventory и current-run guards принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
