@@ -58,3 +58,24 @@ authoring не использует audience wrappers; full-only страниц�
 student/full/student DOM, каждый ZIP, privacy, QRC/search/hrefs и установленный пакет.
 
 Receipt audience берётся из trusted NativeRun course.view, независимо от названий profiles и kind. Каждому модельному архиву соответствует audience его source документа; общий audience задан для однородного run, при смешанном run — null и явный список audiences. ZIP basename collision между generic/model заявками — ошибка независимо от порядка ссылок.
+
+## Пакетная proof-фаза необязательного Core-моста
+
+Если установленный Core предоставляет `withNativeArtifactBatch`, production
+runtime вызывает его один раз для загрузки NativeRun и всех заявок. Callback
+использует bound resolver и actual run для прежних проверок source, profiles,
+audience и ресурсов. Внутри callback Download сохраняет собственные копии ZIP
+bytes и готовые receipt facts в памяти. До успешных завершающих Core guards
+не выполняются owned cleanup и публикационные записи, включая пустой пакет.
+Отказ callback либо Core оставляет прежние outputs без изменений этой операции.
+
+После batch return runtime применяет существующие destination/foreign receipt
+и createNew guards к фиксированным bytes: manifest первым, ZIP затем, receipt
+последним. Ошибка записи не создаёт новый success receipt; manifest сохраняет
+прежнюю возможность очистки прерванной записи. Это не атомарная ZIP-транзакция.
+Самостоятельный pre-hook cleanup сохраняет прежнее назначение.
+
+На старом Core остаётся полностью guarded standalone fallback. Явный
+`finish(root,current)` сохраняет standalone semantics; новый phase parameter
+в публичном Download API не вводится. Для быстрого маршрута нужен Core 8.2.3
+с указанным internal export; exact native совместимость проверяется отдельно.
