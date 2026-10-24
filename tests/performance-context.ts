@@ -70,3 +70,5 @@ try {
   for (const [name, value] of Object.entries(saved)) Deno.env.set(name, value);
   await Deno.remove(root, { recursive: true });
 }
+
+await import("./performance-env.ts");
