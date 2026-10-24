@@ -30,13 +30,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 5ee77e0e64d24c03ff6f3d384a890d69aa13f267 # Тот же exact Core 8.0.0, что в обоих jobs exporter
+          ref: dc3bd4d7d035359289fc13c44446947830defeb0 # Core 8.2.3: точный кандидат, также закреплённый экспортёром
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "5ee77e0e64d24c03ff6f3d384a890d69aa13f267"
+          test "$(git -C core-fixture rev-parse HEAD)" = "dc3bd4d7d035359289fc13c44446947830defeb0"
       - uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
         with:
           version: v0.17.1
