@@ -4,7 +4,7 @@ repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 quarto=${QUARTO:-quarto}
 : "${CORE:?Set CORE to the current native Core checkout}"
 cd "$repo"
-for test in diagnostics archive model-artifacts runtime-batch model-receipts render ownership native native-installed model-installed; do
+for test in performance-context diagnostics archive model-artifacts runtime-batch model-receipts render ownership native native-installed model-installed; do
   "$quarto" run "tests/$test.ts"
 done
 
