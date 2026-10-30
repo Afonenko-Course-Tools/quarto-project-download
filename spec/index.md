@@ -31,15 +31,10 @@ Quarto 1.11.5 и CUE 0.17.1 согласованы с Core 8.0.0 для необ
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
 
-## Одна фаза Core на пакет ZIP в 3.2.1
+## Публичный native runtime B2
 
-При наличии internal export `withNativeArtifactBatch` в Core 8.2.3 runtime
-Download объединяет загрузку NativeRun и все модельные заявки в один callback.
-ZIP bytes и receipt facts копируются в память до завершающей Core-проверки;
-owned cleanup и публикация начинаются после успешного возврата batch.
-На Core без этого export сохраняется прежний guarded standalone маршрут.
-Обычные resources по-прежнему работают без Core.
-
-Это кандидат исходников: exact Core commit, native integration и публикация
-Download 3.2.1 принимаются отдельно. Unit boundary double не является
-доказательством native proof или банкового бюджета.
+Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
+через actual `withCurrentNativeOperation`, готовый artifact inventory и публичный
+resource inventory. Private NativeRun fallback удалён. Bounded HTML/student
+qualification и обязательные A4/full-course gates перечислены в документе;
+source ref не заявляется установленным или выпущенным автоматически.

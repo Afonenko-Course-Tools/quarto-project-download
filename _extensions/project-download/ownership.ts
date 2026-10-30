@@ -131,8 +131,16 @@ export async function inspectOwnedRequests(
     const fields = value as Record<string, unknown>;
     if (
       Object.keys(fields).some((key) =>
-        !["source", "resources", "artifacts", "courseProcessed"].includes(key)
+        ![
+          "source",
+          "resources",
+          "artifacts",
+          "courseProcessed",
+          "configuration",
+          "native",
+        ].includes(key)
       ) ||
+      (Object.hasOwn(fields, "native") && typeof fields.native !== "boolean") ||
       (Object.hasOwn(fields, "courseProcessed") &&
         typeof fields.courseProcessed !== "boolean") ||
       !Object.hasOwn(fields, "source") || !Object.hasOwn(fields, "resources") ||

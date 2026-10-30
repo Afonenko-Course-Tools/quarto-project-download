@@ -17,6 +17,8 @@ export interface Request {
   resources: string[];
   artifacts?: ArtifactRequest[];
   courseProcessed?: boolean;
+  configuration?: unknown;
+  native?: boolean;
 }
 export interface PublishPorts {
   requests(): Promise<Request[]>;
@@ -24,7 +26,13 @@ export interface PublishPorts {
   modelArtifact?(
     request: ArtifactRequest,
     source: string,
-  ): Promise<{ kind: ArtifactKind; files: ArchiveEntry[] }>;
+  ): Promise<
+    {
+      kind: ArtifactKind;
+      files: ArchiveEntry[];
+      package?(): Promise<Uint8Array>;
+    }
+  >;
   files(resource: Resource): Promise<ArchiveEntry[]>;
   save(archives: { name: string; bytes: Uint8Array }[]): Promise<void>;
 }
@@ -34,7 +42,10 @@ export async function publish(
   ports: PublishPorts,
 ): Promise<number> {
   const selected = new Map<string, Resource>();
-  const model = new Map<string, ArchiveEntry[]>();
+  const model = new Map<
+    string,
+    { files: ArchiveEntry[]; package?: () => Promise<Uint8Array> }
+  >();
   for (const request of await ports.requests()) {
     for (const artifact of request.artifacts ?? []) {
       if (
@@ -72,7 +83,7 @@ export async function publish(
         a.name < b.name ? -1 : a.name > b.name ? 1 : 0
       );
       const previous = model.get(name);
-      if (previous && !equalBytes(zip(previous), zip(files))) {
+      if (previous && !equalFiles(previous.files, files)) {
         throw diagnostic(
           "DOWNLOAD.REQUEST_INVALID",
           "Несогласованные модельные комплекты",
@@ -83,7 +94,7 @@ export async function publish(
           },
         );
       }
-      model.set(name, files);
+      if (!previous) model.set(name, { files, package: resolved.package });
     }
     for (const id of request.resources) {
       if (!RESOURCE_ID.test(id)) {
@@ -151,8 +162,13 @@ export async function publish(
     }
     archives.push({ name, bytes: zip(await ports.files(resource)) });
   }
-  for (const [name, files] of [...model].sort(([a], [b]) => a < b ? -1 : 1)) {
-    archives.push({ name, bytes: zip(files) });
+  for (
+    const [name, artifact] of [...model].sort(([a], [b]) => a < b ? -1 : 1)
+  ) {
+    archives.push({
+      name,
+      bytes: artifact.package ? await artifact.package() : zip(artifact.files),
+    });
   }
   await ports.save(archives);
   return archives.length;
@@ -166,3 +182,10 @@ publish = __metrics.wrapAsync({
   id: "project-download.application.publish.publish",
   kind: "phase",
 }, publish);
+
+function equalFiles(a: ArchiveEntry[], b: ArchiveEntry[]): boolean {
+  return a.length === b.length &&
+    a.every((file, i) =>
+      file.name === b[i].name && equalBytes(file.bytes, b[i].bytes)
+    );
+}

@@ -130,10 +130,10 @@ async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
     await Deno.remove(gitDirectory, { recursive: true });
   }
 }
-export async function resourceFiles(
+export async function resourcePaths(
   root: string,
   resource: Resource,
-): Promise<ArchiveEntry[]> {
+): Promise<{ name: string; source: string }[]> {
   const directory = child(
     root,
     resource.path.startsWith("/") ? resource.path.slice(1) : resource.path,
@@ -181,12 +181,12 @@ export async function resourceFiles(
   const ignored = resource.gitignore === false
     ? new Set<string>()
     : await gitIgnored(root, paths.map((item) => item.path));
-  const entries: ArchiveEntry[] = [];
-  for (const item of paths) {
-    if (!ignored.has(item.path)) {
-      entries.push({ name: item.name, bytes: await Deno.readFile(item.path) });
-    }
-  }
+  const entries = paths.filter((item) => !ignored.has(item.path)).map(
+    (item) => ({
+      name: item.name,
+      source: relative(root, item.path).replaceAll("\\", "/"),
+    }),
+  );
   if (!entries.length) {
     throw diagnostic(
       "DOWNLOAD.SELECTION_EMPTY",
@@ -199,6 +199,19 @@ export async function resourceFiles(
     );
   }
   return entries;
+}
+
+export async function resourceFiles(
+  root: string,
+  resource: Resource,
+): Promise<ArchiveEntry[]> {
+  const paths = await resourcePaths(root, resource);
+  return await Promise.all(
+    paths.map(async (file) => ({
+      name: file.name,
+      bytes: await Deno.readFile(join(root, file.source)),
+    })),
+  );
 }
 
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.

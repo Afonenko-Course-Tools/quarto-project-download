@@ -70,7 +70,7 @@ try {
   const native = join(extensions, "course-core/native-ts");
   await put(
     "_quarto.yml",
-    `project:\n  type: book\n  output-dir: _site\nbook:\n  title: B1\n  chapters: [index.qmd]\nformat:\n  html:\n    theme: none\ncourse-core-projection: student\nfilters:\n  - at: pre-ast\n    path: ${native}/early-context.lua\n  - at: post-quarto\n    path: ${native}/late-kind.lua\n  - at: post-render\n    path: ${native}/late-filter.lua\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  starter: {path: starter}\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
+    `project:\n  type: book\n  output-dir: _site\n  pre-render: [quarto run ${extensions}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${extensions}/course-core/entrypoints/native-post.ts]\nbook:\n  title: B1\n  chapters: [index.qmd]\nformat:\n  html:\n    theme: none\ncourse-core-projection: student\ncourse-core-runtime: native-ts\ncourse-core-role: exercise-bank\nfilters:\n  - at: pre-ast\n    path: ${native}/early-context.lua\n  - at: post-quarto\n    path: ${native}/late-kind.lua\n  - at: post-render\n    path: ${native}/late-filter.lua\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  starter: {path: starter}\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
   );
   await put("shared/gradle.md", "JDK25. Выполните `gradle test`.\n");
   await put("shared/build.gradle", "plugins { id 'java' }\n");
@@ -107,20 +107,10 @@ try {
       `  - at: post-quarto\n    path: ${root}/generate.lua\n  - at: post-render\n`,
     ),
   );
-  const context = {
-    operation: crypto.randomUUID(),
-    input: join(root, "index.qmd"),
-    format: "html",
-    projection: "student",
-    exerciseBank: true,
-  };
-  const capture = join(root, "capture");
-  await put("run.json", JSON.stringify({ context, capture }));
   const render = await new Deno.Command(Deno.env.get("QUARTO") || "quarto", {
     args: ["render", "index.qmd", "--to", "html"],
     cwd: root,
     env: {
-      COURSE_CORE_TS_RUN: join(root, "run.json"),
       QUARTO_RUN_NO_NETWORK: "true",
     },
     stdout: "piped",
@@ -130,141 +120,161 @@ try {
     render.success,
     "Native producer: " + new TextDecoder().decode(render.stderr),
   );
-  const finalized = core.finalizeDocument(
-    JSON.parse(await Deno.readTextFile(capture + ".early.json")),
-    JSON.parse(await Deno.readTextFile(capture + ".late.json")),
-  );
-  const condition = core.selectCondition(finalized, "exr-demo", "student");
-  const links = qrc.bindConditionLinks(condition, {
-    catalog: {
-      schema: "quarto-reference-catalog",
-      generator: { quarto: "1.11.5" },
-      targets: {},
-    },
-    baseUrl: "https://example.test/course/",
-    importedTargets: [{
-      namespace: "os",
-      id: "sec-memory",
-      page: "chapters/memory.html",
-      fragment: "sec-memory",
-      label: "Память",
-      labelHtml: "Память",
-      number: "1",
-      numberHtml: "1",
-      baseUrl: "https://example.test/os/",
-    }],
-    references: {
-      "os:sec-memory": { key: "os:sec-memory", style: "external" },
-    },
-    urls: {
-      "starter.zip": "_downloads/exr-demo-starter.zip",
-      "other.qmd#target": "projects/other.html#target",
-    },
-  });
   let artifact = { files: [] as { target: string; bytes: Uint8Array }[] };
   let archive: Uint8Array | undefined;
-  await core.readProjectContexts([{
-    owner: root,
-    inputs: ["projects/demo/input.qmd"],
-    profiles: [],
-    format: "html",
-  }], async ([batch]: { contexts: unknown[]; metrics: unknown }[]) => {
-    const plan = await core.planProject(batch.contexts[0], {
-      audience: "student",
-    });
-    const inventory = await core.materializeProject(plan, condition, {
-      links,
-      resources: {
-        "generated.svg": {
-          path: "generated.svg",
-          target: "resources/generated.svg",
+  await core.withCurrentNativeOperation(
+    {
+      root,
+      profiles: [],
+      format: "html",
+      projection: "student",
+      outputDirectory: join(root, "_site"),
+    },
+    async (
+      operation: {
+        condition(
+          value: { source: string; exerciseId: string; view: string },
+        ): unknown;
+      },
+    ) => {
+      const condition = operation.condition({
+        source: "index.qmd",
+        exerciseId: "exr-demo",
+        view: "student",
+      });
+      const links = qrc.bindConditionLinks(condition, {
+        catalog: {
+          schema: "quarto-reference-catalog",
+          generator: { quarto: "1.11.5" },
+          targets: {},
         },
-      },
-      submission: {
-        files: [{ name: "Main.java", starterPath: "src/main/java/Main.java" }],
-        instructions: "Сдайте Main.java.",
-      },
-    });
-    const beforeConsumer = JSON.stringify(batch.metrics);
-    const beforePlan = JSON.stringify(core.projectPlanMetrics(plan));
-    const consumerStart = performance.now();
-    const packed = await download.packageArtifact(inventory);
-    archive = packed;
-    artifact = inventory;
-    const again = await download.packageArtifact({
-      ...inventory,
-      files: [...inventory.files].reverse(),
-    });
-    assert(
-      packed.length === again.length &&
-        packed.every((byte: number, i: number) => byte === again[i]),
-      "Порядок inventory изменил ZIP",
-    );
-    await refused(
-      () =>
-        download.packageArtifact({
+        baseUrl: "https://example.test/course/",
+        importedTargets: [{
+          namespace: "os",
+          id: "sec-memory",
+          page: "chapters/memory.html",
+          fragment: "sec-memory",
+          label: "Память",
+          labelHtml: "Память",
+          number: "1",
+          numberHtml: "1",
+          baseUrl: "https://example.test/os/",
+        }],
+        references: {
+          "os:sec-memory": { key: "os:sec-memory", style: "external" },
+        },
+        urls: {
+          "starter.zip": "_downloads/exr-demo-starter.zip",
+          "other.qmd#target": "projects/other.html#target",
+        },
+      });
+      await core.readProjectContexts([{
+        owner: root,
+        inputs: ["projects/demo/input.qmd"],
+        profiles: [],
+        format: "html",
+      }], async ([batch]: { contexts: unknown[]; metrics: unknown }[]) => {
+        const plan = await core.planProject(batch.contexts[0], {
+          audience: "student",
+        });
+        const inventory = await core.materializeProject(plan, condition, {
+          links,
+          resources: {
+            "generated.svg": {
+              path: "generated.svg",
+              target: "resources/generated.svg",
+            },
+          },
+          submission: {
+            files: [{
+              name: "Main.java",
+              starterPath: "src/main/java/Main.java",
+            }],
+            instructions: "Сдайте Main.java.",
+          },
+        });
+        const beforeConsumer = JSON.stringify(batch.metrics);
+        const beforePlan = JSON.stringify(core.projectPlanMetrics(plan));
+        const consumerStart = performance.now();
+        const packed = await download.packageArtifact(inventory);
+        archive = packed;
+        artifact = inventory;
+        const again = await download.packageArtifact({
           ...inventory,
-          files: [...inventory.files, inventory.files[0]],
-        }),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    const borrowed = structuredClone(inventory);
-    const pending = download.packageArtifact(borrowed);
-    borrowed.files[0].bytes.fill(0);
-    const frozen = await pending;
-    assert(
-      frozen.length === packed.length &&
-        frozen.every((byte: number, i: number) => byte === packed[i]),
-      "Caller изменил bytes во время lazy import/hash",
-    );
-    const ancestor = structuredClone(inventory);
-    ancestor.files[0].target = "collision";
-    ancestor.files[1].target = "collision/nested.txt";
-    await refused(
-      () => download.packageArtifact(ancestor),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    const wrongSize = structuredClone(inventory);
-    wrongSize.files[0].size++;
-    await refused(
-      () => download.packageArtifact(wrongSize),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    const wrongHash = structuredClone(inventory);
-    wrongHash.files[0].bytes[0] ^= 1;
-    await refused(
-      () => download.packageArtifact(wrongHash),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    const wrongAudience = structuredClone(inventory);
-    wrongAudience.files[0].audience = "full";
-    await refused(
-      () => download.packageArtifact(wrongAudience),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    await refused(
-      () => download.packageArtifact(JSON.parse(JSON.stringify(inventory))),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    const escape = structuredClone(inventory);
-    escape.files[0].target = "../private";
-    await refused(
-      () => download.packageArtifact(escape),
-      "DOWNLOAD.INVENTORY_INVALID",
-    );
-    assert(
-      JSON.stringify(batch.metrics) === beforeConsumer &&
-        JSON.stringify(core.projectPlanMetrics(plan)) === beforePlan,
-      "Consumer повторно выполнил Core inspect/обход/чтение исходников",
-    );
-    console.log(
-      JSON.stringify({
-        consumerMs: Math.round(performance.now() - consumerStart),
-        native: batch.metrics,
-        plan: core.projectPlanMetrics(plan),
-      }),
-    );
-  });
+          files: [...inventory.files].reverse(),
+        });
+        assert(
+          packed.length === again.length &&
+            packed.every((byte: number, i: number) => byte === again[i]),
+          "Порядок inventory изменил ZIP",
+        );
+        await refused(
+          () =>
+            download.packageArtifact({
+              ...inventory,
+              files: [...inventory.files, inventory.files[0]],
+            }),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        const borrowed = structuredClone(inventory);
+        const pending = download.packageArtifact(borrowed);
+        borrowed.files[0].bytes.fill(0);
+        const frozen = await pending;
+        assert(
+          frozen.length === packed.length &&
+            frozen.every((byte: number, i: number) => byte === packed[i]),
+          "Caller изменил bytes во время lazy import/hash",
+        );
+        const ancestor = structuredClone(inventory);
+        ancestor.files[0].target = "collision";
+        ancestor.files[1].target = "collision/nested.txt";
+        await refused(
+          () => download.packageArtifact(ancestor),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        const wrongSize = structuredClone(inventory);
+        wrongSize.files[0].size++;
+        await refused(
+          () => download.packageArtifact(wrongSize),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        const wrongHash = structuredClone(inventory);
+        wrongHash.files[0].bytes[0] ^= 1;
+        await refused(
+          () => download.packageArtifact(wrongHash),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        const wrongAudience = structuredClone(inventory);
+        wrongAudience.files[0].audience = "full";
+        await refused(
+          () => download.packageArtifact(wrongAudience),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        await refused(
+          () => download.packageArtifact(JSON.parse(JSON.stringify(inventory))),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        const escape = structuredClone(inventory);
+        escape.files[0].target = "../private";
+        await refused(
+          () => download.packageArtifact(escape),
+          "DOWNLOAD.INVENTORY_INVALID",
+        );
+        assert(
+          JSON.stringify(batch.metrics) === beforeConsumer &&
+            JSON.stringify(core.projectPlanMetrics(plan)) === beforePlan,
+          "Consumer повторно выполнил Core inspect/обход/чтение исходников",
+        );
+        console.log(
+          JSON.stringify({
+            consumerMs: Math.round(performance.now() - consumerStart),
+            native: batch.metrics,
+            plan: core.projectPlanMetrics(plan),
+          }),
+        );
+      });
+    },
+  );
   await Deno.writeFile(join(root, "student.zip"), archive!);
   const extracted = join(root, "extracted");
   const unzip = await new Deno.Command("unzip", {

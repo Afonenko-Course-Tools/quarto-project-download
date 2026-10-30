@@ -9,9 +9,10 @@ export interface Resource {
 export interface Configuration {
   resources: Record<string, Resource>;
   "course-model"?: boolean;
+  "base-url"?: string;
 }
 export const RESOURCE_ID = /^[a-z0-9][a-z0-9-]*$/;
-export const CONFIG_FIELDS = new Set(["resources", "course-model"]);
+export const CONFIG_FIELDS = new Set(["resources", "course-model", "base-url"]);
 export const RESOURCE_FIELDS = new Set([
   "path",
   "include",
@@ -65,6 +66,14 @@ export function configuration(input: unknown): Configuration {
     throw diagnostic(
       "DOWNLOAD.CONFIG_INVALID",
       "project-download.course-model должен быть логическим значением",
+    );
+  }
+  if (
+    value["base-url"] !== undefined && typeof value["base-url"] !== "string"
+  ) {
+    throw diagnostic(
+      "DOWNLOAD.CONFIG_INVALID",
+      "project-download.base-url должен быть строкой",
     );
   }
   const resources = value.resources ?? {};
@@ -130,5 +139,6 @@ export function configuration(input: unknown): Configuration {
   return {
     resources: resources as Record<string, Resource>,
     "course-model": value["course-model"] as boolean | undefined,
+    "base-url": value["base-url"] as string | undefined,
   };
 }

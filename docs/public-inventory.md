@@ -23,10 +23,8 @@ CORE=/absolute/core-checkout QRC=/absolute/qrc-checkout \
   QUARTO_RUN_NO_NETWORK=true quarto run tests/public-inventory.ts
 ```
 
-Fixture выполняет native render, early→late Core, QRC bindings, materialization,
+Fixture выполняет native pre/render/post, настоящий public loader Core, QRC bindings, materialization,
 упаковку и распаковку. Он сравнивает имена и каждый байт с inventory, проверяет
 повреждённые DTO и сохранность README. Это проверка публичной границы, а не
 квалификация всего Java/SP или штатного post-render composition entrypoint.
-Перенос production runtime со старых private imports требует отдельного публичного
-Core adapter для текущего native run и обычных ресурсов; эта граница здесь
-не подменяется локальным receipt loader.
+Production runtime теперь использует этот public loader и public ordinary resource inventory; детали и оставшиеся owner gates описаны в [native runtime](public-runtime.md). Runtime-issued condition обязателен для IO; JSON/clone finalized DTO его не заменяет.

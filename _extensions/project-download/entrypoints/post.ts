@@ -1,6 +1,9 @@
 import { finish } from "../infrastructure/runtime.ts";
 try {
-  const count = await finish(await Deno.realPath(Deno.cwd()));
+  if (Deno.env.get("COURSE_SITE_DEFER_DOWNLOADS") === "1") Deno.exit(0);
+  const count = await finish(await Deno.realPath(Deno.cwd()), {
+    native: Deno.args.includes("--native"),
+  });
   console.log(`Подготовлено архивов материалов: ${count}`);
 } catch (error) {
   if (
