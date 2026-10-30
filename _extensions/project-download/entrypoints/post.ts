@@ -3,7 +3,10 @@ try {
   const count = await finish(await Deno.realPath(Deno.cwd()));
   console.log(`Подготовлено архивов материалов: ${count}`);
 } catch (error) {
-  if (error instanceof Error && ["ExtensionDiagnostic", "ExternalToolFailure"].includes(error.name)) {
+  if (
+    error instanceof Error &&
+    ["ExtensionDiagnostic", "ExternalToolFailure"].includes(error.name)
+  ) {
     console.error(error.message);
     Deno.exit(1);
   }
