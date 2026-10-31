@@ -125,7 +125,10 @@ export async function prepare(root: string): Promise<void> {
 }
 export interface FinishOptions {
   native?: boolean;
-  observeOperation?(catalog: unknown): void;
+  observeOperation?(catalog: unknown, release: unknown): void | Promise<void>;
+  projection?: "student" | "author";
+  profiles?: string[];
+  expectedDocuments?: { source: string; format: "html" | "revealjs" }[];
   outputDirectory?: string;
   destinationDirectory?: string;
   baseUrl?: string;
@@ -151,6 +154,37 @@ async function inputFiles(root: string) {
     ).map((path) => relative(root, resolve(root, path)).replaceAll("\\", "/"));
 }
 /** Публичная текущая операция Core; публикация выполняется после её final fence. */
+async function validateRelease(root: string, operation: any, Core: any) {
+  let PL: any;
+  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
+  const path = join(dirname(extension), "course-prairielearn", "public.ts");
+  try {
+    await Deno.stat(path);
+    PL = await import(toFileUrl(path).href);
+  } catch (cause) {
+    if (!(cause instanceof Deno.errors.NotFound)) throw cause;
+  }
+  const adapter = PL?.createNativeAdapter({ root, core: Core });
+  const request = {
+    expectedSources: operation.catalog.documents.map((d: any) => d.source),
+  };
+  const before = operation.metrics;
+  let proof = await operation.validateRelease(
+      request,
+      adapter ? [adapter] : [],
+    ),
+    validationPasses = 1;
+  if (proof.validatedAdapters.includes("prairielearn")) {
+    proof = await adapter.validateCourse(operation, request);
+    validationPasses++;
+  }
+  return {
+    proof,
+    validationPasses,
+    metricsBefore: before,
+    metricsAfter: operation.metrics,
+  };
+}
 export async function finish(
   root: string,
   options: FinishOptions = {},
@@ -171,12 +205,16 @@ export async function finish(
     ownedSignature = "";
   const output = options.outputDirectory ||
     Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR");
-  const profiles = (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(
-    Boolean,
-  );
+  const profiles = options.profiles ??
+    (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(
+      Boolean,
+    );
   let resolvedOutput = output;
   const collect = async (operation?: any, Core?: any): Promise<number> => {
-    if (operation) options.observeOperation?.(operation.catalog);
+    const release = operation
+      ? await validateRelease(root, operation, Core)
+      : undefined;
+    if (operation) await options.observeOperation?.(operation.catalog, release);
     let sources = operation?.catalog.documents.map((d: any) => d.source) ??
       await inputFiles(root);
     let inspected: Awaited<ReturnType<typeof inspect>> | undefined;
@@ -291,22 +329,16 @@ export async function finish(
               { source },
             );
           }
-          if (request.kind === "conditions") {
-            throw diagnostic(
-              "DOWNLOAD.CONDITIONS_UNQUALIFIED",
-              "Требуется публичный condition-only inventory Core с полным замыканием README",
-              { source, id: request.exerciseId, field: "kind" },
-            );
-          }
           const document = operation.document({ source }),
             declaration = document.definitions[request.exerciseId];
           const condition = operation.condition({
             source,
             exerciseId: request.exerciseId,
-            view: "student",
+            view: operation.identity.projection,
           });
           if (
             request.kind === "full" &&
+            operation.identity.projection === "student" &&
             !(declaration?.["course-role"] === "demonstration" &&
               declaration?.["statement-visibility"] === "open" &&
               document.hasPublicSolution[request.exerciseId])
@@ -323,7 +355,9 @@ export async function finish(
           const exercise = catalogDocument.exercises.find((e: any) =>
             e.id === request.exerciseId
           );
-          const context = contexts.get(exercise?.project);
+          const context = contexts.get(
+            catalogDocument.format + ":" + exercise?.project,
+          );
           if (!context) {
             throw diagnostic(
               "DOWNLOAD.RESOURCE_UNAVAILABLE",
@@ -331,8 +365,12 @@ export async function finish(
               { source, id: request.exerciseId, field: "project" },
             );
           }
-          const audience = request.kind === "full" ? "full" : "student",
-            key = exercise.project + ":" + audience;
+          const audience = request.kind === "full" ||
+                operation.identity.projection === "author"
+              ? "full"
+              : "student",
+            key = catalogDocument.format + ":" + exercise.project + ":" +
+              audience;
           if (!plans.has(key)) {
             plans.set(key, await Core.planProject(context, { audience }));
           }
@@ -348,36 +386,11 @@ export async function finish(
               { source, field: "base-url" },
             );
           }
-          const urls: Record<string, string> = {},
-            resources: Record<string, { path: string; target: string }> = {},
-            resourceLinks: string[] = [];
-          for (const link of condition.links) {
-            const target = link.split(/[?#]/)[0].split("/").pop();
-            if (
-              artifacts.some((a) =>
-                a.exerciseId + "-" + a.kind + ".zip" === target
-              ) || Object.keys(config.resources).some((id) =>
-                id + ".zip" === target
-              )
-            ) {
-              urls[link] = "_downloads/" + target;
-            } else if (
-              !/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(link) &&
-              !/\.(?:qmd|html)(?:[?#]|$)/i.test(link)
-            ) resourceLinks.push(link);
-          }
-          for (const use of [...condition.resources, ...resourceLinks]) {
-            const path = relative(
-              root,
-              resolve(root, dirname(source), decodeURIComponent(use)),
-            ).replaceAll("\\", "/");
-            const target = "resources/" + path;
-            await operation.resourceInventory({
-              files: [{ source: path, target }],
-            });
-            resources[use] = { path, target };
-          }
-          const links = QRC.bindConditionLinks(condition, {
+          const closure = await Core.materializationClosure(
+            plans.get(key),
+            condition,
+          );
+          const destination = {
             catalog: options.referenceCatalog ??
               {
                 schema: "quarto-reference-catalog",
@@ -389,36 +402,67 @@ export async function finish(
             sources: Object.fromEntries(
               operation.catalog.documents.map((d: any) => [d.source, d.output]),
             ),
-            urls,
-            resourceLinks,
+          };
+          const linksBySource: Record<string, Record<string, string>> = {};
+          const referencesBySource: Record<
+            string,
+            Record<string, { href: string; label: string }>
+          > = {};
+          const references = QRC.createBodyLinks({
+            ...destination,
+            baseUrl: destination.catalogBaseUrl ?? baseUrl,
           });
-          let inventory;
-          try {
-            inventory = await Core.materializeProject(
-              plans.get(key),
-              condition,
-              {
-                links,
-                resources,
-                submission: options.submission ??
-                  {
-                    files: [],
-                    instructions:
-                      "Сдайте исходники способом, указанным преподавателем.",
-                  },
-              },
-            );
-          } catch (cause) {
-            if (String(cause).includes("RESOURCE_MISSING")) {
-              throw diagnostic(
-                "DOWNLOAD.FRAGMENT_RESOURCES_UNQUALIFIED",
-                "Требуется owner closure ссылок и ресурсов Markdown fragments",
-                { source, id: request.exerciseId, field: "resources" },
-                cause,
-              );
+          for (const fragment of closure.fragments) {
+            const urls: Record<string, string> = {},
+              resourceLinks: string[] = [];
+            for (const link of fragment.links) {
+              const pathname = link.split(/[?#]/)[0],
+                target = pathname.split("/").pop();
+              if (
+                artifacts.some((a) =>
+                  a.exerciseId + "-" + a.kind + ".zip" === target
+                ) || Object.keys(config.resources).some((id) =>
+                  id + ".zip" === target
+                )
+              ) {
+                urls[link] = "_downloads/" + target +
+                  (link.match(/[?#].*$/)?.[0] ?? "");
+              } else if (
+                !/^(?:[a-z][a-z0-9+.-]*:|#|\/\/)/i.test(link) &&
+                !/\.(?:qmd|html)(?:[?#]|$)/i.test(link)
+              ) resourceLinks.push(link);
             }
-            throw cause;
+            const refs = Object.fromEntries(
+              fragment.references.map((
+                r: any,
+              ) => [r.token, { key: r.key, style: r.style }]),
+            );
+            linksBySource[fragment.source] = QRC.bindConditionLinks({
+              context: { input: fragment.source },
+              links: fragment.links,
+            }, { ...destination, urls, resourceLinks, references: refs });
+            referencesBySource[fragment.source] = Object.fromEntries(
+              fragment.references.map((
+                r: any,
+              ) => [
+                r.token,
+                references.resolve(r.key, r.style, fragment.source),
+              ]),
+            );
           }
+          const materialize = request.kind === "conditions"
+            ? Core.materializeCondition
+            : Core.materializeProject;
+          const inventory = await materialize(plans.get(key), condition, {
+            linksBySource,
+            referencesBySource,
+            submission: options.submission ??
+              {
+                files: [],
+                instructions:
+                  "Сдайте исходники способом, указанным преподавателем.",
+              },
+          });
           const { packageArtifact } = await import(
             "../application/package-artifact.ts"
           );
@@ -477,18 +521,33 @@ export async function finish(
             entries.push({
               name: archive.name,
               sha256: await sha256(archive.bytes),
-              audience: operation ? "student" : null,
+              audience: operation
+                ? (operation.identity.projection === "author"
+                  ? "full"
+                  : "student")
+                : null,
               ...request,
             });
           }
           receiptText = JSON.stringify(
             {
               schema: "project-download-artifacts-v2",
-              audience: operation ? "student" : null,
-              audiences: operation ? ["student"] : [],
+              audience: operation
+                ? (operation.identity.projection === "author"
+                  ? "full"
+                  : "student")
+                : null,
+              audiences: operation
+                ? [
+                  operation.identity.projection === "author"
+                    ? "full"
+                    : "student",
+                ]
+                : [],
               profiles,
               operation: operation?.identity.operation ?? null,
               identity: operation?.identity ?? null,
+              release,
               archives: entries,
             },
             null,
@@ -496,31 +555,47 @@ export async function finish(
           ) + "\n";
         },
       });
-    const projects = [
-      ...new Set(
-        artifacts.flatMap((a) =>
-          operation?.catalog.documents.find((d: any) => d.source === a.source)
-            ?.exercises.filter((e: any) => e.id === a.exerciseId).flatMap((
-              e: any,
-            ) => e.project ? [e.project] : []) ?? []
-        ),
-      ),
-    ];
-    if (projects.length) {
-      return await Core.readProjectContexts([{
-        owner: root,
-        inputs: projects,
-        profiles,
-        format: "html",
-      }], async ([group]: any[]) => {
-        for (const context of group.contexts) {
-          contexts.set(
-            relative(root, context.input).replaceAll("\\", "/"),
-            context,
+    const projectRequests = new Map<string, Set<string>>();
+    for (const artifact of artifacts) {
+      const doc = operation?.catalog.documents.find((d: any) =>
+        d.source === artifact.source
+      );
+      for (
+        const exercise of doc?.exercises.filter((e: any) =>
+          e.id === artifact.exerciseId
+        ) ?? []
+      ) {
+        if (exercise.project) {
+          if (!projectRequests.has(doc.format)) {
+            projectRequests.set(doc.format, new Set());
+          }
+          projectRequests.get(doc.format)!.add(
+            exercise.project + "/native-input.qmd",
           );
         }
-        return await pack();
-      });
+      }
+    }
+    if (projectRequests.size) {
+      return await operation.withProjectContexts(
+        [...projectRequests].map(([format, inputs]) => ({
+          owner: root,
+          inputs: [...inputs],
+          profiles,
+          format,
+        })),
+        async (batch: any) => {
+          for (const group of batch.groups) {
+            for (const context of group.contexts) {
+              contexts.set(
+                context.format + ":" +
+                  relative(root, dirname(context.input)).replaceAll("\\", "/"),
+                context,
+              );
+            }
+          }
+          return await pack();
+        },
+      );
     }
     return await pack();
   };
@@ -537,8 +612,10 @@ export async function finish(
     count = await Core.withCurrentNativeOperation({
       root,
       profiles,
-      format: "html",
-      projection: "student",
+      projection: options.projection ?? "student",
+      ...(options.expectedDocuments
+        ? { expectedDocuments: options.expectedDocuments }
+        : {}),
       outputDirectory: resolve(root, resolvedOutput),
     }, async (operation: any) => await collect(operation, Core));
   } else count = await collect();

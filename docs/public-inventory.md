@@ -10,7 +10,7 @@
 Импорт Download и отдельная операция `zip(entries)` не требуют Core.
 Публичный Core загружается только при вызове `packageArtifact`.
 
-Композиция вызывает упаковку внутри callback `readProjectContexts`, держит ZIP
+Композиция вызывает упаковку внутри callback текущей operation-owned A1 batch, держит ZIP
 в памяти до успешной финальной проверки Core и только затем публикует bytes.
 Проверка формы inventory и хешей не подтверждает текущесть исходников сама по себе.
 Выбор operation, exercise, audience и полномочий остаётся у владельца композиции;
@@ -28,3 +28,9 @@ Fixture выполняет native pre/render/post, настоящий public loa
 повреждённые DTO и сохранность README. Это проверка публичной границы, а не
 квалификация всего Java/SP или штатного post-render composition entrypoint.
 Production runtime теперь использует этот public loader и public ordinary resource inventory; детали и оставшиеся owner gates описаны в [native runtime](public-runtime.md). Runtime-issued condition обязателен для IO; JSON/clone finalized DTO его не заменяет.
+
+B3 на Core998 добавляет реальный validateRelease и operation.withProjectContexts.
+Actual root-generated SVG выявил owner membership blocker; этот M2 остаётся
+непройденным до новой принятой Core дельты, прежний GREEN относится к B2/Core978.
+Опция B3_KEEP сохраняет временный owner для диагностики следующего разрешённого
+повтора, не меняя проверок или bytes.

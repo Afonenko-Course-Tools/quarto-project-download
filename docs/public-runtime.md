@@ -1,62 +1,61 @@
 # Публичный native runtime Download
 
-Runtime использует `course-core/public.ts` и `withCurrentNativeOperation`.
-Private NativeRun, resolver и filesystem fallback проекта удалены из этого пути.
-Один `readProjectContexts` callback получает все затронутые проекты; планы по
-project/audience переиспользуются. Native condition проходит QRC и единственный
-README writer Core, затем готовый inventory упаковывается один раз.
-Повторные ссылки сравнивают имена и bytes inventory, а не повторно созданные ZIP.
+Runtime получает текущую операцию только через Core `public.ts`. До зависимых
+resources, README или ZIP он вызывает owner `validateRelease` по всему captured
+catalog, включая effective course/assessment каждого документа. Наличие course
+в корневом config не определяет необходимость проверки. Вызов связан с теми же
+root, ordered profiles, projection, source/format coverage и final fences.
 
-Нативный filter передаёт собственную эффективную конфигурацию Download в typed
-request. В native режиме runtime не выполняет дополнительный root inspect для
-чтения metadata. Public Core catalog задаёт допустимые sources, а operation
-проверяет exact root/profiles/output, авторитет condition и текущесть ресурсов.
-Выбор обычного resource directory не читает bytes: они приходят из публичного
-`resourceInventory`. Самостоятельный режим без активного Core сохраняет обычный
-native inspect/config/resource guards и не загружает Core.
+Если рядом с Download установлен PrairieLearn public module, первый Core proof
+получает настоящий `createNativeAdapter` descriptor. При selected prairielearn
+в proof затем вызывается настоящий `adapter.validateCourse` для C composition.
+Это два owner validation/currentness прохода, явно показанные в receipt metrics;
+новых inspect/render/discovery/whole-source hash ради них нет. Для noPL первый
+Core proof достаточен. Отсутствующий validator отвергает Core; B не подменяет
+business schema или raw capture своим resolver. Ordinary PL proof не создаёт
+qualified assignment intent или права assignment export/materialization.
 
-Штатный native маршрут подключает Download pre перед Core native-pre и Download
-post после Core native-post. Для него применяется
-`quarto run .../project-download/entrypoints/post.ts --native`: явная runtime
-expectation обязательна для активного Core, включая resource-only документы.
-`--native` не нужен отдельному ordinary сценарию без Core. Final output передаёт
-Quarto hook environment; конечный URL standalone model README задаётся
-`project-download.base-url`. Publisher передаёт фактическое назначение.
+Проекты открываются через `operation.withProjectContexts` той же generation/S,
+пакетно по настоящему формату. Публичный Core договор использует технический
+input `<projectRoot>/native-input.qmd`; создаёт недостающий input только сам Core
+в disposable копии. Планы переиспользуются по format/project/audience. Metadata,
+origin и bytes не восстанавливаются B из каталогов или receipts.
 
-`public.ts` предоставляет `prepareDownloads` и `finishDownloads(root, options)`.
-Publisher задаёт `native`, `outputDirectory`, `baseUrl`, `referenceCatalog`,
-`catalogBaseUrl` и при необходимости `destinationDirectory`. Последний параметр
-отделяет проверенный native output от конечного mount, куда записывается ZIP после
-успешного final Core fence. Destination проверяется на symlink/foreign collisions.
-`observeOperation` передаёт Publisher immutable public catalog для проверки
-current output coverage в том же callback без второго loader/source walk.
-Нейтральный `submission` может предоставить владелец PL; без PL не выдумываются
-имена файлов или транспорт сдачи.
+`materializationClosure` выдаёт document/Gradle/local fragments с их bases,
+resources и уникальными reference tokens. QRC `bindConditionLinks` связывает
+обычные ссылки, а public `createBodyLinks` — reference href/label; результат
+передаётся как linksBySource/referencesBySource. Один Core writer включает
+полное замыкание resources с suffix/anchors. `materializeCondition` создаёт
+полный README/resources без code/build; subset по reason не применяется.
+README после Core и ZIP после упаковки не исправляются.
 
-ZIP bytes и receipt facts фиксируются до выхода callback; filesystem публикация
-идёт после успешных Core и request-ownership fences. Manifest пишется первым,
-receipt последним. Новые receipts имеют schema `project-download-artifacts-v2`,
-явные `operation`/`identity` и SHA256 архивов. Они не подменяют Core source proof.
-Старые v1 узнаются только как собственные объекты для cleanup/migration;
-их NativeRun sourceRunHash не переиспользуется с другим смыслом.
+Native filter переносит собственную effective Download config в typed request.
+Дополнительного root metadata inspect у consumer нет. Ordinary resource selection
+не читает bytes: их авторизует public resourceInventory. Самостоятельный noCore
+маршрут сохраняет собственные inspect/config/resource guards и не загружает Core.
 
-Эта партия квалифицирована на immutable Core
-`978c66b89c8e1e23c827336bab3af5828dc27ee9`, Quarto1.11.5, HTML/student.
-Full artifact открытой demonstration с поздним публичным решением отличается от
-actual full native projection, которая ждёт A4. `conditions`, ресурсы ссылок
-Gradle/local Markdown fragments и default kind исчезнувшего native custom Div
-дают адресные owner-gates до принятия A4 API. Общее условие не урезается и второй
-Markdown/include resolver не создаётся. Это не полный Java/SP выпуск.
+Порядок: Download pre, Core native-pre, при PL его public prepare после Core pre,
+PL raw-capture filter до Core early, затем actual render/late/Core native-post и
+Download post `--native`. Для native author вызывают post `--native --author`.
+Expectation не содержит прежнего scalar format: exact formats приходят из
+native catalog либо expectedDocuments. Student/full — native projections
+student/author; full artifact в student по-прежнему требует открытой demonstration
+с настоящим поздним public solution. Default kind использует owner-emitted
+course-artifact-context. Ordinary revealjs model materialization честно получает
+CONDITION_UNQUALIFIED у Core; HTML fallback не создаётся.
 
-Проверки: `tests/public-runtime.ts` (actual hooks, два вида artifact, обычный
-resource, конечные URL, incremental resource, source/output/permission/collision
-и symlink отказы), `tests/public-inventory.ts` (официальный M2 через настоящий
-loader), `tests/package-once.ts` и `tests/runtime-batch.ts no-core-ordinary`.
-`CORE` указывает на immutable accepted snapshot, `QRC` — на точный consumer ref.
-Старые fixtures private NativeRun/legacy Core не являются приёмкой нового пути;
-общий legacy runner не объявляется прошедшим до полного owner rollout.
+`finishDownloads` принимает projection/profiles/expectedDocuments, publication и
+catalog bases, final destinationDirectory. `observeOperation(catalog, release)`
+в том же callback даёт Publisher public proof/metrics для coverage. Native output
+и final mount разделены; publication идёт после final Core/request fences.
+ZIP bytes фиксируются внутри callbacks. Manifest пишется первым, receipt —
+последним. Receipt v2 содержит operation/identity/release и SHA256 архивов;
+это журнал результата, не новое source authority. Старый v1 нужен только cleanup.
 
-Native QRC references с общим `#qrc-unresolved` и разными key/style пока не
-квалифицированы actual тестом. Их owner-issued уникальные tokens, imported
-references и fragment origins переходят вместе с принятым A4 closure API;
-B1 проверка supplied imported targets не является доказательством этого runtime.
+B3 source проверяется на immutable Core998/Cd273. Actual HTML student/full,
+condition-only/default, fragment origins/resources, reveal owner/resources и
+отдельный noCore имеют адресные fixtures. **Core dependency BLOCKED:** actual
+root-generated visible resource проходит loader entry, но validateRelease на
+существующий project падает OPERATION_CHANGED root membership. Официальный
+public-inventory M2 не повторяется до новой принятой Core дельты; generated guard
+не обходится. Этот source не является installed/full135/assignment acceptance.

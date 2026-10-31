@@ -35,17 +35,18 @@ Download не читает project/student как fallback и не примен�
 Core. README проходит только owner writer. Подробнее —
 [публичный runtime](../docs/public-runtime.md).
 
-Текущий bounded Core квалифицирован для HTML/student. Открытая demonstration с
-поздним public solution допускает full project artifact; это не actual full
-native projection. Condition-only, fragment resource closure и native custom
-appearance default kind остаются адресными A4 owner-gates. Принятые общие
-гарантии старого договора не отменены и остаются условиями полного rollout.
+Текущий public owner проверяет effective release каждого документа до выдачи.
+HTML student/full, condition-only closure и native default kind используют один
+Core writer; ordinary reveal model остаётся CONDITION_UNQUALIFIED. Actual
+root-generated resources вместе с release proof имеют адресный Core blocker;
+его нельзя обходить предгенерацией или снятием guards. Подробности и границы
+bounded проверки перечислены в публичном runtime, полный rollout не заявлен.
 
 ZIP: STORE, UTF-8, фиксированная дата, sorted names; independent fresh runs дают
 одинаковые bytes. Symlink/path escapes/специальные файлы/чужие output collisions
 запрещены. Pre-hook очищает только owned output текущего audience и requests.
 Другие outputs и чужие ZIP сохраняются. Новые receipts `project-download-artifacts-v2` содержат name/sha256,
-model kind/exerciseId/source, profiles, operation и публичную identity.
+model kind/exerciseId/source, profiles, operation, публичную identity и release proof/metrics.
 Receipt подтверждает архивы, а не source authority. Старый v1 узнаётся только
 как собственный cleanup объект; смысл NativeRun sourceRunHash не переименован.
 
@@ -60,9 +61,9 @@ authoring не использует audience wrappers; full-only страниц�
 определяют преподавательское содержание. Полная acceptance проверяет реальные
 student/full/student DOM, каждый ZIP, privacy, QRC/search/hrefs и установленный пакет.
 
-Receipt audience текущего bounded native route — student из trusted public
-operation, независимо от kind и названия profile. Full demonstration artifact
-в student не меняет projection. Actual full native route ждёт Core A4.
+Receipt audience происходит из trusted native projection: student либо full
+для author. Full demonstration artifact в student не меняет projection.
+
 ZIP basename collision generic/model остаётся ошибкой независимо от порядка.
 
 ## Пакетная public proof-фаза

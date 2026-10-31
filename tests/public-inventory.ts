@@ -70,7 +70,7 @@ try {
   const native = join(extensions, "course-core/native-ts");
   await put(
     "_quarto.yml",
-    `project:\n  type: book\n  output-dir: _site\n  pre-render: [quarto run ${extensions}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${extensions}/course-core/entrypoints/native-post.ts]\nbook:\n  title: B1\n  chapters: [index.qmd]\nformat:\n  html:\n    theme: none\ncourse-core-projection: student\ncourse-core-runtime: native-ts\ncourse-core-role: exercise-bank\nfilters:\n  - at: pre-ast\n    path: ${native}/early-context.lua\n  - at: post-quarto\n    path: ${native}/late-kind.lua\n  - at: post-render\n    path: ${native}/late-filter.lua\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  starter: {path: starter}\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
+    `project:\n  type: book\n  output-dir: _site\n  pre-render: [quarto run ${extensions}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${extensions}/course-core/entrypoints/native-post.ts]\nbook:\n  title: B1\n  chapters: [index.qmd]\nformat:\n  html:\n    theme: none\ncourse-core-projection: student\ncourse-core-runtime: native-ts\nexercise-bank: true\nfilters:\n  - at: pre-ast\n    path: ${native}/early-context.lua\n  - at: post-quarto\n    path: ${native}/late-kind.lua\n  - at: post-render\n    path: ${native}/late-filter.lua\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  starter: {path: starter}\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
   );
   await put("shared/gradle.md", "JDK25. Выполните `gradle test`.\n");
   await put("shared/build.gradle", "plugins { id 'java' }\n");
@@ -85,7 +85,7 @@ try {
   );
   await put(
     "index.qmd",
-    '# Проверка\n\n::: {#exr-demo difficulty=introductory statement-visibility=open project="projects/demo/input.qmd"}\nПолное условие с [заготовкой](starter.zip).\n\n{{< include sections/extra.qmd >}}\n\n::: {.solution}\n![Закрытый](private.svg)\n:::\n\n:::\n',
+    '# Проверка\n\n::: {#exr-demo difficulty=introductory statement-visibility=open project="projects/demo"}\nПолное условие с [заготовкой](starter.zip).\n\n{{< include sections/extra.qmd >}}\n\n::: {.solution}\n![Закрытый](private.svg)\n:::\n\n:::\n',
   );
   await put(
     "sections/extra.qmd",
@@ -126,17 +126,11 @@ try {
     {
       root,
       profiles: [],
-      format: "html",
       projection: "student",
       outputDirectory: join(root, "_site"),
     },
-    async (
-      operation: {
-        condition(
-          value: { source: string; exerciseId: string; view: string },
-        ): unknown;
-      },
-    ) => {
+    async (operation: any) => {
+      await operation.validateRelease({ expectedSources: ["index.qmd"] });
       const condition = operation.condition({
         source: "index.qmd",
         exerciseId: "exr-demo",
@@ -168,13 +162,13 @@ try {
           "other.qmd#target": "projects/other.html#target",
         },
       });
-      await core.readProjectContexts([{
+      await operation.withProjectContexts([{
         owner: root,
-        inputs: ["projects/demo/input.qmd"],
+        inputs: ["projects/demo/native-input.qmd"],
         profiles: [],
         format: "html",
-      }], async ([batch]: { contexts: unknown[]; metrics: unknown }[]) => {
-        const plan = await core.planProject(batch.contexts[0], {
+      }], async (batch: any) => {
+        const plan = await core.planProject(batch.groups[0].contexts[0], {
           audience: "student",
         });
         const inventory = await core.materializeProject(plan, condition, {
@@ -342,5 +336,6 @@ try {
     "PASS public Core→установленный Download: точные имена/байты, README, воспроизводимость, hash/size/audience/path guards",
   );
 } finally {
-  await Deno.remove(root, { recursive: true });
+  if (Deno.env.get("B3_KEEP")) console.log("Сохранён M2 owner: " + root);
+  else await Deno.remove(root, { recursive: true });
 }

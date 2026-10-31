@@ -44,7 +44,7 @@ try {
   await install(repo, "project-download");
   await put(
     "_quarto.yml",
-    `project:\n  type: website\n  output-dir: _site\n  render: [index.qmd, other.qmd]\n  pre-render: [quarto run ${ext}/project-download/entrypoints/pre.ts, quarto run ${ext}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${ext}/course-core/entrypoints/native-post.ts, quarto run ${ext}/project-download/entrypoints/post.ts --native]\nformat:\n  html:\n    theme: none\nfilters: [course-core, project-download]\ncourse-core-runtime: native-ts\ncourse-core-projection: student\ncourse-core-role: exercise-bank\nproject-download:\n  course-model: true\n  base-url: https://pages.example.test/course/\n  resources:\n    data: {path: assets, gitignore: false}\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
+    `project:\n  type: website\n  output-dir: _site\n  render: [index.qmd, other.qmd]\n  pre-render: [quarto run ${ext}/project-download/entrypoints/pre.ts, quarto run ${ext}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${ext}/course-core/entrypoints/native-post.ts, quarto run ${ext}/project-download/entrypoints/post.ts --native]\nformat:\n  html:\n    theme: none\nfilters: [course-core, project-download]\ncourse-core-runtime: native-ts\ncourse-core-projection: student\nexercise-bank: true\nproject-download:\n  course-model: true\n  base-url: https://pages.example.test/course/\n  resources:\n    data: {path: assets, gitignore: false}\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
   );
   await put("shared/build.gradle", "plugins { id 'java' }\n");
   await put("shared/settings.gradle", "rootProject.name='runtime'\n");
@@ -68,7 +68,7 @@ try {
   );
   await put("other.qmd", "# Другая страница {#target}\n");
   const statement =
-    `# Проверка\n\n::: {#exr-demo difficulty=introductory statement-visibility=open course-role=demonstration project="projects/demo/input.qmd"}\nУсловие. [Другая страница](other.qmd#target).\n\n{{< project-download exr-demo kind=starter >}}\n\n{{< project-download exr-demo kind=full >}}\n\n![Материал](assets/public.txt)\n\n::: {.solution}\nОткрытый пример решения.\n:::\n\n:::\n\n{{< project-download data >}}\n`;
+    `# Проверка\n\n::: {#exr-demo difficulty=introductory statement-visibility=open course-role=demonstration project="projects/demo"}\nУсловие. [Другая страница](other.qmd#target).\n\n{{< project-download exr-demo kind=starter >}}\n\n{{< project-download exr-demo kind=full >}}\n\n![Материал](assets/public.txt)\n\n::: {.solution}\nОткрытый пример решения.\n:::\n\n:::\n\n{{< project-download data >}}\n`;
   await put("index.qmd", statement);
   await render();
   const starter = join(root, "_site/_downloads/exr-demo-starter.zip"),
@@ -148,6 +148,25 @@ try {
   };
   const options = { native: true, outputDirectory: join(root, "_site") };
   await refused(
+    () => finishDownloads(root, { ...options, profiles: ["foreign"] }),
+    "OPERATION_BINDING",
+  );
+  await refused(
+    () => finishDownloads(root, { ...options, projection: "author" }),
+    "OPERATION_BINDING",
+  );
+  await refused(
+    () =>
+      finishDownloads(root, {
+        ...options,
+        expectedDocuments: [{ source: "index.qmd", format: "revealjs" }, {
+          source: "other.qmd",
+          format: "html",
+        }],
+      }),
+    "OPERATION_BINDING",
+  );
+  await refused(
     () =>
       finishDownloads(root, {
         ...options,
@@ -176,6 +195,59 @@ try {
   );
   await put("index.qmd", statement);
   await render();
+  const priorGeneration = JSON.parse(
+    await Deno.readTextFile(
+      join(root, "_generated/project-download/artifacts-receipt.json"),
+    ),
+  ).operation;
+  const currentArchive = await Deno.readFile(starter),
+    currentReceipt = await Deno.readTextFile(
+      join(root, "_generated/project-download/artifacts-receipt.json"),
+    );
+  await refused(
+    () =>
+      finishDownloads(root, {
+        ...options,
+        observeOperation: async () => {
+          const begin = await new Deno.Command("quarto", {
+            args: ["run", `${ext}/course-core/entrypoints/native-pre.ts`],
+            cwd: root,
+            env: {
+              QUARTO_PROJECT_DIR: root,
+              QUARTO_PROJECT_OUTPUT_DIR: "_site",
+              QUARTO_PROJECT_INPUT_FILES: "index.qmd\nother.qmd",
+              QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES: "",
+              QUARTO_RUN_NO_NETWORK: "true",
+              DENO_NO_PACKAGE_JSON: "1",
+            },
+            stdout: "piped",
+            stderr: "piped",
+          }).output();
+          assert(
+            begin.success,
+            "Новая native generation не началась: " +
+              new TextDecoder().decode(begin.stderr),
+          );
+        },
+      }),
+    "OPERATION_CHANGED",
+  );
+  assert(
+    (await Deno.readFile(starter)).every((b, i) => b === currentArchive[i]) &&
+      await Deno.readTextFile(
+          join(root, "_generated/project-download/artifacts-receipt.json"),
+        ) === currentReceipt,
+    "Generation switch опубликовал старую подготовку",
+  );
+  await render();
+  assert(
+    JSON.parse(
+      await Deno.readTextFile(
+        join(root, "_generated/project-download/artifacts-receipt.json"),
+      ),
+    ).operation !== priorGeneration,
+    "Fresh render не сменил generation",
+  );
   const NativeCommand = Deno.Command;
   let rootInspections = 0, totalInspections = 0;
   try {
@@ -193,8 +265,8 @@ try {
     Deno.Command = NativeCommand;
   }
   assert(
-    rootInspections === 1 && totalInspections === 2,
-    "Consumer добавил inspect сверх owner+disposable origin pair: " +
+    rootInspections === 0 && totalInspections === 1,
+    "Consumer добавил inspect сверх одного disposable origin при operation-owned A1: " +
       JSON.stringify({ rootInspections, totalInspections }),
   );
   console.log(
@@ -218,7 +290,7 @@ try {
           );
           Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
         },
-      }), "CONTEXT_ENTRY");
+      }), "DOWNLOAD.PATH_INVALID");
     assert(
       await Deno.readTextFile(join(foreign, "keep")) === "FOREIGN" &&
         (await Array.fromAsync(Deno.readDir(foreign))).length === 1,

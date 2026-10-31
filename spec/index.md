@@ -31,10 +31,10 @@ Quarto 1.11.5 и CUE 0.17.1 согласованы с Core 8.0.0 для необ
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
 
-## Публичный native runtime B2
+## Публичный native runtime B3
 
 Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
 через actual `withCurrentNativeOperation`, готовый artifact inventory и публичный
-resource inventory. Private NativeRun fallback удалён. Bounded HTML/student
-qualification и обязательные A4/full-course gates перечислены в документе;
+resource inventory и текущий owner release proof. Private NativeRun fallback удалён.
+Bounded проверки и открытый generated-resource/Core gate перечислены в документе;
 source ref не заявляется установленным или выпущенным автоматически.
