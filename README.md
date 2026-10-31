@@ -5,7 +5,7 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5; при использовании Core требуется CUE 0.17.1.
 
-Контракт этого ref — кандидат 3.2.1. Для одной пакетной proof-фазы нужен Core 8.2.3
+Контракт этого ref — кандидат 3.3.0. Для одной пакетной proof-фазы нужен Core 8.2.3
 с `withNativeArtifactBatch`; на прежнем Core сохраняется guarded fallback;
 обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
