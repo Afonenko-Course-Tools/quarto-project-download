@@ -25,8 +25,8 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
 
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
-Quarto 1.11.5 и CUE 0.17.1 согласованы с Core 8.0.0 для необязательного
-модельного моста Download 3.2.0. Обычные resources независимы от Core;
+Quarto 1.11.5 и CUE 0.17.1 заданы для текущего кандидата Download 3.3.0
+с публичным native мостом Core 8.4.0. Обычные resources независимы от Core;
 точный files inventory и current-run guards принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
@@ -38,3 +38,14 @@ Quarto 1.11.5 и CUE 0.17.1 согласованы с Core 8.0.0 для необ
 resource inventory и текущий owner release proof. Private NativeRun fallback удалён.
 Bounded проверки и открытый generated-resource/Core gate перечислены в документе;
 source ref не заявляется установленным или выпущенным автоматически.
+
+## Контекст наблюдения 3.2.2
+
+Канонические фасады сохраняют ABI 1 и передают `attributes.extension_id`.
+Необязательный `document_id` сохраняется только при явном контексте одного
+документа; ресурсные и пакетные операции не выбирают произвольный документ.
+Только при активном контексте агента оба процесса Git получают полный снимок
+окружения через `childEnv` и `clearEnv: true`. Identity/off/недоступный режим/
+отсутствующий агент сохраняют прежние разрешения и наследование env. Новый общий runtime и полное семантическое покрытие не
+вводятся. Согласуемая матрица Core 8.2.3 / Download 3.2.2 / Site 5.1.4 / QRC 3.1.1
+требует собственной проверки точных refs и установленного состава.

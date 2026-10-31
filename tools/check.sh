@@ -3,11 +3,10 @@ set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 quarto=${QUARTO:-quarto}
 : "${CORE:?Set CORE to the current native Core checkout}"
+: "${QRC:?Set QRC to the current QRC checkout}"
 cd "$repo"
-for test in diagnostics archive model-artifacts runtime-batch model-receipts render ownership native native-installed model-installed; do
+# Каждый настоящий public suite выполняется один раз: runtime-batch default — его alias.
+for test in performance-context diagnostics archive model-artifacts package-once public-inventory public-runtime model-receipts render ownership; do
   "$quarto" run "tests/$test.ts"
 done
-
-for mode in namespaced plain active; do
-  "$quarto" run tests/install-context.ts "$mode"
-done
+"$quarto" run tests/runtime-batch.ts no-core-ordinary

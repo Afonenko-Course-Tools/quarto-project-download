@@ -6,6 +6,8 @@ status: current
 
 # Контракт Download 3
 
+Текущий ref — кандидат **3.3.0**; до публикации соответствующего тега он unreleased.
+
 Обычный `project-download.resources` сохраняет закрытый словарь ресурсов:
 path, include, exclude, profiles, gitignore. ID соответствует
 `^[a-z0-9][a-z0-9-]*$`. Native projection определяет оставшиеся requests;
@@ -84,3 +86,25 @@ Explicit starter требует native student condition. В author он адр�
 DOWNLOAD.STARTER_UNQUALIFIED до genuine student authority; full artifact не
 переименовывается в starter. Реальный bank full render с explicit starter остаётся
 открытым integration gate, цели full135 этим отказом не сокращаются.
+
+## Контекст наблюдения и дочерние процессы
+
+Канонические фасады ABI 1 передают `attributes.extension_id: "project-download"`
+и необязательный явный `document_id`. Документ не выводится из имени операции:
+ресурсный `resourceFiles` и пакетная обработка нескольких заявок сохраняют общий
+контекст без выбора одного произвольного документа. Общий runtime внутри
+Download не вводится; разметка не заявляет полного семантического покрытия.
+
+Только при активном контексте агента оба Git-процесса `infrastructure/files.ts`
+получают полный снимок окружения через `childEnv` и `clearEnv: true`. Рабочие переменные сохраняются, а удалённый
+устаревший `COURSE_PERF_PARENT_SPAN_ID` не восстанавливается наследованием Deno.
+Существующий span `resourceFiles` задаёт родителя только в активном контексте.
+Identity-ветка (`off`, отсутствующий агент или недоступное чтение режима)
+сохраняет прежние разрешения и native inheritance: нового полного чтения env
+и `clearEnv` нет. Фасад сохраняет исходные функции, Promise и переданное окружение.
+Git selection, ZIP bytes и публичный ownership API сохраняют прежние правила.
+
+Пакетный мост Core 8.2.3 и Download 3.2.2 требует собственной native/installed
+проверки точных refs. Проверка ABI с тестовым агентом и прежний Core fallback
+не подтверждают новую proof-фазу. Body v2 и delivery v3 этим дополнением
+не изменяются.

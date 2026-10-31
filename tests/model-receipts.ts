@@ -1,6 +1,6 @@
 import {finish} from '../_extensions/project-download/infrastructure/runtime.ts';
-import {toFileUrl,join} from 'stdlib/path';
-const {resolveArtifact}=await import(toFileUrl(join(Deno.env.get('CORE')!,'_extensions/course-core/artifacts/resolve.ts')).href);
+let privateResolverCalled=false;
+const resolveArtifact=async()=>{privateResolverCalled=true;throw Error('Private resolver не должен вызываться')};
 const root=await Deno.makeTempDir({prefix:'download-review-'});
 try {
  await Deno.mkdir(root+'/projects/probe/student',{recursive:true});
@@ -11,8 +11,13 @@ try {
  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('index.qmd'))),v=>v.toString(16).padStart(2,'0')).join('');
  await Deno.writeTextFile(root+'/_generated/project-download/requests/'+digest+'.json',JSON.stringify({source:'index.qmd',resources:[],artifacts:[{exerciseId:'exr-probe',kind:'full'}]}));
  const run:any={schema:'course-native-run-v1',projectRoot:root,outputDirectory:root+'/_site',profiles:[],documents:[{source:'index.qmd',course:{view:'full'},projects:[{exerciseId:'exr-probe',source:'index.qmd',projectRoot:'projects/probe',bankMember:false,statementVisibility:'open',artifactPolicy:{student:'starter',full:'full',conditions:true}}]}]};
- const count=await finish(root,{run,evaluateResources:async()=>({files:[]}),resolveArtifact});
- const receipt=JSON.parse(await Deno.readTextFile(root+'/_generated/project-download/artifacts-receipt.json'));
- if(count!==1 || receipt.audience!=='full' || receipt.profiles.length!==0 || receipt.archives[0].audience!=='full') throw Error('Receipt must bind trusted course.view without audience-named profiles');
- console.log('Trusted full audience recorded without named profile.');
+ let refused=false;
+ try { await finish(root,{run,evaluateResources:async()=>({files:[]}),resolveArtifact} as never); }
+ catch(error) { refused=String(error).includes('DOWNLOAD.CONFIG_INVALID') && String(error).includes('публичную операцию Core'); }
+ if(!refused || privateResolverCalled) throw Error('Private NativeRun/resolver не являются текущей public operation');
+ for(const path of [root+'/_generated/project-download/artifacts-receipt.json',root+'/_site/_downloads/exr-probe-full.zip']) {
+  let exists=true;try{await Deno.lstat(path)}catch(error){if(error instanceof Deno.errors.NotFound)exists=false;else throw error}
+  if(exists)throw Error('Отказ старого private carrier создал ZIP/success receipt');
+ }
+ console.log('PASS private NativeRun injection refused before private resolver, ZIP and receipt; genuine trusted audience проверяется public-runtime.ts');
 }finally{await Deno.remove(root,{recursive:true});}

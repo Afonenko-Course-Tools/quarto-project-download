@@ -1,3 +1,5 @@
+// Исторический legacy/private Core fixture; не canonical native-ts контроль.
+// Актуальные гарантии: tests/public-runtime.ts, public-inventory.ts и legacy-harness-mapping.md.
 import { join } from "stdlib/path";
 const mode = Deno.args[0] || "namespaced";
 const root = await Deno.makeTempDir({ prefix: "download-install-context-" });
