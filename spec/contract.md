@@ -79,3 +79,8 @@ symlink и foreign collisions; manifest пишется первым, ZIP зат�
 последним. Ошибка записи не создаёт success receipt. Standalone pre cleanup
 сохраняет своё назначение. Обычные resources без активного Core остаются
 самостоятельными; старый private Core fallback в этом ref отсутствует.
+
+Explicit starter требует native student condition. В author он адресно закрыт
+DOWNLOAD.STARTER_UNQUALIFIED до genuine student authority; full artifact не
+переименовывается в starter. Реальный bank full render с explicit starter остаётся
+открытым integration gate, цели full135 этим отказом не сокращаются.

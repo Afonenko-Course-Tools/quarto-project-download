@@ -59,3 +59,11 @@ root-generated visible resource проходит loader entry, но validateRele
 существующий project падает OPERATION_CHANGED root membership. Официальный
 public-inventory M2 не повторяется до новой принятой Core дельты; generated guard
 не обходится. Этот source не является installed/full135/assignment acceptance.
+
+Explicit kind=starter в author operation получает DOWNLOAD.STARTER_UNQUALIFIED
+до A1/materialization: author condition нельзя выдать за student inventory.
+Обычные Java banks сохраняют такие shortcodes и в full profile; поэтому arbitrary
+full-course render пока не квалифицирован. Нужен genuine typed assignment student
+condition после actual P либо отдельно принятый маршрут. Дополнительный render,
+межоперационный ZIP shortcut или repair не добавляется. Проверенный author/full
+fixture использует kind=full и не заменяет этот обязательный integration gate.

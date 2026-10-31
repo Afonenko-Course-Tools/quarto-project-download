@@ -300,6 +300,20 @@ export async function finish(
         source: request.source,
       }))
     );
+    const authorStarter = operation?.identity.projection === "author"
+      ? artifacts.find((request) => request.kind === "starter")
+      : undefined;
+    if (authorStarter) {
+      throw diagnostic(
+        "DOWNLOAD.STARTER_UNQUALIFIED",
+        "Заготовка требует настоящую student-проекцию; author condition не даёт student inventory",
+        {
+          source: authorStarter.source,
+          id: authorStarter.exerciseId,
+          field: "kind",
+        },
+      );
+    }
     const contexts = new Map<string, any>(), plans = new Map<string, any>();
     const pack = async () =>
       await publish(config, profiles, {
