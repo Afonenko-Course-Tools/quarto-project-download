@@ -108,3 +108,19 @@ Git selection, ZIP bytes и публичный ownership API сохраняют 
 проверки точных refs. Проверка ABI с тестовым агентом и прежний Core fallback
 не подтверждают новую proof-фазу. Body v2 и delivery v3 этим дополнением
 не изменяются.
+
+## Типы исполняемого договора
+
+`Resource` выводится из фактических проверенных полей resource validator,
+`Configuration` — из guarded output и реального empty default. Дублирующих
+ручных интерфейсов нет. Optional `include/exclude/profiles/gitignore` и
+`course-model` сохраняют ранее допускавшийся `null`; это не новая нормализация.
+Исходные resource/map объекты, own undefined и пустой default сохраняются.
+Локальные assertions используют только inferred guard types, а не отдельный DTO;
+они нужны для сохранения object identity. Новый filesystem index, IO и child
+process в validator не добавлены.
+
+`quarto run tests/contract-consistency.ts` компилирует реальный consumer graph и
+меняет actual path guard в отдельном scratch; числовой path обязан сломать
+consumer typecheck. Before/after oracle сравнивает outputs и diagnostics;
+archive/public inventory/runtime suites остаются самостоятельными gates.
