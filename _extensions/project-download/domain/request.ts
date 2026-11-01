@@ -119,7 +119,8 @@ export function resolveDownloadRequests(value: unknown) {
     "requests",
   ], "");
   if (
-    typeof v.source !== "string" || !v.source || typeof v.view !== "string" ||
+    typeof v.source !== "string" || !v.source ||
+    (v.view !== undefined && typeof v.view !== "string") ||
     typeof v.native !== "boolean" || typeof v.courseProcessed !== "boolean" ||
     !Array.isArray(v.requests)
   ) {

@@ -5,7 +5,7 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
-Контракт этого ref — кандидат 3.3.1. Публичный native путь использует Core
+Контракт этого ref — кандидат 3.4.0. Публичный native путь использует Core
 `withCurrentNativeOperation`, owner release proof и готовые artifact/resource inventories.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
@@ -329,7 +329,7 @@ private `NativeRun` fallback из прежнего моста не возвра�
 
 Точные контрольные commits зависимости задаются [CI](.github/workflows/check.yml)
 того же Git ref. Целевой публичный договор — Core 9 и QRC 3.2; результаты старых
-матриц не переносятся на новую связку. До публикации `v3.3.1` устанавливайте
+матриц не переносятся на новую связку. До публикации `v3.4.0` устанавливайте
 целиком локальный checkout кандидата. Полный CI, установленный курс и выпуск
 проверяются отдельно.
 
@@ -348,6 +348,17 @@ Core/Presentation/Navigation 8.0.0, Download 3.2.0, необязательный
 
 Download 3.1.0 сохранил контракт Download3 и добавил диагностику ABI1.
 
-## Кандидат 3.3.1: ordinary owner validation
+## Сохранённая поправка 3.3.1: ordinary owner validation
 
-[Адресная поправка](docs/release-3.3.1.md) использует частичный C publication vet с действительным Core proof и common-source guards. Full C delivery не запускается из ZIP finalizer. Нужны независимая проверка и настоящий paired CI.
+[Адресная поправка](docs/release-3.3.1.md) использует частичный C publication vet с действительным Core proof и common-source guards. Full C delivery не запускается из ZIP finalizer. Она сохраняется в этом кандидате; результаты нового выпуска проверяются отдельно.
+
+
+## Кандидат 3.4.0: ранние literal-запросы
+
+[Точный фазовый контракт](docs/release-3.4.0.md) переносит literal
+`project-download` в инертный запрос до раннего Core capture. Для этого порядка
+подключения используйте `filters: [project-download, course-core]`. Обычный
+native handler и независимые resources сохраняются; правила kind, captions и
+ZIP не меняются. Видимость ссылок по-прежнему разрешает Quarto.
+
+Этот ref ещё не заявляет выпуск, установленный курс или успешный полный экспорт.
