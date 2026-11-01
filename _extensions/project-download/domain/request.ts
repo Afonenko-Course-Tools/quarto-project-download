@@ -2,14 +2,15 @@ import { diagnostic } from "../diagnostics.ts";
 import { configuration, RESOURCE_ID } from "./config.ts";
 export const ARTIFACT_KINDS = ["starter", "full", "conditions"] as const;
 export type ArtifactKind = typeof ARTIFACT_KINDS[number];
-const syntax = (
+function syntax(
   message: string,
   source: string,
   id?: string,
   field?: string,
-): never => {
+): never {
   throw diagnostic("DOWNLOAD.REQUEST_INVALID", message, { source, id, field });
-};
+}
+
 function record(value: unknown, source: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     syntax("Запрос должен быть словарём", source);
