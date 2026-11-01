@@ -2,7 +2,7 @@
 type: index
 component: project-download
 status: current
-version: 3.3.0
+version: 3.3.1
 ---
 
 # Спецификации Download

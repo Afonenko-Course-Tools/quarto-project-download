@@ -30,21 +30,34 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 946ad619830aa1affcbdaf4b5b447324e3d41002 # Core 9.0.0: exact source candidate
+          ref: 04c189fccfaa56badfc079f7be46fea4969ccf37 # Core 9.1.0: published source
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "946ad619830aa1affcbdaf4b5b447324e3d41002"
+          test "$(git -C core-fixture rev-parse HEAD)" = "04c189fccfaa56badfc079f7be46fea4969ccf37"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog
-          ref: a924b15372f8a7c95c090031c4a0ac935ce705f5 # QRC 3.2.0: inferred TS contracts, preserving accepted history
+          ref: 798f8c0d9f87fd5dcfe9ee85b79df57e647d2f3c # QRC 3.2.0: inferred TS contracts, preserving accepted history
           path: qrc-fixture
           persist-credentials: false
       - name: Проверить закреплённый QRC
-        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "a924b15372f8a7c95c090031c4a0ac935ce705f5"
+        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "798f8c0d9f87fd5dcfe9ee85b79df57e647d2f3c"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Afonenko-Course-Tools/quarto-course-prairielearn
+          ref: 0c818478f9a55f089aae0eaff425e749d4cfe976 # C9.0.1 ordinary publication candidate; push before this CI
+          path: pl-fixture
+          persist-credentials: false
+      - name: Проверить закреплённый PrairieLearn
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "0c818478f9a55f089aae0eaff425e749d4cfe976"
+      - name: Настоящая ordinary публикация и public proof
+        env:
+          CORE: ${{ github.workspace }}/core-fixture
+          PL: ${{ github.workspace }}/pl-fixture
+        run: quarto run tests/ordinary-publication.ts
       - name: Полный контракт Download и native installed model artifacts
         env:
           CORE: ${{ github.workspace }}/core-fixture
