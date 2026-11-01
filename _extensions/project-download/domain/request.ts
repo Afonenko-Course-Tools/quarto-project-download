@@ -160,7 +160,7 @@ export function resolveDownloadRequests(value: unknown) {
   for (const call of calls) {
     if (!call.inline) continue;
     const { resource: id, text, kind: explicitKind } = call.decoded;
-    const declared = config!.resources[id],
+    const declared = Object.hasOwn(config!.resources, id) ? config!.resources[id] : undefined,
       context = contexts[id],
       observed = exercises[id];
     const model = config!["course-model"] === true && id.startsWith("exr-") &&

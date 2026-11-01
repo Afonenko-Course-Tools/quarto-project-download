@@ -148,6 +148,18 @@ refuses(
     ),
   "DOWNLOAD.KIND_UNQUALIFIED",
 );
+// Имена prototype не являются объявлением ресурса; законный own ID не запрещён.
+for (const id of ["missing", "constructor"]) {
+  refuses(() => resolveDownloadRequests(batch(id, {
+    configuration: { resources: {} },
+  })), "DOWNLOAD.RESOURCE_UNAVAILABLE");
+}
+r = resolveDownloadRequests(batch("constructor", {
+  configuration: { resources: { constructor: { path: "/materials" } } },
+}));
+equal(r.request.resources, ["constructor"]);
+assert(r.links[0].href === "../_downloads/constructor.zip", "Объявленный constructor потерян");
+checks++;
 r = resolveDownloadRequests(batch("exr-a", {
   requests: [{
     ordinal: 0,
