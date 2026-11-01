@@ -1,44 +1,55 @@
-// Только caller/filesystem unit boundary: Core double не доказывает native proof.
-import {dirname,fromFileUrl,join,toFileUrl} from 'stdlib/path';
-const extension=join(dirname(dirname(fromFileUrl(import.meta.url))),'_extensions/project-download');
-const encoder=new TextEncoder(),decode=new TextDecoder();
-const assert=(v:unknown,m:string)=>{if(!v)throw Error(m)};
-async function exists(p:string){try{await Deno.lstat(p);return true}catch(e){if(e instanceof Deno.errors.NotFound)return false;throw e}}
-async function copy(a:string,b:string){await Deno.mkdir(b,{recursive:true});for await(const e of Deno.readDir(a)){if(e.isDirectory)await copy(join(a,e.name),join(b,e.name));else await Deno.copyFile(join(a,e.name),join(b,e.name))}}
-async function digest(bytes:Uint8Array,algorithm='SHA-256'){return Array.from(new Uint8Array(await crypto.subtle.digest(algorithm,new Uint8Array(bytes))),v=>v.toString(16).padStart(2,'0')).join('')}
-async function outputs(root:string){const result:Record<string,string>={};async function walk(p:string){if(!await exists(p))return;const s=await Deno.lstat(p);if(s.isSymlink){result[p]=await Deno.readLink(p);return}if(s.isDirectory){for await(const e of Deno.readDir(p))await walk(join(p,e.name))}else result[p]=await digest(await Deno.readFile(p))}await walk(join(root,'_site'));await walk(join(root,'_generated/project-download/artifacts-receipt.json'));return JSON.stringify(Object.entries(result).sort())}
-async function fixture(mode='batch',empty=false){
- const base=await Deno.makeTempDir({prefix:'download-batch-unit-'}),root=join(base,'owner');await Deno.mkdir(root);
- await copy(extension,join(root,'_extensions/project-download'));const core=join(root,'_extensions/course-core');await Deno.mkdir(join(core,'artifacts'),{recursive:true});await Deno.mkdir(join(core,'infrastructure'));
- const run={schema:'course-native-run-v1',projectRoot:root,outputDirectory:join(root,'_site'),profiles:[],renderAll:true,inputFiles:[join(root,'index.qmd')],outputFiles:[join(root,'_site/index.html')],adapters:[],documents:[{source:'index.qmd',course:{id:'batch-fixture',view:'full'},document:{source:'index.qmd',format:'html',output:'index.html',profiles:[]},exercises:[],body:{publicExercises:[]}}]};
- const stateFile=join(core,'state.ts');await Deno.writeTextFile(stateFile,`export const run:any=${JSON.stringify(run)};export const state:any={events:[],beforeB:async()=>{},failB:false,failRequest:false};\nexport async function artifact(request:any){state.events.push(request.exerciseId);if(state.failRequest&&request.exerciseId==='exr-two')throw Error('CORE_ACCESS_DENIED');return {kind:request.kind,projectRoot:'projects/demo',files:[{name:'README.md',bytes:new TextEncoder().encode(request.exerciseId+'\\n')}]}}\n`);
- await Deno.writeTextFile(join(core,'infrastructure/native-run.ts'),`import {run,state} from '../state.ts';export async function loadNativeRun(root:any,expectation:any){if(root!==run.projectRoot||expectation.outputDirectory!=='_site'||expectation.profiles.length)throw Error('Wrong expectation');state.events.push('standalone-load');return run}\n`);
- await Deno.writeTextFile(join(core,'infrastructure/resources.ts'),`import {state} from '../state.ts';export async function evaluateResources(){if(state.failResource)throw Error('CORE_RESOURCE_PRIVATE')}\n`);
- await Deno.writeTextFile(join(core,'artifacts/resolve.ts'),`import {run,state,artifact} from '../state.ts';export async function resolveArtifact(_run:any,request:any){state.events.push('standalone-resolve');return await artifact(request)}\n`+(mode==='batch'?`export async function withNativeArtifactBatch(root:any,expectation:any,use:any){if(root!==run.projectRoot||expectation.outputDirectory!=='_site'||expectation.profiles.length)throw Error('Wrong batch expectation');state.events.push('A');const value=await use({run,resolveArtifact:artifact});await state.beforeB(value);state.events.push('B');if(state.failB)throw Error('CORE_B_DRIFT');return value}\n`:''));
- await Deno.mkdir(join(root,'_generated/project-download/requests'),{recursive:true});await Deno.writeTextFile(join(root,'index.qmd'),'# Источник\n');
- const request={source:'index.qmd',resources:[],artifacts:empty?[]:[{exerciseId:'exr-one',kind:'starter'},{exerciseId:'exr-two',kind:'conditions'}]};await Deno.writeTextFile(join(root,'_generated/project-download/requests',await digest(encoder.encode('index.qmd'),'SHA-1')+'.json'),JSON.stringify(request));
- const config={'project-download':{'course-model':true},project:{'output-dir':'_site'}};const inspectFile=join(base,'inspect.json');await Deno.writeTextFile(inspectFile,JSON.stringify({config,files:{input:[join(root,'index.qmd')]}}));const inspector=join(base,'inspect-only');await Deno.writeTextFile(inspector,`#!/usr/bin/env python3\nimport sys\nassert sys.argv[1:]==['inspect',${JSON.stringify(root)}]\nprint(open(${JSON.stringify(inspectFile)}).read())\n`);await Deno.chmod(inspector,0o755);
- const prior=Deno.env.get('QUARTO');Deno.env.set('QUARTO',inspector);const {finish}=await import(toFileUrl(join(root,'_extensions/project-download/infrastructure/runtime.ts')).href);const {state,run:borrowed}=await import(toFileUrl(stateFile).href);
- return {root,base,state,run:borrowed,finish,request,config,inspectFile,async saveConfig(){await Deno.writeTextFile(inspectFile,JSON.stringify({config,files:{input:[join(root,'index.qmd')]}}))},async seed(){await Deno.mkdir(join(root,'_site/_downloads'),{recursive:true});await Deno.writeTextFile(join(root,'_site/_downloads/old.zip'),'OLD_OWNED');await Deno.writeTextFile(join(root,'_site/_downloads/.project-download-manifest.json'),'["old.zip"]\n');await Deno.writeTextFile(join(root,'_generated/project-download/artifacts-receipt.json'),'{"schema":"project-download-artifacts-v1","old":true}\n')},async cleanup(){if(prior===undefined)Deno.env.delete('QUARTO');else Deno.env.set('QUARTO',prior);await Deno.remove(base,{recursive:true})}};
+// Старые private Core doubles заменены actual public operation controls.
+import { dirname, fromFileUrl, join } from "stdlib/path";
+if (Deno.args[0] !== "no-core-ordinary") {
+  await import("./public-runtime.ts");
+} else {
+  const repo = dirname(dirname(fromFileUrl(import.meta.url))),
+    root = await Deno.makeTempDir({ prefix: "download-no-core-" });
+  try {
+    await Deno.mkdir(join(root, "_extensions"));
+    const copied = await new Deno.Command("cp", {
+      args: [
+        "-R",
+        join(repo, "_extensions/project-download"),
+        join(root, "_extensions/project-download"),
+      ],
+    }).output();
+    if (!copied.success) throw Error("Установка Download");
+    await Deno.mkdir(join(root, "data"));
+    await Deno.writeTextFile(
+      join(root, "data/public.txt"),
+      "PUBLIC_WITHOUT_CORE\n",
+    );
+    await Deno.writeTextFile(
+      join(root, "_quarto.yml"),
+      "project:\n  type: website\n  output-dir: _site\n  pre-render: [quarto run _extensions/project-download/entrypoints/pre.ts]\n  post-render: [quarto run _extensions/project-download/entrypoints/post.ts]\nformat: html\nfilters: [project-download]\nproject-download:\n  resources:\n    data: {path: data, gitignore: false}\n",
+    );
+    await Deno.writeTextFile(
+      join(root, "index.qmd"),
+      "# Ресурс\n\n{{< project-download data >}}\n",
+    );
+    const rendered = await new Deno.Command("quarto", {
+      args: ["render"],
+      cwd: root,
+      env: { QUARTO_RUN_NO_NETWORK: "true" },
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    if (!rendered.success) {
+      throw Error(new TextDecoder().decode(rendered.stderr));
+    }
+    const extracted = await new Deno.Command("unzip", {
+      args: ["-p", join(root, "_site/_downloads/data.zip"), "public.txt"],
+      stdout: "piped",
+    }).output();
+    if (
+      !extracted.success ||
+      !new TextDecoder().decode(extracted.stdout).includes(
+        "PUBLIC_WITHOUT_CORE",
+      )
+    ) throw Error("NoCore потерял resource bytes");
+    console.log("PASS no-core-ordinary actual native pre/post без Core");
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
 }
-async function refused(action:()=>Promise<unknown>,marker:string){try{await action()}catch(e){assert(String(e).includes(marker),'Неверный отказ: '+e);return}throw Error('Ожидался отказ '+marker)}
-const cases:[string,()=>Promise<void>][]=[
- ['b-failure',async()=>{const f=await fixture();try{await f.seed();const before=await outputs(f.root);f.state.failB=true;f.state.beforeB=async()=>assert(await outputs(f.root)===before,'До B изменились owned outputs');await refused(()=>f.finish(f.root),'CORE_B_DRIFT');assert(await outputs(f.root)===before,'Отказ B удалил/создал output')}finally{await f.cleanup()}}],
- ['success-one-phase',async()=>{const f=await fixture();try{await f.seed();const before=await outputs(f.root);f.state.beforeB=async()=>assert(await outputs(f.root)===before,'ZIP/manifest/receipt опубликованы до B');const count=await f.finish(f.root);assert(count===2,'Потерян пакет ZIP');assert(JSON.stringify(f.state.events)==='["A","exr-one","exr-two","B"]','Вышли из одной batch-фазы');assert(!await exists(join(f.root,'_site/_downloads/old.zip')),'Owned cleanup не выполнен после B');const receipt=JSON.parse(await Deno.readTextFile(join(f.root,'_generated/project-download/artifacts-receipt.json')));assert(receipt.audience==='full'&&receipt.archives.length===2&&receipt.sourceRunHash===await digest(encoder.encode(JSON.stringify(f.run))),'Receipt не связан с actual run');for(const row of receipt.archives)assert(row.sha256===await digest(await Deno.readFile(join(f.root,'_site/_downloads',row.name)))&&row.source==='index.qmd'&&row.audience==='full','Неверные receipt facts')}finally{await f.cleanup()}}],
- ['callback-failure',async()=>{const f=await fixture();try{await f.seed();const before=await outputs(f.root);f.state.failRequest=true;await refused(()=>f.finish(f.root),'CORE_ACCESS_DENIED');assert(await outputs(f.root)===before,'Callback failure изменил output')}finally{await f.cleanup()}}],
- ['empty-b-failure',async()=>{const f=await fixture('batch',true);try{await f.seed();const before=await outputs(f.root);f.state.failB=true;await refused(()=>f.finish(f.root),'CORE_B_DRIFT');assert(await outputs(f.root)===before,'Пустой пакет очистил outputs до B')}finally{await f.cleanup()}}],
- ['empty-success',async()=>{const f=await fixture('batch',true);try{await f.seed();const before=await outputs(f.root);f.state.beforeB=async()=>assert(await outputs(f.root)===before,'Пустой пакет изменил output до B');assert(await f.finish(f.root)===0,'Неверный размер пустого пакета');assert(!await exists(join(f.root,'_site/_downloads/old.zip')),'Пустой пакет не очистил owned output после B');assert(f.state.events.join(',')==='A,B','Пустой пакет пропустил batch proof')}finally{await f.cleanup()}}],
- ['receipt-facts-frozen',async()=>{const f=await fixture();try{const expected=await digest(encoder.encode(JSON.stringify(f.run)));f.state.beforeB=async()=>{f.run.documents[0].course.view='student';f.run.inputFiles.push('released-reference')};await f.finish(f.root);const receipt=JSON.parse(await Deno.readTextFile(join(f.root,'_generated/project-download/artifacts-receipt.json')));assert(receipt.sourceRunHash===expected&&receipt.audience==='full'&&receipt.archives.every((a:any)=>a.audience==='full'),'Receipt вычислен из borrowed run после callback')}finally{await f.cleanup()}}],
- ['destination-symlink-race',async()=>{const f=await fixture();try{const foreign=join(f.base,'foreign');await Deno.mkdir(foreign);await Deno.writeTextFile(join(foreign,'keep'),'FOREIGN');f.state.beforeB=async()=>{await Deno.mkdir(join(f.root,'_site'),{recursive:true});await Deno.symlink(foreign,join(f.root,'_site/_downloads'))};await refused(()=>f.finish(f.root),'DOWNLOAD.PATH_INVALID');assert(await Deno.readTextFile(join(foreign,'keep'))==='FOREIGN'&&Array.from(Deno.readDirSync(foreign)).length===1,'Изменён symlink destination')}finally{await f.cleanup()}}],
- ['output-root-symlink-race',async()=>{const f=await fixture();try{const foreign=join(f.base,'foreign-output');await Deno.mkdir(foreign);f.state.beforeB=async()=>Deno.symlink(foreign,join(f.root,'_site'));await refused(()=>f.finish(f.root),'DOWNLOAD.PATH_INVALID');assert(Array.from(Deno.readDirSync(foreign)).length===0,'До проверки output-root symlink создан чужой _downloads')}finally{await f.cleanup()}}],
- ['receipt-parent-symlink-race',async()=>{const f=await fixture();try{const foreign=join(f.base,'foreign-receipt');await Deno.mkdir(foreign);await Deno.writeTextFile(join(foreign,'keep'),'FOREIGN');f.state.beforeB=async()=>{await Deno.remove(join(f.root,'_generated/project-download'),{recursive:true});await Deno.symlink(foreign,join(f.root,'_generated/project-download'))};await refused(()=>f.finish(f.root),'DOWNLOAD.PATH_INVALID');assert(Array.from(Deno.readDirSync(foreign)).length===1&&await Deno.readTextFile(join(foreign,'keep'))==='FOREIGN','Receipt записан через чужой linked parent')}finally{await f.cleanup()}}],
- ['foreign-receipt-race',async()=>{const f=await fixture();try{await f.seed();const old=await Deno.readFile(join(f.root,'_site/_downloads/old.zip'));f.state.beforeB=async()=>Deno.writeTextFile(join(f.root,'_generated/project-download/artifacts-receipt.json'),'{"schema":"foreign-artifacts"}');await refused(()=>f.finish(f.root),'DOWNLOAD.OUTPUT_CONFLICT');assert(await Deno.readTextFile(join(f.root,'_generated/project-download/artifacts-receipt.json'))==='{"schema":"foreign-artifacts"}'&&decode.decode(await Deno.readFile(join(f.root,'_site/_downloads/old.zip')))===decode.decode(old),'Foreign receipt вызвал удаление чужих/owned bytes')}finally{await f.cleanup()}}],
- ['foreign-archive-race',async()=>{const f=await fixture();try{f.state.beforeB=async()=>{await Deno.mkdir(join(f.root,'_site/_downloads'),{recursive:true});await Deno.writeTextFile(join(f.root,'_site/_downloads/exr-one-starter.zip'),'FOREIGN_ZIP')};await refused(()=>f.finish(f.root),'DOWNLOAD.OUTPUT_CONFLICT');assert(await Deno.readTextFile(join(f.root,'_site/_downloads/exr-one-starter.zip'))==='FOREIGN_ZIP'&&!await exists(join(f.root,'_generated/project-download/artifacts-receipt.json')),'Перезаписан чужой ZIP/создан success receipt')}finally{await f.cleanup()}}],
- ['write-failure',async()=>{const f=await fixture();const write=Deno.writeFile;try{f.state.beforeB=async()=>{Deno.writeFile=async(...args:Parameters<typeof Deno.writeFile>)=>{if(String(args[0]).endsWith('exr-two-conditions.zip'))throw Error('INJECTED_WRITE_FAILURE');return await write(...args)}};await refused(()=>f.finish(f.root),'INJECTED_WRITE_FAILURE');assert(!await exists(join(f.root,'_generated/project-download/artifacts-receipt.json')),'Write failure создал success receipt');assert(await exists(join(f.root,'_site/_downloads/exr-one-starter.zip'))&&JSON.parse(await Deno.readTextFile(join(f.root,'_site/_downloads/.project-download-manifest.json'))).length===2,'Потеря cleanup manifest прерванной записи')}finally{Deno.writeFile=write;await f.cleanup()}}],
- ['batch-profile-mismatch',async()=>{const f=await fixture();try{await f.seed();const before=await outputs(f.root);f.run.profiles=['foreign'];await refused(()=>f.finish(f.root),'DOWNLOAD.REQUEST_INVALID');assert(await outputs(f.root)===before,'Неверный ordered profile tuple изменил outputs')}finally{await f.cleanup()}}],
- ['batch-stale-document',async()=>{const f=await fixture();try{await f.seed();const before=await outputs(f.root);f.run.documents=[];await refused(()=>f.finish(f.root),'DOWNLOAD.REQUEST_INVALID');assert(await outputs(f.root)===before,'Заявка вне actual documents изменила outputs')}finally{await f.cleanup()}}],
- ['old-core-fallback',async()=>{const f=await fixture('old');try{assert(await f.finish(f.root)===2,'Старый Core потерял архивы');assert(f.state.events[0]==='standalone-load'&&f.state.events.filter((s:string)=>s==='standalone-resolve').length===2&&!f.state.events.includes('A'),'Старый Core лишился guarded standalone route')}finally{await f.cleanup()}}],
- ['explicit-context-standalone',async()=>{const f=await fixture();try{const mod=await import(toFileUrl(join(f.root,'_extensions/course-core/artifacts/resolve.ts')).href);assert(await f.finish(f.root,{run:f.run,evaluateResources:async()=>{},resolveArtifact:mod.resolveArtifact})===2,'Explicit context потерял standalone semantics');assert(!f.state.events.includes('A'),'Explicit finish context не должен открывать caller batch')}finally{await f.cleanup()}}],
- ['no-core-ordinary',async()=>{const f=await fixture();try{await Deno.remove(join(f.root,'_extensions/course-core'),{recursive:true});await Deno.mkdir(join(f.root,'data'));await Deno.writeTextFile(join(f.root,'data/public.txt'),'PUBLIC_RESOURCE');f.config['project-download']={resources:{data:{path:'data',gitignore:false}}} as any;await f.saveConfig();const files=Array.from(Deno.readDirSync(join(f.root,'_generated/project-download/requests')));await Deno.writeTextFile(join(f.root,'_generated/project-download/requests',files[0].name),JSON.stringify({source:'index.qmd',resources:['data']}));assert(await f.finish(f.root)===1,'No-Core resources потеряли независимость');const receipt=JSON.parse(await Deno.readTextFile(join(f.root,'_generated/project-download/artifacts-receipt.json')));assert(receipt.sourceRunHash===null&&await exists(join(f.root,'_site/_downloads/data.zip')),'No-Core route требует/подменяет Core proof')}finally{await f.cleanup()}}],
-];
-const selected=Deno.args[0];for(const [name,test] of cases){if(selected&&selected!==name)continue;await test();console.log('PASS '+name)}

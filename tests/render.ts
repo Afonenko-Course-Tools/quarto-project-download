@@ -10,7 +10,6 @@ async function render(profile: string, success = true) {
   const r = await new Deno.Command(quarto, {
     args: ["render", "--profile", profile, "--fail-if-warnings"],
     cwd: root,
-    env: { CUE: "не-должен-вызываться" },
     stdout: "piped",
     stderr: "piped",
   }).output();
@@ -107,7 +106,7 @@ project-download:
   const parameterDiagnostics=new TextDecoder().decode(invalidParameter.stderr);
   assert(parameterDiagnostics.includes("DOWNLOAD.REQUEST_INVALID") && parameterDiagnostics.includes("unknown") && parameterDiagnostics.includes("nested/page.qmd"),"Shortcode guard завершает рендер и сохраняет ID/поле/исходник: "+parameterDiagnostics);
   console.log(
-    "Quarto: независимость от Core/CUE, вложенные ссылки, full → student, очистка после ошибки проверены.",
+    "Quarto: независимость от Core, вложенные ссылки, full → student, очистка после ошибки проверены.",
   );
 } finally {
   await Deno.remove(root, { recursive: true });

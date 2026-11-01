@@ -2,7 +2,7 @@
 type: index
 component: project-download
 status: current
-version: 3.2.2
+version: 3.3.0
 ---
 
 # Спецификации Download
@@ -25,25 +25,19 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
 
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
-Quarto 1.11.5 и CUE 0.17.1 заданы для текущего кандидата Download 3.2.2
-с необязательным модельным мостом Core 8.2.3. Обычные resources независимы от Core;
+Целевой Quarto — 1.11.5; кандидат Download 3.3.0 использует публичный
+native TS-договор Core 9 без внешнего валидатора схем. Обычные resources независимы от Core;
 точный files inventory и current-run guards принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
 
-## Одна фаза Core на пакет ZIP из 3.2.1, сохранённая в 3.2.2
+## Публичный native runtime B3
 
-При наличии internal export `withNativeArtifactBatch` в Core 8.2.3 runtime
-Download объединяет загрузку NativeRun и все модельные заявки в один callback.
-ZIP bytes и receipt facts копируются в память до завершающей Core-проверки;
-owned cleanup и публикация начинаются после успешного возврата batch.
-На Core без этого export сохраняется прежний guarded standalone маршрут.
-Обычные resources по-прежнему работают без Core.
-
-Текущий кандидат исходников — 3.2.2; CI закрепляет Core
-`9acab6d11afbdcbeefdabb15130068488e2f6dc0`. Native/installed интеграция этой пары,
-итоговый CI и публикация принимаются отдельно. Unit boundary double не является
-доказательством native proof или банкового бюджета.
+Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
+через actual `withCurrentNativeOperation`, готовый artifact inventory и публичный
+resource inventory и текущий owner release proof. Private NativeRun fallback удалён.
+Адресные проверки и открытые integration gates перечислены в документе;
+source ref не заявляется установленным или выпущенным автоматически.
 
 ## Контекст наблюдения 3.2.2
 
@@ -53,5 +47,6 @@ owned cleanup и публикация начинаются после успеш
 Только при активном контексте агента оба процесса Git получают полный снимок
 окружения через `childEnv` и `clearEnv: true`. Identity/off/недоступный режим/
 отсутствующий агент сохраняют прежние разрешения и наследование env. Новый общий runtime и полное семантическое покрытие не
-вводятся. Согласуемая матрица Core 8.2.3 / Download 3.2.2 / Site 5.1.4 / QRC 3.1.1
-требует собственной проверки точных refs и установленного состава.
+вводятся. Историческая ABI-матрица не задаёт текущие component pins.
+Текущий CI закрепляет Core946ad61 (9.0.0) и QRCa924b153 (3.2.0);
+межкомпонентный installed состав, hosted CI и новый выпуск требуют отдельных проверок.
