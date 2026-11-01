@@ -6,7 +6,7 @@ status: current
 
 # Контракт Download 3
 
-Текущий ref — кандидат **3.3.0**; до публикации соответствующего тега он unreleased.
+Текущий ref — кандидат **3.3.1**; до публикации соответствующего тега он unreleased.
 
 Обычный `project-download.resources` сохраняет закрытый словарь ресурсов:
 path, include, exclude, profiles, gitignore. ID соответствует

@@ -6,14 +6,15 @@ catalog, включая effective course/assessment каждого докуме�
 в корневом config не определяет необходимость проверки. Вызов связан с теми же
 root, ordered profiles, projection, source/format coverage и final fences.
 
-Если рядом с Download установлен PrairieLearn public module, первый Core proof
-получает настоящий `createNativeAdapter` descriptor. При selected prairielearn
-в proof затем вызывается настоящий `adapter.validateCourse` для C composition.
-Это два owner validation/currentness прохода, явно показанные в receipt metrics;
-новых inspect/render/discovery/whole-source hash ради них нет. Для noPL первый
-Core proof достаточен. Отсутствующий validator отвергает Core; B не подменяет
-business schema или raw capture своим resolver. Ordinary PL proof не создаёт
-qualified assignment intent или права assignment export/materialization.
+Если рядом установлен PrairieLearn public module, Download вызывает существующий
+`inspectPublication` C (кандидат9.0.1): один genuine Core validation pass проверяет
+metadata/assessment shape, пороги, принадлежность members и project/common sources.
+Полученный от C реальный публичный Core proof проходит Core runtime schema;
+отсутствующий proof не заменяется fallback или пустым результатом. Полная
+grading composition/prepared correlation относится к delivery и не запускается
+из ordinary ZIP finalizer. Если PL не выбран Core, действует общий proof,
+без PL business data. Для отсутствующего PL используется прежний generic Core
+validation. Final fences остаются у Core. Ordinary vet не даёт assignment прав.
 
 Проекты открываются через `operation.withProjectContexts` той же generation/S,
 пакетно по настоящему формату. Публичный Core договор использует технический

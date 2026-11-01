@@ -5,7 +5,7 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
-Контракт этого ref — кандидат 3.3.0. Публичный native путь использует Core
+Контракт этого ref — кандидат 3.3.1. Публичный native путь использует Core
 `withCurrentNativeOperation`, owner release proof и готовые artifact/resource inventories.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
@@ -19,7 +19,7 @@ Private NativeRun fallback удалён; обычные resources сохраня
 Выпущенную версию устанавливайте по неизменяемому тегу после его публикации:
 
 ```sh
-quarto add Afonenko-Course-Tools/quarto-project-download@v3.3.0
+quarto add Afonenko-Course-Tools/quarto-project-download@v3.3.1
 ```
 
 Установка пассивна. Подключите фильтр, обработчики и ресурсы явно:
@@ -329,7 +329,7 @@ private `NativeRun` fallback из прежнего моста не возвра�
 
 Точные контрольные commits зависимости задаются [CI](.github/workflows/check.yml)
 того же Git ref. Целевой публичный договор — Core 9 и QRC 3.2; результаты старых
-матриц не переносятся на новую связку. До публикации `v3.3.0` устанавливайте
+матриц не переносятся на новую связку. До публикации `v3.3.1` устанавливайте
 целиком локальный checkout кандидата. Полный CI, установленный курс и выпуск
 проверяются отдельно.
 
@@ -347,3 +347,7 @@ Core/Presentation/Navigation 8.0.0, Download 3.2.0, необязательный
 ## Исторический выпуск 3.1.0
 
 Download 3.1.0 сохранил контракт Download3 и добавил диагностику ABI1.
+
+## Кандидат 3.3.1: ordinary owner validation
+
+[Адресная поправка](docs/release-3.3.1.md) использует частичный C publication vet с действительным Core proof и common-source guards. Full C delivery не запускается из ZIP finalizer. Нужны независимая проверка и настоящий paired CI.
