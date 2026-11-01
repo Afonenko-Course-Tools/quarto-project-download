@@ -25,8 +25,8 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
 
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
-Quarto 1.11.5 и CUE 0.17.1 заданы для текущего кандидата Download 3.3.0
-с публичным native мостом Core 8.4.0. Обычные resources независимы от Core;
+Целевой Quarto — 1.11.5; кандидат Download 3.3.0 использует публичный
+native TS-договор Core 9 без внешнего валидатора схем. Обычные resources независимы от Core;
 точный files inventory и current-run guards принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
@@ -36,7 +36,7 @@ Quarto 1.11.5 и CUE 0.17.1 заданы для текущего кандида�
 Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
 через actual `withCurrentNativeOperation`, готовый artifact inventory и публичный
 resource inventory и текущий owner release proof. Private NativeRun fallback удалён.
-Bounded проверки и открытый generated-resource/Core gate перечислены в документе;
+Адресные проверки и открытые integration gates перечислены в документе;
 source ref не заявляется установленным или выпущенным автоматически.
 
 ## Контекст наблюдения 3.2.2

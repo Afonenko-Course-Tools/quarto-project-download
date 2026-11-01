@@ -19,8 +19,8 @@ Resource path guards отвергают symlink/escape, авторские Quart
 Модельный запрос включается `course-model: true` и содержит exerciseId, необязательный
 авторский kind (starter/full/conditions) и text. Он не повторяет path/profile/exclude
 и не требует записи exercise ID в resources map. Native filter выбирает ровно одну
-ссылку; authoritative Core resolver повторно проверяет kind по trusted current
-NativeRun. Full обычного упражнения разрешён в full audience; открытая demonstration
+ссылку; authoritative Core resolver повторно проверяет kind по текущей публичной
+операции Core. Full обычного упражнения разрешён в full audience; открытая demonstration
 получает full также в student и может оставаться вне банка. Restricted упражнение
 не выдаётся в student. Условия не включают решения/notes/private tests.
 
@@ -39,10 +39,10 @@ Core. README проходит только owner writer. Подробнее —
 
 Текущий public owner проверяет effective release каждого документа до выдачи.
 HTML student/full, condition-only closure и native default kind используют один
-Core writer; ordinary reveal model остаётся CONDITION_UNQUALIFIED. Actual
-root-generated resources вместе с release proof имеют адресный Core blocker;
-его нельзя обходить предгенерацией или снятием guards. Подробности и границы
-bounded проверки перечислены в публичном runtime, полный rollout не заявлен.
+Core writer; ordinary reveal model остаётся CONDITION_UNQUALIFIED. Root-generated resources проверяются теми же текущими membership, visibility
+и inventory guards; предгенерация не заменяет разрешённую текущую операцию.
+Подробности и границы проверок перечислены в публичном runtime; полный rollout
+проверяется отдельно.
 
 ZIP: STORE, UTF-8, фиксированная дата, sorted names; independent fresh runs дают
 одинаковые bytes. Symlink/path escapes/специальные файлы/чужие output collisions
@@ -50,7 +50,7 @@ ZIP: STORE, UTF-8, фиксированная дата, sorted names; independen
 Другие outputs и чужие ZIP сохраняются. Новые receipts `project-download-artifacts-v2` содержат name/sha256,
 model kind/exerciseId/source, profiles, operation, публичную identity и release proof/metrics.
 Receipt подтверждает архивы, а не source authority. Старый v1 узнаётся только
-как собственный cleanup объект; смысл NativeRun sourceRunHash не переименован.
+как собственный cleanup объект и не предоставляет authority текущей операции.
 
 Ownership API inspectOwnedRequests/clearOwnedRequests сохраняет protocol1;
 files имеют optional artifacts вместе с source/resources/sha256. Native writer,

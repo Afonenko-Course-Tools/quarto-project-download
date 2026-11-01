@@ -35,7 +35,8 @@ Native filter переносит собственную effective Download confi
 маршрут сохраняет собственные inspect/config/resource guards и не загружает Core.
 
 Порядок: Download pre, Core native-pre, при PL его public prepare после Core pre,
-PL raw-capture filter до Core early, затем actual render/late/Core native-post и
+Core передаёт валидатору C свои четыре плоскости native metadata; отдельного
+Lua-захвата C нет. Затем выполняются render/late/Core native-post и
 Download post `--native`. Для native author вызывают post `--native --author`.
 Expectation не содержит прежнего scalar format: exact formats приходят из
 native catalog либо expectedDocuments. Student/full — native projections
@@ -52,13 +53,10 @@ ZIP bytes фиксируются внутри callbacks. Manifest пишется
 последним. Receipt v2 содержит operation/identity/release и SHA256 архивов;
 это журнал результата, не новое source authority. Старый v1 нужен только cleanup.
 
-B3 source проверяется на immutable Core998/Cd273. Actual HTML student/full,
-condition-only/default, fragment origins/resources, reveal owner/resources и
-отдельный noCore имеют адресные fixtures. **Core dependency BLOCKED:** actual
-root-generated visible resource проходит loader entry, но validateRelease на
-существующий project падает OPERATION_CHANGED root membership. Официальный
-public-inventory M2 не повторяется до новой принятой Core дельты; generated guard
-не обходится. Этот source не является installed/full135/assignment acceptance.
+Точный состав текущей пары задан CI того же Git ref. Адресные fixtures проверяют
+HTML student/full, condition-only/default, fragment origins/resources, generated
+resource inventory, Reveal owner/resources и отдельный noCore. Прохождение этих
+проверок не означает приёмку установленного полного курса или assignment/P.
 
 Explicit kind=starter в author operation получает DOWNLOAD.STARTER_UNQUALIFIED
 до A1/materialization: author condition нельзя выдать за student inventory.

@@ -45,9 +45,6 @@ jobs:
           persist-credentials: false
       - name: Проверить закреплённый QRC
         run: test "$(git -C qrc-fixture rev-parse HEAD)" = "23312f3bd747a8f665fd2313afbb1c95c42978ac"
-      - uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
-        with:
-          version: v0.17.1
       - name: Полный контракт Download и native installed model artifacts
         env:
           CORE: ${{ github.workspace }}/core-fixture

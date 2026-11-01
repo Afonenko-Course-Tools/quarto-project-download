@@ -3,7 +3,7 @@
 Действующие правила: [индекс спецификаций](spec/index.md) и [контракт Download](spec/contract.md).
 Версия данного ref определяется descriptor; контракт и документация выпуска
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
-**unreleased**. Минимум — Quarto 1.11.5; при использовании Core требуется CUE 0.17.1.
+**unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
 Контракт этого ref — кандидат 3.3.0. Публичный native путь использует Core
 `withCurrentNativeOperation`, owner release proof и готовые artifact/resource inventories.
@@ -225,7 +225,7 @@ project-download:
 Restricted упражнение не создаёт запрос в student projection. Полный проект в
 student разрешён только при effective `course-role=demonstration` и открытом условии.
 Демонстрация может оставаться вне банка. Профиль сайта и вид архива — разные поля;
-права определяются текущим NativeRun Core, не параметром shortcode. Неизвестный
+права определяются текущей публичной операцией Core, не параметром shortcode. Неизвестный
 ID, отсутствующий проект и запрещённый kind завершают сборку с диагностикой.
 
 Модельные архивы называются `ID-starter.zip`, `ID-full.zip`, `ID-conditions.zip`.
@@ -239,17 +239,17 @@ caches, build outputs и class/jar исключаются. Автор обесп
 команды и ссылки README. Весь разрешённый full project упаковывается после
 Core authorization, а public guards обычных resources сохраняются.
 
-`finish(root, {run, evaluateResources, resolveArtifact})` принимает явный текущий
-контекст и публичные API Core. Модельные заявки имеют отдельный typed transport
+`finishDownloads(root, options)` из `public.ts` принимает явные projection/profiles,
+expectedDocuments и конечный каталог выдачи. Текущую операцию открывает публичный Core API. Модельные заявки имеют отдельный typed transport
 `artifacts: [{exerciseId, kind}]`; они не преобразуются в ID старого resources map.
 При обычном post-hook контекст загружается из установленного соседнего Core.
 Private `_generated/project-download/artifacts-receipt.json` фиксирует SHA256
-архивов, kind/source и hash текущего NativeRun; он исключается из сайта вместе
+архивов, kind/source, operation/identity и release proof; он исключается из сайта вместе
 с остальными generated inputs. Он не подтверждает выполнение Java-проектов.
 
 Обычные resources работают без Core/CUE. Если Core обработал AST, generic resource
 policy действует и при `course-model: false`. `course.json` и retained HTML предыдущей
-сборки не заменяют текущий NativeRun. Audience wrappers в authoring Core запрещены;
+сборки не заменяют текущую публичную операцию. Audience wrappers в authoring Core запрещены;
 доступ материала определяется моделью или full-only страницами книги.
 
 ## Архитектура и проверки
@@ -258,29 +258,20 @@ policy действует и при `course-model: false`. `course.json` и reta
 |---|---|
 | `domain` | Контракт ресурсов и детерминированный формат ZIP |
 | `application` | Разрешение заявок и сценарий публикации через порты |
-| `infrastructure` | Файлы, Git, Quarto, манифест и явный текущий NativeRun и resource policy Core |
+| `infrastructure` | Файлы, Git, Quarto, манифест и текущая публичная операция/resource policy Core |
 | `entrypoints` | Явные обработчики сборки |
 
 ```sh
-quarto run tests/archive.ts
-quarto run tests/render.ts
-quarto run tests/ownership.ts
-quarto run tests/model-artifacts.ts
-CORE=/path/to/compatible/quarto-course quarto run tests/model-installed.ts
+CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog bash tools/check.sh
 ```
 
-Проверяются `.gitignore` без репозитория и внутри игнорируемой копии, границы
-путей, символические ссылки, детерминизм, кириллица, профильные ограничения,
-изоляция очистки и реальные сборки Quarto без CUE.
-Публичный API дополнительно проверяется на заявках нативно установленного
-расширения, пустых результатов, повреждённых и чужих записях, ссылках и точных SHA-256.
-
-Установленная поставка дополнительно проверяется командами
-`CORE=../quarto-course quarto run tests/native.ts` и
-`CORE=../quarto-course quarto run tests/native-installed.ts` на Quarto 1.11.5
-с CUE 0.17.1. Проверки охватывают актуальность выбранного документа,
-изоляцию последовательности student/full/student, скрытые ресурсы ZIP
-и отсутствие ресурсов текущей сборки.
+Штатный набор проверяет каждый актуальный suite один раз. Он охватывает
+воспроизводимость ZIP, файловые границы и кириллицу, настоящие временные
+установки, standalone student/full/student, current operation и inventory,
+origin/href/resources, privacy, source/generation drift и сохранение чужих
+outputs. Модельный путь использует Core 9 без внешнего валидатора схем.
+Удалённые private hooks не являются положительным результатом текущего API;
+[карта переноса проверок](tests/legacy-harness-mapping.md) задаёт их замену.
 
 ## Версии и обновление
 
@@ -336,12 +327,11 @@ Main 3.2.2 добавил контекст наблюдения ABI 1 и пер�
 процессам. Эти изменения сохранены в 3.3.0 вместе с публичным native путём B3;
 private `NativeRun` fallback из прежнего моста не возвращается.
 
-CI текущего кандидата закрепляет точный Core 8.4.0
-`0613a4c6409d6cf766f926b8e096fd35d2a88422` и QRC 3.2.0
-`23312f3bd747a8f665fd2313afbb1c95c42978ac`. Итоговый CI этих refs и установленная композиция проверяются
-отдельно; старые проверки матрицы Core 8.2.3 / Download 3.2.2 / Site 5.1.4 /
-QRC 3.1.1 не объявляются проверкой новой пары. До публикации `v3.3.0`
-устанавливайте целиком локальный checkout кандидата.
+Точные контрольные commits зависимости задаются [CI](.github/workflows/check.yml)
+того же Git ref. Целевой публичный договор — Core 9 и QRC 3.2; результаты старых
+матриц не переносятся на новую связку. До публикации `v3.3.0` устанавливайте
+целиком локальный checkout кандидата. Полный CI, установленный курс и выпуск
+проверяются отдельно.
 
 ## История контракта 3.2.0
 
