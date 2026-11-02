@@ -1,6 +1,6 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("project-download");
-import { diagnostic } from "../diagnostics.ts";
+import { diagnostic, progress, reportProgress } from "../diagnostics.ts";
 import {
   type Configuration,
   type Resource,
@@ -40,6 +40,9 @@ export async function publish(
   profiles: string[],
   ports: PublishPorts,
 ): Promise<number> {
+  return await progress("Сборка материалов и ZIP", () => publishInternal(config, profiles, ports));
+}
+async function publishInternal(config: Configuration, profiles: string[], ports: PublishPorts): Promise<number> {
   const selected = new Map<string, Resource>();
   const model = new Map<
     string,
@@ -147,6 +150,7 @@ export async function publish(
       selected.set(id, resource);
     }
   }
+  reportProgress(`Сборка материалов и ZIP — resources=${selected.size}, model=${model.size}`);
   const archives = [];
   for (
     const [id, resource] of [...selected].sort(([a], [b]) => a < b ? -1 : 1)
@@ -169,6 +173,7 @@ export async function publish(
       bytes: artifact.package ? await artifact.package() : zip(artifact.files),
     });
   }
+  reportProgress(`Публикация материалов — archives=${archives.length}`);
   await ports.save(archives);
   return archives.length;
 }
