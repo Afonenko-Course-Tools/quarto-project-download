@@ -30,13 +30,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 6086228f7e9b466de023c51956345158c58bb5fd # Core 9.1.1: published source
+          ref: 68074174b3d7546302bc98e5c80b39e5f56b7713 # Core 9.3.0: required native contract batch API
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "6086228f7e9b466de023c51956345158c58bb5fd"
+          test "$(git -C core-fixture rev-parse HEAD)" = "68074174b3d7546302bc98e5c80b39e5f56b7713"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog

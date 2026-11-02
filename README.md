@@ -5,7 +5,7 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
-Контракт этого ref — кандидат 3.4.1. Публичный native путь использует Core
+Контракт этого ref — кандидат 3.5.0. Публичный native путь использует Core
 `withCurrentNativeOperation`, owner release proof и готовые artifact/resource inventories.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.

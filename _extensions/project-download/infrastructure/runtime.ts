@@ -597,7 +597,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
       }
     }
     if (projectRequests.size) {
-      return await operation.withProjectContexts(
+      return await operation.withProjectContracts(
         [...projectRequests].map(([format, inputs]) => ({
           owner: root,
           inputs: [...inputs],
