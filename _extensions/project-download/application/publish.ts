@@ -7,19 +7,18 @@ import {
   RESOURCE_ID,
 } from "../domain/config.ts";
 import { type ArchiveEntry, zip } from "../domain/zip.ts";
-export type ArtifactKind = "starter" | "full" | "conditions";
-export interface ArtifactRequest {
-  exerciseId: string;
-  kind: ArtifactKind;
-}
-export interface Request {
-  source: string;
-  resources: string[];
-  artifacts?: ArtifactRequest[];
-  courseProcessed?: boolean;
-  configuration?: unknown;
-  native?: boolean;
-}
+import {
+  ARTIFACT_KINDS,
+  type resolveDownloadRequests,
+} from "../domain/request.ts";
+export type ArtifactKind = typeof ARTIFACT_KINDS[number];
+type NativeRequest = ReturnType<typeof resolveDownloadRequests>["request"];
+export type ArtifactRequest = NonNullable<NativeRequest["artifacts"]>[number];
+// Старый public port допускает отсутствие native/configuration; типы полей
+// выводятся из исполняемого owner batch, отдельного ручного DTO нет.
+export type Request =
+  & Pick<NativeRequest, "source" | "resources">
+  & Partial<Omit<NativeRequest, "source" | "resources">>;
 export interface PublishPorts {
   requests(): Promise<Request[]>;
   courseResource(id: string, source: string): Promise<Resource>;
@@ -50,7 +49,7 @@ export async function publish(
     for (const artifact of request.artifacts ?? []) {
       if (
         !RESOURCE_ID.test(artifact.exerciseId) ||
-        !["starter", "full", "conditions"].includes(artifact.kind) ||
+        !ARTIFACT_KINDS.includes(artifact.kind) ||
         Object.keys(artifact).some((k) => !["exerciseId", "kind"].includes(k))
       ) {
         throw diagnostic(

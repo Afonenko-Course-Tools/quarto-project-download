@@ -6,7 +6,7 @@ status: current
 
 # Контракт Download 3
 
-Текущий ref — кандидат **3.3.1**; до публикации соответствующего тега он unreleased.
+Текущий ref — кандидат **3.4.0**; до публикации соответствующего тега он unreleased.
 
 Обычный `project-download.resources` сохраняет закрытый словарь ресурсов:
 path, include, exclude, profiles, gitignore. ID соответствует
@@ -84,8 +84,8 @@ symlink и foreign collisions; manifest пишется первым, ZIP зат�
 
 Explicit starter требует native student condition. В author он адресно закрыт
 DOWNLOAD.STARTER_UNQUALIFIED до genuine student authority; full artifact не
-переименовывается в starter. Реальный bank full render с explicit starter остаётся
-открытым integration gate, цели full135 этим отказом не сокращаются.
+переименовывается в starter. Это адресный отрицательный контроль; обычный full
+пользуется default kind. Конкретные authored courses и полный экспорт проверяются отдельно.
 
 ## Контекст наблюдения и дочерние процессы
 
@@ -124,3 +124,37 @@ process в validator не добавлены.
 меняет actual path guard в отдельном scratch; числовой path обязан сломать
 consumer typecheck. Before/after oracle сравнивает outputs и diagnostics;
 archive/public inventory/runtime suites остаются самостоятельными gates.
+
+
+## Ранняя и поздняя native-фазы 3.4.0
+
+Download должен стоять перед Core в `filters` при раннем literal capture.
+`PROJECT_DOWNLOAD_LITERAL_ONLY=1` — только ограничение actual callbacks, не
+источник прав. В этом режиме собственный pre-ast filter переводит строгие
+literal reader Span в прежний `.project-download-request`. Динамические,
+неизвестные параметры и авторские reserved transport Attr отвергаются. Другие
+shortcodes остаются в ведении Core. Core profile и prior authority по-прежнему
+обязаны связывать реальные phases, bytes и окружение.
+
+Единственный request decoder — [domain/request.ts](../_extensions/project-download/domain/request.ts).
+Он проверяет syntax всех actual callbacks, включая consumed/stringify carriers.
+Config, resource и default-kind policy применяются только к surviving inline
+Span на прежней post-quarto фазе. Code/Raw/attr callback с допустимым missing ID
+может оставаться текстом без конфигурации и ZIP-заявки; неверный syntax отказывает.
+Metadata, реально дошедшая как inline Span, сохраняет обычное разрешение ресурса.
+
+Lua сохраняет extended native AST и bounded document-local buffer. Поздний TS
+получает один малый batch и возвращает source/ordinal-bound решения; whole late
+AST не проходит JSON round-trip. Buffer не является authority и очищается при
+drain; другой input/root/format, отсутствие ранней фазы и повторный drain отвергаются.
+Лимиты buffer — 16384 actual callbacks и 16 MiB сериализованных аргументов на документ.
+
+Без запросов новых TS children нет. Ordinary callbacks используют один late TS
+child на документ, независимо от их числа. Restrictive literal документы могут
+использовать один early и один late TS child. Предварительный AST preflight
+нужен до генерации собственных markers; новых inspect, filesystem indexing или
+hash на shortcode нет. Это не заявление об ускорении полного курса.
+
+Restrictive runtime callback отказывает до Download buffer record, links и
+sidecar. Уже выполненная Core early-фаза может оставить временные файлы; это
+незавершённая операция, не delivery/publication/ZIP authority.
