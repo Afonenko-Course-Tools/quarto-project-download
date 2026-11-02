@@ -66,3 +66,12 @@ full-course render пока не квалифицирован. Нужен genuin
 condition после actual P либо отдельно принятый маршрут. Дополнительный render,
 межоперационный ZIP shortcut или repair не добавляется. Проверенный author/full
 fixture использует kind=full и не заменяет этот обязательный integration gate.
+
+## Планы проектов в 3.5.0
+
+Единственный batch-вызов Download использует `operation.withProjectContracts`
+Core 9.3.0. Namespace/origins, планы, closure, материализация и упаковка ZIP
+сохраняют прежние публичные контракты. Узкий контекст не требует полного
+`effectiveMetadata`; общий resource selection и privacy/final fences не меняются.
+Собственный progress 3.4.1 сохраняется. Новый source ref ещё не подтверждает
+установленную композицию или ускорение полного курса.
