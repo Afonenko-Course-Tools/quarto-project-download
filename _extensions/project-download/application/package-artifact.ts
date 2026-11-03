@@ -1,4 +1,4 @@
-import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
+import { sibling } from "../infrastructure/siblings.ts";
 import { diagnostic } from "../diagnostics.ts";
 import { zip } from "../domain/zip.ts";
 
@@ -19,10 +19,7 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
       cause,
     );
   }
-  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
-  const core = await import(
-    toFileUrl(join(dirname(extension), "course-core/public.ts")).href
-  );
+  const core = await sibling("course-core");
   let inventory;
   try {
     inventory = core.ArtifactInventorySchema.parse(supplied);
@@ -35,13 +32,10 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
     );
   }
   // Все заимствованные bytes фиксируются до первого await проверки хешей.
-  const files = inventory.files.map((file: {
-    target: string;
-    bytes: Uint8Array;
-    size: number;
-    sha256: string;
-    audience: string;
-  }) => ({ ...file, bytes: new Uint8Array(file.bytes) }));
+  const files = inventory.files.map((file) => ({
+    ...file,
+    bytes: new Uint8Array(file.bytes),
+  }));
   const names = new Set<string>();
   for (const file of files) {
     if (names.has(file.target) || file.audience !== inventory.audience) {
@@ -79,10 +73,8 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
       );
     }
   }
-  files.sort((a: { target: string }, b: { target: string }) =>
-    a.target < b.target ? -1 : a.target > b.target ? 1 : 0
-  );
-  return zip(files.map((file: { target: string; bytes: Uint8Array }) => ({
+  files.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : 0);
+  return zip(files.map((file) => ({
     name: file.target,
     bytes: file.bytes,
   })));

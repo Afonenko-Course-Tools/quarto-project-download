@@ -62,4 +62,5 @@ jobs:
         env:
           CORE: ${{ github.workspace }}/core-fixture
           QRC: ${{ github.workspace }}/qrc-fixture
+          PL: ${{ github.workspace }}/pl-fixture
         run: bash tools/check.sh

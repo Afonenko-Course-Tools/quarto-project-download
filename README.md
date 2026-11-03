@@ -262,8 +262,10 @@ policy действует и при `course-model: false`. `course.json` и reta
 | `entrypoints` | Явные обработчики сборки |
 
 ```sh
-CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog bash tools/check.sh
+CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog PL=/path/to/quarto-course-prairielearn bash tools/check.sh
 ```
+
+Для статической проверки native-цепи нужны фактические публичные типы `CORE`/`PL`/`QRC`; ссылки только на типы стираются, поэтому обычные resources исполняются без Core.
 
 Штатный набор проверяет каждый актуальный suite один раз. Он охватывает
 воспроизводимость ZIP, файловые границы и кириллицу, настоящие временные
@@ -287,7 +289,7 @@ outputs. Модельный путь использует Core 9 без внеш
 свой ID и исходный вывод. Публичную сборку проверяйте штатным
 `quarto render --fail-if-warnings`; отдельного warning-режима расширения нет.
 
-Локальная проверка `CORE=/absolute/path/to/quarto-course bash tools/check.sh`
+Локальная проверка `CORE=/absolute/path/to/quarto-course QRC=/absolute/path/to/quarto-reference-catalog PL=/absolute/path/to/quarto-course-prairielearn bash tools/check.sh`
 включает контекст собственных диагностик, foreign CLI-потоки, ZIP, профили,
 владение заявками и установленные namespaced/plain/active подключения.
 Успешный рендер не выполняет стартовый проект и не доставляет его в LMS.

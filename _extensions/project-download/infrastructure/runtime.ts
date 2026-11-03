@@ -1,15 +1,13 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("project-download");
 import { inspectOwnedRequests } from "../ownership.ts";
-import { diagnostic, externalFailure, progress, reportProgress } from "../diagnostics.ts";
 import {
-  dirname,
-  fromFileUrl,
-  join,
-  relative,
-  resolve,
-  toFileUrl,
-} from "stdlib/path";
+  diagnostic,
+  externalFailure,
+  progress,
+  reportProgress,
+} from "../diagnostics.ts";
+import { dirname, fromFileUrl, join, relative, resolve } from "stdlib/path";
 import { configuration, RESOURCE_ID } from "../domain/config.ts";
 import { publish, type Request } from "../application/publish.ts";
 import {
@@ -19,6 +17,13 @@ import {
   resourceFiles,
   resourcePaths,
 } from "./files.ts";
+import { sibling } from "./siblings.ts";
+import type {
+  NativeOperation,
+  ProjectContractContext,
+  ProjectPlan,
+  SiblingModules,
+} from "./siblings.ts";
 const manifestName = ".project-download-manifest.json";
 async function sha256(bytes: Uint8Array): Promise<string> {
   return Array.from(
@@ -142,12 +147,6 @@ export interface FinishOptions {
     instructions: string;
   };
 }
-async function sibling(name: string) {
-  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
-  return await import(
-    toFileUrl(join(dirname(extension), name, "public.ts")).href
-  );
-}
 async function inputFiles(root: string) {
   const file = Deno.env.get("QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES");
   return (file
@@ -157,18 +156,21 @@ async function inputFiles(root: string) {
     ).map((path) => relative(root, resolve(root, path)).replaceAll("\\", "/"));
 }
 /** Публичная текущая операция Core; публикация выполняется после её final fence. */
-async function validateRelease(operation: any, Core: any) {
-  let PL: any;
+async function validateRelease(
+  operation: NativeOperation,
+  Core: SiblingModules["course-core"],
+) {
+  let PL: SiblingModules["course-prairielearn"] | undefined;
   const extension = dirname(dirname(fromFileUrl(import.meta.url)));
   const path = join(dirname(extension), "course-prairielearn", "public.ts");
   try {
     await Deno.stat(path);
-    PL = await import(toFileUrl(path).href);
+    PL = await sibling("course-prairielearn");
   } catch (cause) {
     if (!(cause instanceof Deno.errors.NotFound)) throw cause;
   }
   const request = {
-    expectedSources: operation.catalog.documents.map((d: any) => d.source),
+    expectedSources: operation.catalog.documents.map((d) => d.source),
   };
   const before = operation.metrics;
   let proof;
@@ -217,12 +219,16 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
       Boolean,
     );
   let resolvedOutput = output;
-  const collect = async (operation?: any, Core?: any): Promise<number> => {
-    const release = operation
-      ? await validateRelease(operation, Core)
+  const collect = async (current?: {
+    operation: NativeOperation;
+    Core: SiblingModules["course-core"];
+  }): Promise<number> => {
+    const operation = current?.operation;
+    const release = current
+      ? await validateRelease(current.operation, current.Core)
       : undefined;
     if (operation) await options.observeOperation?.(operation.catalog, release);
-    let sources = operation?.catalog.documents.map((d: any) => d.source) ??
+    let sources = operation?.catalog.documents.map((d) => d.source) ??
       await inputFiles(root);
     let inspected: Awaited<ReturnType<typeof inspect>> | undefined;
     // Standalone без native hook env сохраняет обычный independent сценарий.
@@ -321,7 +327,8 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
         },
       );
     }
-    const contexts = new Map<string, any>(), plans = new Map<string, any>();
+    const contexts = new Map<string, ProjectContractContext>(),
+      plans = new Map<string, ProjectPlan>();
     const pack = async () =>
       await publish(config, profiles, {
         requests: () => Promise.resolve(requests),
@@ -333,13 +340,14 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           ));
         },
         async modelArtifact(request, source) {
-          if (!operation || !Core) {
+          if (!current) {
             throw diagnostic(
               "DOWNLOAD.CONFIG_INVALID",
               "Модельный комплект требует текущую публичную операцию Core",
               { source, field: "course-model" },
             );
           }
+          const { operation, Core } = current;
           if (
             !configs[requests.findIndex((r) => r.source === source)]
               ?.["course-model"]
@@ -370,12 +378,14 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
               { source, id: request.exerciseId, field: "kind" },
             );
           }
-          const catalogDocument = operation.catalog.documents.find((d: any) =>
+          // Core строит catalog из тех же visible occurrences: успешные
+          // document/condition выше уже установили наличие source и exercise.
+          const catalogDocument = operation.catalog.documents.find((d) =>
             d.source === source
-          );
-          const exercise = catalogDocument.exercises.find((e: any) =>
+          )!;
+          const exercise = catalogDocument.exercises.find((e) =>
             e.id === request.exerciseId
-          );
+          )!;
           const context = contexts.get(
             catalogDocument.format + ":" + exercise?.project,
           );
@@ -392,8 +402,10 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
               : "student",
             key = catalogDocument.format + ":" + exercise.project + ":" +
               audience;
-          if (!plans.has(key)) {
-            plans.set(key, await Core.planProject(context, { audience }));
+          let plan = plans.get(key);
+          if (!plan) {
+            plan = await Core.planProject(context, { audience });
+            plans.set(key, plan);
           }
           const QRC = await sibling("reference-catalog");
           const baseUrl = options.baseUrl ||
@@ -408,7 +420,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             );
           }
           const closure = await Core.materializationClosure(
-            plans.get(key),
+            plan,
             condition,
           );
           const destination = {
@@ -421,7 +433,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             baseUrl,
             catalogBaseUrl: options.catalogBaseUrl,
             sources: Object.fromEntries(
-              operation.catalog.documents.map((d: any) => [d.source, d.output]),
+              operation.catalog.documents.map((d) => [d.source, d.output]),
             ),
           };
           const linksBySource: Record<string, Record<string, string>> = {};
@@ -455,7 +467,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             }
             const refs = Object.fromEntries(
               fragment.references.map((
-                r: any,
+                r,
               ) => [r.token, { key: r.key, style: r.style }]),
             );
             linksBySource[fragment.source] = QRC.bindConditionLinks({
@@ -464,7 +476,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             }, { ...destination, urls, resourceLinks, references: refs });
             referencesBySource[fragment.source] = Object.fromEntries(
               fragment.references.map((
-                r: any,
+                r,
               ) => [
                 r.token,
                 references.resolve(r.key, r.style, fragment.source),
@@ -474,7 +486,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           const materialize = request.kind === "conditions"
             ? Core.materializeCondition
             : Core.materializeProject;
-          const inventory = await materialize(plans.get(key), condition, {
+          const inventory = await materialize(plan, condition, {
             linksBySource,
             referencesBySource,
             submission: options.submission ??
@@ -489,7 +501,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           );
           return {
             kind: request.kind,
-            files: inventory.files.map((f: any) => ({
+            files: inventory.files.map((f) => ({
               name: f.target,
               bytes: f.bytes,
             })),
@@ -505,7 +517,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
                 target: f.name,
               })),
             });
-            return inventory.files.map((f: any) => ({
+            return inventory.files.map((f) => ({
               name: f.target,
               bytes: f.bytes,
             }));
@@ -576,23 +588,26 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           ) + "\n";
         },
       });
+    if (!operation) return await pack();
     const projectRequests = new Map<string, Set<string>>();
     for (const artifact of artifacts) {
-      const doc = operation?.catalog.documents.find((d: any) =>
+      const doc = operation.catalog.documents.find((d) =>
         d.source === artifact.source
       );
-      for (
-        const exercise of doc?.exercises.filter((e: any) =>
-          e.id === artifact.exerciseId
-        ) ?? []
-      ) {
-        if (exercise.project) {
-          if (!projectRequests.has(doc.format)) {
-            projectRequests.set(doc.format, new Set());
+      if (doc) {
+        for (
+          const exercise of doc.exercises.filter((e) =>
+            e.id === artifact.exerciseId
+          )
+        ) {
+          if (exercise.project) {
+            let inputs = projectRequests.get(doc.format);
+            if (!inputs) {
+              inputs = new Set();
+              projectRequests.set(doc.format, inputs);
+            }
+            inputs.add(exercise.project + "/native-input.qmd");
           }
-          projectRequests.get(doc.format)!.add(
-            exercise.project + "/native-input.qmd",
-          );
         }
       }
     }
@@ -604,7 +619,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           profiles,
           format,
         })),
-        async (batch: any) => {
+        async (batch) => {
           for (const group of batch.groups) {
             for (const context of group.contexts) {
               contexts.set(
@@ -638,7 +653,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
         ? { expectedDocuments: options.expectedDocuments }
         : {}),
       outputDirectory: resolve(root, resolvedOutput),
-    }, async (operation: any) => await collect(operation, Core));
+    }, async (operation) => await collect({ operation, Core }));
   } else count = await collect();
   const sources = JSON.parse(ownedSignature).files.map((f: any) => f.source);
   if (
