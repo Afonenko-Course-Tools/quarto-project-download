@@ -1,11 +1,11 @@
 import { decodeDownloadRequest } from "../domain/request.ts";
 import { diagnostic } from "../diagnostics.ts";
 const SOURCE = "project-download-native-source";
-const classes = new Set([
+const classes: ReadonlySet<unknown> = new Set([
   "project-download-request",
   "project-download-raw-request",
 ]);
-const fields = new Set([
+const fields: ReadonlySet<unknown> = new Set([
   SOURCE,
   "project-download-native-batch",
   "project-download-native-result",
@@ -17,6 +17,9 @@ function fail(source: string, message: string): never {
 }
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function hasBlocks(value: object): value is object & { blocks: unknown[] } {
+  return "blocks" in value && Array.isArray(value.blocks);
 }
 function attr(
   value: unknown,
@@ -104,25 +107,33 @@ export function lowerLiteralDownloadRequests(
 ) {
   if (
     !document || typeof document !== "object" ||
-    !Array.isArray((document as any).blocks)
+    !hasBlocks(document)
   ) fail(source, "Нет native Pandoc document");
-  const doc = document as any;
-  function preflight(v: any) {
+  const doc = document;
+  function preflight(v: unknown) {
     if (!v || typeof v !== "object") return;
     if (Array.isArray(v)) {
+      const values: readonly unknown[] = v;
       if (
-        v.length === 3 && typeof v[0] === "string" && Array.isArray(v[1]) &&
-        Array.isArray(v[2])
+        values.length === 3 && typeof values[0] === "string" && Array.isArray(values[1]) &&
+        Array.isArray(values[2])
       ) {
+        const classNames: readonly unknown[] = values[1];
+        const attributes: readonly unknown[] = values[2];
         if (
-          v[1].some((c: any) => classes.has(c)) ||
-          v[2].some((p: any) => Array.isArray(p) && fields.has(p[0]))
+          classNames.some((c) => classes.has(c)) ||
+          attributes.some((p) => {
+            if (!Array.isArray(p)) return false;
+            const pair: readonly unknown[] = p;
+            return fields.has(pair[0]);
+          })
         ) fail(source, "Авторский reserved Download marker");
       }
-      v.forEach(preflight);
+      values.forEach(preflight);
       return;
     }
-    for (const [key, value] of Object.entries(v)) {
+    const entries: readonly [string, unknown][] = Object.entries(v);
+    for (const [key, value] of entries) {
       if (fields.has(key)) {
         fail(source, "Авторский reserved Download transport");
       }
