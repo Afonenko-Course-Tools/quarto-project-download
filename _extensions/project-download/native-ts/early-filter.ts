@@ -52,33 +52,63 @@ function attr(
   ) fail(source, "Неподдержанные native shortcode attributes");
   return result;
 }
-function downloadName(v: any): boolean {
-  if (
-    v?.t !== "Span" || !v.c?.[0]?.[1]?.includes("quarto-shortcode__") ||
-    !Array.isArray(v.c?.[1])
-  ) return false;
-  const first = v.c[1].find((p: any) =>
-    p?.t !== "Space" && p?.t !== "SoftBreak"
-  );
-  return first?.t === "Span" && Array.isArray(first.c?.[0]?.[2]) &&
-    first.c[0][2].some((p: any) =>
-      Array.isArray(p) && p[0] === "data-value" && p[1] === "project-download"
-    );
+/** Только доступные свойства; arrays тоже остаются индексируемыми objects. */
+function indexableObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
 }
-function request(v: any, source: string) {
-  attr(v.c[0], "quarto-shortcode__", source, true);
+type ShortcodeView = { attr: unknown; children: unknown };
+type DownloadView = { attr: unknown; children: readonly unknown[] };
+function shortcode(v: Record<string, unknown>): ShortcodeView | undefined {
+  if (v.t !== "Span" || !indexableObject(v.c)) return;
+  const attributes = v.c[0];
+  if (!indexableObject(attributes)) return;
+  const names = attributes[1];
+  let marked = false;
+  if (typeof names === "string") marked = names.includes("quarto-shortcode__");
+  else if (Array.isArray(names)) {
+    const values: readonly unknown[] = names;
+    marked = values.includes("quarto-shortcode__");
+  }
+  if (!marked) return;
+  return { attr: attributes, children: v.c[1] };
+}
+function downloadName(v: ShortcodeView): DownloadView | undefined {
+  if (!Array.isArray(v.children)) return;
+  const children: readonly unknown[] = v.children;
+  const first = children.find((p) =>
+    !indexableObject(p) || p.t !== "Space" && p.t !== "SoftBreak"
+  );
+  if (
+    !indexableObject(first) || first.t !== "Span" ||
+    !indexableObject(first.c) || !indexableObject(first.c[0]) ||
+    !Array.isArray(first.c[0][2])
+  ) return;
+  const attributes: readonly unknown[] = first.c[0][2];
+  if (!attributes.some((p) => {
+    if (!Array.isArray(p)) return false;
+    const pair: readonly unknown[] = p;
+    return pair[0] === "data-value" && pair[1] === "project-download";
+  })) return;
+  return { attr: v.attr, children };
+}
+function request(v: DownloadView, source: string) {
+  attr(v.attr, "quarto-shortcode__", source, true);
   const positional: string[] = [], named: { key: string; value: string }[] = [];
   let first = true;
-  for (const p of v.c[1]) {
+  for (const p of v.children) {
+    if (!indexableObject(p)) fail(source, "Динамический Download argument");
     if (
-      (p?.t === "Space" || p?.t === "SoftBreak") &&
+      (p.t === "Space" || p.t === "SoftBreak") &&
       Object.keys(p).every((k) => k === "t")
     ) continue;
-    if (
-      p?.t !== "Span" || !Array.isArray(p.c) || !Array.isArray(p.c[1]) ||
-      p.c[1].length
-    ) fail(source, "Динамический Download argument");
-    const a = attr(p.c[0], "quarto-shortcode__-param", source);
+    if (p.t !== "Span" || !Array.isArray(p.c)) {
+      fail(source, "Динамический Download argument");
+    }
+    const parts: readonly unknown[] = p.c;
+    if (!Array.isArray(parts[1]) || parts[1].length) {
+      fail(source, "Динамический Download argument");
+    }
+    const a = attr(parts[0], "quarto-shortcode__-param", source);
     if (
       typeof a["data-value"] !== "string" || dynamic.test(a["data-value"]) ||
       dynamic.test(a["data-raw"])
@@ -142,14 +172,25 @@ export function lowerLiteralDownloadRequests(
   }
   preflight(doc);
   if (!lower) return doc;
-  const replacements: { parent: any; key: string | number; value: any }[] = [];
-  function scan(v: any, parent?: any, key?: string | number) {
-    if (!v || typeof v !== "object") return;
-    if (downloadName(v)) {
-      const r = request(v, source);
+  type Location =
+    | { kind: "array"; parent: unknown[]; key: number }
+    | { kind: "object"; parent: Record<string, unknown>; key: string };
+  type Replacement = {
+    location: Location;
+    value: {
+      t: "Span";
+      c: [[string, string[], string[][]], { t: "Str"; c: string }[]];
+    };
+  };
+  const replacements: Replacement[] = [];
+  function scan(v: unknown, location: Location) {
+    if (!indexableObject(v)) return;
+    const candidate = shortcode(v);
+    const download = candidate && downloadName(candidate);
+    if (download) {
+      const r = request(download, source);
       replacements.push({
-        parent,
-        key: key!,
+        location,
         value: {
           t: "Span",
           c: [["", ["project-download-request"], [
@@ -161,15 +202,21 @@ export function lowerLiteralDownloadRequests(
       return;
     }
     // Другой shortcode сохраняется целиком для прежнего Core отказа.
-    if (v.t === "Span" && v.c?.[0]?.[1]?.includes("quarto-shortcode__")) return;
+    if (candidate) return;
     if (Array.isArray(v)) {
-      v.forEach((x, i) => scan(x, v, i));
+      const values: unknown[] = v;
+      values.forEach((x, i) => scan(x, { kind: "array", parent: values, key: i }));
       return;
     }
-    for (const [k, x] of Object.entries(v)) scan(x, v, k);
+    const entries: readonly [string, unknown][] = Object.entries(v);
+    for (const [k, x] of entries) scan(x, { kind: "object", parent: v, key: k });
   }
-  scan(doc.blocks);
-  for (const r of replacements) r.parent[r.key] = r.value;
+  doc.blocks.forEach((v, i) => scan(v, { kind: "array", parent: doc.blocks, key: i }));
+  for (const r of replacements) {
+    const location = r.location;
+    if (location.kind === "array") location.parent[location.key] = r.value;
+    else location.parent[location.key] = r.value;
+  }
   return doc;
 }
 if (import.meta.main) {
