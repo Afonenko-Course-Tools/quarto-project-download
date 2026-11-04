@@ -76,19 +76,14 @@ try {
     }
     assert(p.success, name + ": " + stderr);
     const requests = [];
-    for await (
-      const e of Deno.readDir(
-        join(root, "_generated/project-download/requests"),
-      )
-    ) {
-      requests.push(
-        JSON.parse(
-          await Deno.readTextFile(
-            join(root, "_generated/project-download/requests", e.name),
-          ),
+    requests.push(JSON.parse(
+      await Deno.readTextFile(
+        join(
+          root,
+          "_generated/project-download/requests/index.qmd/request.json",
         ),
-      );
-    }
+      ),
+    ));
     assert(
       requests.length === 1 &&
         JSON.stringify(requests[0].resources) ===

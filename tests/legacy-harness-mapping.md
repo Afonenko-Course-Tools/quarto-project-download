@@ -8,7 +8,7 @@ private carrier и legacy hooks не становятся authority нового
 | Прежняя проверка | Действующая гарантия и контроль |
 | --- | --- |
 | model-receipts: injected NativeRun → full receipt | Теперь явный отказ без private resolver/ZIP/receipt в model-receipts; настоящий trusted student/full audience — public-runtime и public-inventory |
-| native: fabricated resources/publicExercises/current profile | public-runtime: actual operation, profile/projection/document/output bindings, подготовленные bytes и одноразовую публикацию; public-inventory: owner target/audience/resource guards |
+| Удалённый `native`: fabricated resources/publicExercises/current profile; исходник в Git history | public-runtime: actual operation, profile/projection/document/output bindings, подготовленные bytes и одноразовую публикацию; public-inventory: owner target/audience/resource guards |
 | native-installed: selected current docs, privacy и private resources | public-runtime: настоящая временная namespaced установка/native hooks, starter/full/resource ZIP, текущие changed bytes; public-inventory: private/generated resources и exact inventory; ownership: выбранные source requests и empty capture |
 | model-installed: metadata/common files, README, origins, deterministic ZIP | public-inventory: actual project metadata, common build files, include-local-base/README, crossdoc/public/import refs, generated resource и exact package bytes; public-runtime: final href/self ZIP, одноразовую запись и full reference |
 | install-context: independent ordinary resources | render/ownership и runtime-batch no-core-ordinary: actual install/hooks/render, профили, resource ZIP без Core/CUE. Модельный native путь namespaced проверяет public-runtime, public-inventory вызывает public DTO consumer |

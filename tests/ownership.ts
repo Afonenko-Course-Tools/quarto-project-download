@@ -57,7 +57,7 @@ project-download:
   assert(await Deno.readTextFile(sibling)==="Посторонний сосед" && (await Deno.readFile(archive)).every((byte, index) => byte === archiveBytes[index]),"Очистка сохраняет соседей и опубликованные архивы");
 
   const validBytes=new TextEncoder().encode(JSON.stringify({source:sources[1],resources:["public-data"]}));
-  async function reset() { await Deno.mkdir(directory,{recursive:true}); await Deno.writeFile(page!.path,validBytes); }
+  async function reset() { await Deno.mkdir(dirname(page!.path),{recursive:true}); await Deno.writeFile(page!.path,validBytes); }
   async function refuses(message:string) {
     await rejected(()=>inspectOwnedRequests(root,sources),"inspect принял "+message);
     await rejected(()=>clearOwnedRequests(root,sources),"clear принял "+message);
@@ -73,7 +73,7 @@ project-download:
     assert(await Deno.readTextFile(page.path)===new TextDecoder().decode(validBytes),"Проверка всех файлов предшествует очистке");
     await Deno.remove(path);
   }
-  await Deno.mkdir(join(directory,"nested")); await refuses("вложенный каталог"); await Deno.remove(join(directory,"nested"));
+  await Deno.mkdir(join(directory,"foreign")); await refuses("посторонний каталог"); await Deno.remove(join(directory,"foreign"));
   const fifo=join(directory,"pipe");
   const mkfifo=await new Deno.Command("mkfifo",{args:[fifo]}).output(); assert(mkfifo.success,"Создание специального файла");
   await refuses("специальный файл"); await Deno.remove(fifo);

@@ -192,11 +192,12 @@ try {
   // Подготовленный ZIP владеет bytes и может записываться после удаления транспорта.
   const requestDirectory = join(root, "_generated/project-download/requests");
   const requests = await Promise.all(
-    (await Array.fromAsync(Deno.readDir(requestDirectory)))
-      .map(async (entry) => ({
-        name: entry.name,
-        bytes: await Deno.readFile(join(requestDirectory, entry.name)),
-      })),
+    ["index.qmd", "other.qmd"].map(async (source) => ({
+      name: source + "/request.json",
+      bytes: await Deno.readFile(
+        join(requestDirectory, source, "request.json"),
+      ),
+    })),
   );
   const expectedStarter = await Deno.readFile(starter);
   const completed = await finishNative({}, async () => {
@@ -210,6 +211,9 @@ try {
   );
   await Deno.mkdir(requestDirectory);
   for (const request of requests) {
+    await Deno.mkdir(dirname(join(requestDirectory, request.name)), {
+      recursive: true,
+    });
     await Deno.writeFile(join(requestDirectory, request.name), request.bytes);
   }
   await refused(() => completed.publish(), "DOWNLOAD.REQUEST_INVALID");

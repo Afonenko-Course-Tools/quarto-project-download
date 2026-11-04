@@ -54,7 +54,9 @@ Artifacts receipts, их schema guards и per-ZIP SHA удалены; стары
 receipts не мигрируются и не участвуют в текущей операции.
 
 Ownership API inspectOwnedRequests/clearOwnedRequests сохраняет protocol1;
-files имеют optional artifacts вместе с source/resources/configuration. Native writer,
+files имеют optional artifacts вместе с source/resources/configuration. Заявка
+хранится как `requests/<owner-relative-source>/request.json`, без хеша. Путь
+канонический, JSON source должен совпадать с адресом. Native writer,
 inspect и cleanup выполняются последовательно, закрытые поля всей области
 проверяются до удаления. Текущая public operation должна совпадать с root/profiles/output и
 содержать каждый source заявки. Retained страницы и course.json не авторизуют bytes.

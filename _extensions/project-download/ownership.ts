@@ -34,17 +34,6 @@ function artifact(value: unknown): value is ArtifactRequest {
     resourceId(value.exerciseId) && artifactKind(value.kind);
 }
 
-async function hash(
-  bytes: Uint8Array,
-): Promise<string> {
-  return Array.from(
-    new Uint8Array(
-      await crypto.subtle.digest("SHA-1", new Uint8Array(bytes)),
-    ),
-  )
-    .map((value) => value.toString(16).padStart(2, "0")).join("");
-}
-
 async function requestDirectory(
   root: string,
   sources: string[],
@@ -69,7 +58,13 @@ async function requestDirectory(
     if (dirname(current) === current) break;
   }
   for (const source of sources) {
-    if (relative(root, child(root, source)) !== source) {
+    if (
+      !source || source.includes("\\") || /^[A-Za-z]:/.test(source) ||
+      source.split("/").some((part) =>
+        !part || part === "." || part === ".."
+      ) ||
+      relative(root, child(root, source)) !== source
+    ) {
       throw diagnostic(
         "DOWNLOAD.REQUEST_INVALID",
         `Источник заявки должен быть каноническим относительным путём: ${source}`,
@@ -107,20 +102,47 @@ export async function inspectOwnedRequests(
   const { directory, present } = await requestDirectory(root, sources);
   const state: OwnedRequestState = { protocol: 1, root, directory, files: [] };
   if (!present) return state;
-  const allowed = new Set(sources);
-  const entries = await Array.fromAsync(Deno.readDir(directory));
-  entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-  for (const entry of entries) {
-    const path = child(directory, entry.name), info = await Deno.lstat(path);
-    if (
-      info.isSymlink || !info.isFile || !/^[a-f0-9]{40}\.json$/.test(entry.name)
+  const requests = new Map<string, string>();
+  const directories = new Set<string>();
+  for (const source of sources) {
+    requests.set(child(directory, source + "/request.json"), source);
+    for (
+      let path = child(directory, source);
+      path !== directory;
+      path = dirname(path)
     ) {
-      throw diagnostic(
-        "DOWNLOAD.REQUEST_INVALID",
-        `Посторонний объект в области заявок: ${path}`,
-        { source: path, field: "request" },
-      );
+      directories.add(path);
     }
+  }
+  const files: { path: string; source: string }[] = [];
+  async function collect(current: string): Promise<void> {
+    const entries = await Array.fromAsync(Deno.readDir(current));
+    entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    if (current !== directory && !entries.length) {
+      throw diagnostic("DOWNLOAD.REQUEST_INVALID", "Пустой каталог заявки", {
+        source: current,
+        field: "request",
+      });
+    }
+    for (const entry of entries) {
+      const path = child(current, entry.name), info = await Deno.lstat(path);
+      const source = requests.get(path);
+      if (
+        info.isSymlink || (!info.isDirectory && !info.isFile) ||
+        (info.isDirectory ? !directories.has(path) : source === undefined)
+      ) {
+        throw diagnostic(
+          "DOWNLOAD.REQUEST_INVALID",
+          `Посторонний объект в области заявок: ${path}`,
+          { source: path, field: "request" },
+        );
+      }
+      if (info.isDirectory) await collect(path);
+      else if (source !== undefined) files.push({ path, source });
+    }
+  }
+  await collect(directory);
+  for (const { path, source } of files) {
     await noSymlinks(root, path);
     const bytes = await Deno.readFile(path);
     let value: unknown;
@@ -159,7 +181,7 @@ export async function inspectOwnedRequests(
       (Object.hasOwn(fields, "courseProcessed") &&
         typeof fields.courseProcessed !== "boolean") ||
       !Object.hasOwn(fields, "source") || !Object.hasOwn(fields, "resources") ||
-      typeof fields.source !== "string" || !allowed.has(fields.source) ||
+      typeof fields.source !== "string" || fields.source !== source ||
       !Array.isArray(fields.resources) || !fields.resources.every(resourceId)
     ) {
       throw diagnostic(
@@ -176,16 +198,6 @@ export async function inspectOwnedRequests(
         "DOWNLOAD.REQUEST_INVALID",
         "Недопустимые модельные заявки",
         { source: path, field: "artifacts" },
-      );
-    }
-    if (
-      entry.name !==
-        await hash(new TextEncoder().encode(fields.source)) + ".json"
-    ) {
-      throw diagnostic(
-        "DOWNLOAD.REQUEST_INVALID",
-        `Имя заявки не соответствует источнику: ${path}`,
-        { source: path, field: "request" },
       );
     }
     state.files.push({
@@ -208,7 +220,20 @@ export async function clearOwnedRequests(
 ): Promise<void> {
   const state = await inspectOwnedRequests(root, sources);
   if (!await exists(state.directory)) return;
-  for (const file of state.files) await Deno.remove(file.path);
-  // Нерекурсивное удаление не затрагивает родителей и не удаляет новые чужие записи.
+  const directories = new Set<string>();
+  for (const file of state.files) {
+    await Deno.remove(file.path);
+    for (
+      let path = dirname(file.path);
+      path !== state.directory;
+      path = dirname(path)
+    ) {
+      directories.add(path);
+    }
+  }
+  // Удаление каталогов нерекурсивное: новая чужая запись не будет удалена.
+  for (const path of [...directories].sort((a, b) => b.length - a.length)) {
+    await Deno.remove(path);
+  }
   await Deno.remove(state.directory);
 }
