@@ -4,12 +4,11 @@ const resolveArtifact=async()=>{privateResolverCalled=true;throw Error('Private 
 const root=await Deno.makeTempDir({prefix:'download-review-'});
 try {
  await Deno.mkdir(root+'/projects/probe/student',{recursive:true});
- await Deno.mkdir(root+'/_generated/project-download/requests',{recursive:true});
+ await Deno.mkdir(root+'/_generated/project-download/requests/index.qmd',{recursive:true});
  await Deno.writeTextFile(root+'/projects/probe/student/Main.java','class Main {}\n');
  await Deno.writeTextFile(root+'/index.qmd','# Probe\n');
  await Deno.writeTextFile(root+'/_quarto.yml','project: {type: website, output-dir: _site}\ncourse: {view: full}\nproject-download: {course-model: true}\n');
- const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('index.qmd'))),v=>v.toString(16).padStart(2,'0')).join('');
- await Deno.writeTextFile(root+'/_generated/project-download/requests/'+digest+'.json',JSON.stringify({source:'index.qmd',resources:[],artifacts:[{exerciseId:'exr-probe',kind:'full'}]}));
+ await Deno.writeTextFile(root+'/_generated/project-download/requests/index.qmd/request.json',JSON.stringify({source:'index.qmd',resources:[],artifacts:[{exerciseId:'exr-probe',kind:'full'}]}));
  const run:any={schema:'course-native-run-v1',projectRoot:root,outputDirectory:root+'/_site',profiles:[],documents:[{source:'index.qmd',course:{view:'full'},projects:[{exerciseId:'exr-probe',source:'index.qmd',projectRoot:'projects/probe',bankMember:false,statementVisibility:'open',artifactPolicy:{student:'starter',full:'full',conditions:true}}]}]};
  let refused=false;
  try { await finish(root,{run,evaluateResources:async()=>({files:[]}),resolveArtifact} as never); }

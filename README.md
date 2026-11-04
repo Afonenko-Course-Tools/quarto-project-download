@@ -6,7 +6,7 @@
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
 Контракт этого ref — кандидат 3.5.0. Публичный native путь использует Core
-`withNativePublication` и готовые artifact/resource inventories.
+`withNativePublication` и готовые функциональные файлы Core.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
 
@@ -155,7 +155,8 @@ export interface OwnedRequestState {
     path: string;
     source: string;
     resources: string[];
-    sha256: string;
+    artifacts?: { exerciseId: string; kind: "starter" | "full" | "conditions" }[];
+    configuration?: unknown;
   }[];
 }
 export function inspectOwnedRequests(
@@ -171,8 +172,12 @@ export function clearOwnedRequests(
 путях файловой системы. Расширение возвращает абсолютные канонические `root`,
 `directory` и `files[].path`. `directory` задаёт точную область изменяемых заявок,
 даже когда она отсутствует; в этом случае `files` пуст. Каждый элемент содержит
-источник, ID ресурсов и SHA-256 точных текущих байтов заявки. Пустая заявка
-документа без видимого shortcode также входит в снимок.
+источник, ID ресурсов и выбранную конфигурацию. Пустая заявка
+документа без видимого shortcode также входит в список.
+Заявка находится по прямому адресу
+`_generated/project-download/requests/<source>/request.json`, где `<source>` —
+канонический относительный путь документа. Исходное имя становится каталогом;
+части пути сохраняются без хеширования или кодирования имени.
 
 Вызывайте `inspectOwnedRequests` после ожидаемого завершения нативного дочернего
 процесса: hooks и фильтры этого процесса
@@ -184,9 +189,9 @@ export function clearOwnedRequests(
 файлы и опубликованные архивы.
 
 Оба вызова отклоняют ссылки в корне, его родителях, каталогах области и файлах,
-включая ссылки без цели; специальные файлы, вложенные каталоги и посторонние
+включая ссылки без цели; специальные файлы, непредусмотренные каталоги и посторонние
 записи; повреждённые или дополнительные поля заявки; неизвестный источник,
-несоответствие имени источнику и недопустимый ID ресурса. Ошибка проверки
+несоответствие пути источнику и недопустимый ID ресурса. Ошибка проверки
 предшествует очистке. Внутренние имена файлов и JSON транспорта принадлежат
 расширению: потребитель использует этот API и не воспроизводит их алгоритм.
 
@@ -270,8 +275,8 @@ CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog PL=/path/to/qu
 
 Штатный набор проверяет каждый актуальный suite один раз. Он охватывает
 воспроизводимость ZIP, файловые границы и кириллицу, настоящие временные
-установки, standalone student/full/student, current operation и inventory,
-origin/href/resources, privacy, source/generation drift и сохранение чужих
+установки, standalone student/full/student, native operation и функциональные файлы,
+href/resources, privacy, самостоятельные bytes и сохранение чужих
 outputs. Модельный путь использует Core 9 без внешнего валидатора схем.
 Удалённые private hooks не являются положительным результатом текущего API;
 [карта переноса проверок](tests/legacy-harness-mapping.md) задаёт их замену.

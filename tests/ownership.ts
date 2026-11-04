@@ -18,9 +18,6 @@ async function native(args:string[]) {
   const result=await new Deno.Command(quarto,{args,cwd:root,env:{QUARTO:quarto},stdout:"piped",stderr:"piped"}).output();
   assert(result.success,new TextDecoder().decode(result.stdout)+new TextDecoder().decode(result.stderr));
 }
-async function digest(bytes:Uint8Array) {
-  return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map(value=>value.toString(16).padStart(2,"0")).join("");
-}
 try {
   const missing=await inspectOwnedRequests(root,sources);
   assert(missing.protocol===1 && missing.root===root && missing.directory===directory && !missing.files.length,"Отсутствующая область заявок имеет канонический адрес");
@@ -50,17 +47,17 @@ project-download:
   const page=state.files.find(file=>file.source===sources[1]);
   assert(page && JSON.stringify(page.resources)==='["public-data"]',"Вложенная нативная заявка сохраняет источник и ресурс");
   assert(state.files.some(file=>file.source==="index.qmd" && !file.resources.length),"Документ без shortcode оставляет пустую нативную заявку");
-  for(const file of state.files) assert(file.path.startsWith(directory+"/") && file.sha256===await digest(await Deno.readFile(file.path)),"Отпечаток относится к точным текущим байтам");
+  for(const file of state.files) assert(file.path.startsWith(directory+"/"),"Проверенная заявка содержит канонический адрес");
   const archive=join(root,"_site","_downloads","public-data.zip");
   const archiveBytes=await Deno.readFile(archive);
   const sibling=join(root,"_generated","project-download","keep.txt");
   await Deno.writeTextFile(sibling,"Посторонний сосед");
   await clearOwnedRequests(root,sources);
   assert(!(await inspectOwnedRequests(root,sources)).files.length,"Очистка удаляет заявки");
-  assert(await Deno.readTextFile(sibling)==="Посторонний сосед" && await digest(await Deno.readFile(archive))===await digest(archiveBytes),"Очистка сохраняет соседей и опубликованные архивы");
+  assert(await Deno.readTextFile(sibling)==="Посторонний сосед" && (await Deno.readFile(archive)).every((byte, index) => byte === archiveBytes[index]),"Очистка сохраняет соседей и опубликованные архивы");
 
   const validBytes=new TextEncoder().encode(JSON.stringify({source:sources[1],resources:["public-data"]}));
-  async function reset() { await Deno.mkdir(directory,{recursive:true}); await Deno.writeFile(page!.path,validBytes); }
+  async function reset() { await Deno.mkdir(dirname(page!.path),{recursive:true}); await Deno.writeFile(page!.path,validBytes); }
   async function refuses(message:string) {
     await rejected(()=>inspectOwnedRequests(root,sources),"inspect принял "+message);
     await rejected(()=>clearOwnedRequests(root,sources),"clear принял "+message);
@@ -76,7 +73,7 @@ project-download:
     assert(await Deno.readTextFile(page.path)===new TextDecoder().decode(validBytes),"Проверка всех файлов предшествует очистке");
     await Deno.remove(path);
   }
-  await Deno.mkdir(join(directory,"nested")); await refuses("вложенный каталог"); await Deno.remove(join(directory,"nested"));
+  await Deno.mkdir(join(directory,"foreign")); await refuses("посторонний каталог"); await Deno.remove(join(directory,"foreign"));
   const fifo=join(directory,"pipe");
   const mkfifo=await new Deno.Command("mkfifo",{args:[fifo]}).output(); assert(mkfifo.success,"Создание специального файла");
   await refuses("специальный файл"); await Deno.remove(fifo);
@@ -110,5 +107,5 @@ project-download:
   assert(empty.files.length===2 && empty.files.every(file=>!file.resources.length),"Пустой нативный capture не наследует старые ресурсы");
   await clearOwnedRequests(root,sources);
   assert(!(await inspectOwnedRequests(root,sources)).files.length,"Пустые нативные заявки очищаются");
-  console.log("Владение заявками: нативная установка/hooks/capture, точные SHA-256, строгая проверка и границы очистки проверены.");
+  console.log("Владение заявками: нативная установка/hooks/capture, строгая проверка и границы очистки проверены.");
 } finally { await Deno.remove(root,{recursive:true}); }

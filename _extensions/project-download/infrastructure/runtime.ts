@@ -181,9 +181,7 @@ async function prepareDownloadsInternal(
   sourceOutput?: string,
   current?: { publication: NativePublication; Core: SiblingModules["course-core"] },
 ): Promise<PreparedDownloads> {
-  let archives: { name: string; bytes: Uint8Array }[] = [],
-    ownedSignature = "";
-  let ownedSources: string[] = [];
+  let archives: { name: string; bytes: Uint8Array }[] = [];
   let resolvedOutput = sourceOutput;
   const collect = async (): Promise<number> => {
     const operation = current?.publication;
@@ -237,8 +235,6 @@ async function prepareDownloadsInternal(
       }
     }
     const owned = await inspectOwnedRequests(root, sources);
-    ownedSignature = JSON.stringify(owned);
-    ownedSources = owned.files.map((file) => file.source);
     const requests: Request[] = owned.files.map((file) => ({
       source: file.source,
       resources: file.resources,
@@ -448,7 +444,7 @@ async function prepareDownloadsInternal(
           const materialize = request.kind === "conditions"
             ? Core.materializeCondition
             : Core.materializeProject;
-          const inventory = await materialize(plan, condition, {
+          const artifact = await materialize(plan, condition, {
             linksBySource,
             referencesBySource,
             submission: options.submission ??
@@ -463,23 +459,23 @@ async function prepareDownloadsInternal(
           );
           return {
             kind: request.kind,
-            files: inventory.files.map((f) => ({
+            files: artifact.files.map((f) => ({
               name: f.target,
               bytes: f.bytes,
             })),
-            package: () => packageArtifact(inventory),
+            package: () => packageArtifact(artifact),
           };
         },
         async files(resource) {
           if (operation) {
             const selected = await resourcePaths(root, resource);
-            const inventory = await operation.resourceInventory({
+            const resources = await operation.resourceFiles({
               files: selected.map((f) => ({
                 source: f.source,
                 target: f.name,
               })),
             });
-            return inventory.files.map((f) => ({
+            return resources.files.map((f) => ({
               name: f.target,
               bytes: f.bytes,
             }));
@@ -528,7 +524,7 @@ async function prepareDownloadsInternal(
               inputs = new Set();
               projectRequests.set(doc.format, inputs);
             }
-            inputs.add(exercise.project + "/native-input.qmd");
+            inputs.add(exercise.project);
           }
         }
       }
@@ -537,7 +533,7 @@ async function prepareDownloadsInternal(
       return await operation.withProjectContracts(
         [...projectRequests].map(([format, inputs]) => ({
           owner: root,
-          inputs: [...inputs],
+          directories: [...inputs],
           profiles,
           format,
         })),
@@ -546,7 +542,7 @@ async function prepareDownloadsInternal(
             for (const context of group.contexts) {
               contexts.set(
                 context.format + ":" +
-                  relative(root, dirname(context.input)).replaceAll("\\", "/"),
+                  relative(root, context.input).replaceAll("\\", "/"),
                 context,
               );
             }
@@ -559,15 +555,13 @@ async function prepareDownloadsInternal(
   };
   const count = await collect();
   return preparedDownloads(root, options.destinationDirectory || resolvedOutput!,
-    archives, ownedSources, ownedSignature, count);
+    archives, count);
 }
 /** Замыкание draft содержит только Download-owned данные, без borrowed Core/PL. */
 function preparedDownloads(
   root: string,
   output: string,
   archives: { name: string; bytes: Uint8Array }[],
-  ownedSources: string[],
-  ownedSignature: string,
   count: number,
 ): PreparedDownloads {
   let state: "prepared" | "publishing" | "published" | "failed" | "discarded" = "prepared";
@@ -578,11 +572,6 @@ function preparedDownloads(
       if (state !== "prepared") throw invalid();
       state = "publishing";
       try {
-        if (JSON.stringify(await inspectOwnedRequests(root, ownedSources)) !== ownedSignature) {
-          throw diagnostic("DOWNLOAD.REQUEST_INVALID", "Заявки изменены перед публикацией", {
-            source: root, field: "requests",
-          });
-        }
         await publishArchives(root, output, archives);
         state = "published";
         archives = [];

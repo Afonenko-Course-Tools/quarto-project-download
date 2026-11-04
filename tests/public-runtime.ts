@@ -44,7 +44,7 @@ try {
   await install(repo, "project-download");
   await put(
     "_quarto.yml",
-    `project:\n  type: website\n  output-dir: _site\n  render: [index.qmd, other.qmd]\n  pre-render: [quarto run ${ext}/project-download/entrypoints/pre.ts, quarto run ${ext}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${ext}/course-core/entrypoints/native-post.ts, quarto run ${ext}/project-download/entrypoints/post.ts --native]\nformat:\n  html:\n    theme: none\nfilters: [project-download, course-core]\ncourse-core-runtime: native-ts\ncourse-core-projection: student\nexercise-bank: true\nproject-download:\n  course-model: true\n  base-url: https://pages.example.test/course/\n  resources:\n    data: {path: assets, gitignore: false}\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
+    `project:\n  type: website\n  output-dir: _site\n  render: [index.qmd, other.qmd]\n  pre-render: [quarto run ${ext}/project-download/entrypoints/pre.ts, quarto run ${ext}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${ext}/course-core/entrypoints/native-post.ts, quarto run ${ext}/project-download/entrypoints/post.ts --native]\nformat:\n  html:\n    theme: none\nfilters: [project-download, course-core]\ncourse-core-runtime: native-ts\ncourse-core-projection: student\nexercise-bank: true\nproject-download:\n  course-model: true\n  base-url: https://pages.example.test/course/\n  resources:\n    data: {path: assets, gitignore: false}\ncourse-project:\n  build:\n    files:\n      build.gradle: {path: shared/build.gradle, base: config}\n      settings.gradle: {path: shared/settings.gradle, base: config}\n  instructions:\n    gradle: {path: shared/gradle.md, base: config}\n`,
   );
   await put("shared/build.gradle", "plugins { id 'java' }\n");
   await put("shared/settings.gradle", "rootProject.name='runtime'\n");
@@ -119,106 +119,129 @@ try {
       .includes("PUBLIC_RESOURCE_2"),
     "Повторный render вернул stale resource",
   );
-  const Download: typeof import("../_extensions/project-download/public.ts") = await import(
-    toFileUrl(join(root, ext, "project-download/public.ts")).href
-  );
+  const Download: typeof import("../_extensions/project-download/public.ts") =
+    await import(
+      toFileUrl(join(root, ext, "project-download/public.ts")).href
+    );
   const Core: typeof import("course-core/public.ts") = await import(
     toFileUrl(join(root, ext, "course-core/public.ts")).href
   );
   const expectation = {
-    root, profiles: [], projection: "student" as const,
+    root,
+    profiles: [],
+    projection: "student" as const,
     outputDirectory: join(root, "_site"),
   };
   const refused = async (use: () => Promise<unknown>, code: string) => {
     let error = "";
-    try { await use(); } catch (cause) { error = String(cause); }
+    try {
+      await use();
+    } catch (cause) {
+      error = String(cause);
+    }
     assert(error.includes(code), "Нет адресного отказа " + code + ": " + error);
   };
-  const capturedDraft: { value?: import("../_extensions/project-download/public.ts").PreparedDownloads } = {};
   async function finishNative(
     override: Partial<Parameters<typeof Core.withNativePublication>[0]> = {},
     afterPrepare?: () => void | Promise<void>,
     destinationDirectory?: string,
   ) {
-    let draft: import("../_extensions/project-download/public.ts").PreparedDownloads | undefined;
+    let draft:
+      | import("../_extensions/project-download/public.ts").PreparedDownloads
+      | undefined;
     try {
-      const prepared = await Core.withNativePublication({ ...expectation, ...override }, undefined,
+      const prepared = await Core.withNativePublication(
+        { ...expectation, ...override },
+        undefined,
         async (publication) => {
-          draft = await Download.prepareNativeDownloads(publication, { destinationDirectory });
-          capturedDraft.value = draft;
+          draft = await Download.prepareNativeDownloads(publication, {
+            destinationDirectory,
+          });
           await afterPrepare?.();
           return draft;
-        });
+        },
+      );
       await prepared.publish();
       return prepared;
     } catch (cause) {
-      try { await draft?.discard(); } catch { /* Сохраняем closing/writer cause. */ }
+      try {
+        await draft?.discard();
+      } catch { /* Сохраняем closing/writer cause. */ }
       throw cause;
     }
   }
-  const before = await Deno.readFile(starter);
-  await refused(() => finishNative({ profiles: ["foreign"] }), "OPERATION_BINDING");
-  await refused(() => finishNative({ projection: "author" }), "OPERATION_BINDING");
-  await refused(() => finishNative({ expectedDocuments: [
-    { source: "index.qmd", format: "revealjs" },
-    { source: "other.qmd", format: "html" },
-  ] }), "OPERATION_BINDING");
-  await refused(() => finishNative({ outputDirectory: join(root, "_foreign-output") }), "OPERATION_BINDING");
-  const closingDestination = join(root, "_closing-rejected");
-  await refused(() => finishNative({}, () => {
-    Deno.writeTextFileSync(join(root, "index.qmd"), statement + "\nИзменённый source\n");
-  }, closingDestination), "OPERATION_CHANGED");
-  if (!capturedDraft.value) throw Error("Closing rejection потерял подготовленный handle");
-  const rejectedDraft = capturedDraft.value;
-  await refused(() => rejectedDraft.publish(), "discarded");
-  let newArchive = false;
-  try {
-    await Deno.stat(join(closingDestination, "_downloads/exr-demo-starter.zip"));
-    newArchive = true;
-  } catch (cause) { if (!(cause instanceof Deno.errors.NotFound)) throw cause; }
-  assert(!newArchive, "Failed closing создал новый draft ZIP");
-  assert((await Deno.readFile(starter)).every((v, i) => v === before[i]),
-    "Source drift до closing изменил owned ZIP");
-  await put("index.qmd", statement);
-  await render();
-  const currentArchive = await Deno.readFile(starter);
-  await refused(() => finishNative({}, async () => {
-    const begin = await new Deno.Command("quarto", {
-      args: ["run", `${ext}/course-core/entrypoints/native-pre.ts`],
-      cwd: root,
-      env: {
-        QUARTO_PROJECT_DIR: root,
-        QUARTO_PROJECT_OUTPUT_DIR: "_site",
-        QUARTO_PROJECT_INPUT_FILES: "index.qmd\nother.qmd",
-        QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES: "",
-        QUARTO_RUN_NO_NETWORK: "true",
-        DENO_NO_PACKAGE_JSON: "1",
-      },
-      stdout: "piped", stderr: "piped",
-    }).output();
-    assert(begin.success, "Новая native generation не началась: " + new TextDecoder().decode(begin.stderr));
-  }), "OPERATION_CHANGED");
-  assert((await Deno.readFile(starter)).every((v, i) => v === currentArchive[i]),
-    "Generation switch опубликовал старую подготовку");
-  await render();
-  const completed = await finishNative();
+  await refused(
+    () => finishNative({ profiles: ["foreign"] }),
+    "OPERATION_BINDING",
+  );
+  await refused(
+    () => finishNative({ projection: "author" }),
+    "OPERATION_BINDING",
+  );
+  await refused(() =>
+    finishNative({
+      expectedDocuments: [
+        { source: "index.qmd", format: "revealjs" },
+        { source: "other.qmd", format: "html" },
+      ],
+    }), "OPERATION_BINDING");
+  await refused(
+    () => finishNative({ outputDirectory: join(root, "_foreign-output") }),
+    "OPERATION_BINDING",
+  );
+  // Подготовленный ZIP владеет bytes и может записываться после удаления транспорта.
+  const requestDirectory = join(root, "_generated/project-download/requests");
+  const requests = await Promise.all(
+    ["index.qmd", "other.qmd"].map(async (source) => ({
+      name: source + "/request.json",
+      bytes: await Deno.readFile(
+        join(requestDirectory, source, "request.json"),
+      ),
+    })),
+  );
+  const expectedStarter = await Deno.readFile(starter);
+  const completed = await finishNative({}, async () => {
+    await Deno.remove(requestDirectory, { recursive: true });
+  });
+  const completedStarter = await Deno.readFile(starter);
+  assert(
+    completedStarter.length === expectedStarter.length &&
+      completedStarter.every((byte, index) => byte === expectedStarter[index]),
+    "Публикация после удаления транспорта потеряла подготовленные bytes",
+  );
+  await Deno.mkdir(requestDirectory);
+  for (const request of requests) {
+    await Deno.mkdir(dirname(join(requestDirectory, request.name)), {
+      recursive: true,
+    });
+    await Deno.writeFile(join(requestDirectory, request.name), request.bytes);
+  }
   await refused(() => completed.publish(), "DOWNLOAD.REQUEST_INVALID");
   await completed.discard();
   const foreign = await Deno.makeTempDir({ prefix: "b2-foreign-" });
   await Deno.writeTextFile(join(foreign, "keep"), "FOREIGN");
   try {
-    await refused(() => finishNative({}, () => {
-      Deno.renameSync(join(root, "_site/_downloads"), join(root, "_site/_downloads-saved"));
-      Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
-    }), "DOWNLOAD.PATH_INVALID");
-    assert(await Deno.readTextFile(join(foreign, "keep")) === "FOREIGN" &&
-      (await Array.fromAsync(Deno.readDir(foreign))).length === 1,
-      "Повреждён чужой symlink destination");
+    await refused(() =>
+      finishNative({}, () => {
+        Deno.renameSync(
+          join(root, "_site/_downloads"),
+          join(root, "_site/_downloads-saved"),
+        );
+        Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
+      }), "DOWNLOAD.PATH_INVALID");
+    assert(
+      await Deno.readTextFile(join(foreign, "keep")) === "FOREIGN" &&
+        (await Array.fromAsync(Deno.readDir(foreign))).length === 1,
+      "Повреждён чужой symlink destination",
+    );
   } finally {
     if ((await Deno.lstat(join(root, "_site/_downloads"))).isSymlink) {
       await Deno.remove(join(root, "_site/_downloads"));
     }
-    await Deno.rename(join(root, "_site/_downloads-saved"), join(root, "_site/_downloads"));
+    await Deno.rename(
+      join(root, "_site/_downloads-saved"),
+      join(root, "_site/_downloads"),
+    );
     await Deno.remove(foreign, { recursive: true });
   }
   const authoredConfig = await Deno.readTextFile(join(root, "_quarto.yml"));

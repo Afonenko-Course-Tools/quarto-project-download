@@ -14,7 +14,7 @@ try {
   await Deno.writeTextFile(join(project,"_quarto.yml"),config);await Deno.writeTextFile(join(project,"index.qmd"),source);
   const p=await new Deno.Command(Deno.env.get("QUARTO")??"/opt/quarto/bin/quarto",{args:["render","index.qmd"],cwd:project,stdout:"piped",stderr:"piped"}).output();
   const requests:any[]=[];
-  try{for await(const item of Deno.readDir(join(project,"_generated/project-download/requests")))requests.push(JSON.parse(await Deno.readTextFile(join(project,"_generated/project-download/requests",item.name))))}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e;}
+  try{requests.push(JSON.parse(await Deno.readTextFile(join(project,"_generated/project-download/requests/index.qmd/request.json"))))}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e;}
   let html="";try{html=await Deno.readTextFile(join(project,"_site/index.html"))}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e;}
   const row={id,declared,exit:p.code,requests,link:html.includes("_downloads/"+id+".zip")};rows.push(row);
   if(evidence){await Deno.mkdir(evidence,{recursive:true});await Deno.writeTextFile(join(evidence,"results.json"),JSON.stringify(rows,null,2)+"\n");for(const [suffix,bytes]of [["stdout",p.stdout],["stderr",p.stderr]]as const)await Deno.writeFile(join(evidence,name+"."+suffix),bytes);await Deno.writeTextFile(join(evidence,name+".yml"),config);await Deno.writeTextFile(join(evidence,name+".qmd"),source);if(html)await Deno.writeTextFile(join(evidence,name+".html"),html);}
