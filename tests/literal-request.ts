@@ -15,14 +15,9 @@ const { qualifyAssignmentProducer } = await import(
     new URL("file://" + core + "/"),
   ).href
 );
-const evidence = { format: "html", sourceProbe: "actual1115" },
-  context = { format: "html" },
-  profile = {
-    native: {
-      producerEvidence: { html: { sourceProbe: "actual1115" } },
-      literalShortcodes: ["xref", "meta"],
-    },
-  };
+// Synthetic pure qualifier observation, не actual producer authority/admission.
+const evidence = { format: "html", engine: "markdown", filters: {}, shortcodes: [] },
+  context = { format: "html" };
 let count = 0;
 function refuse(name: string, f: () => unknown, part: string) {
   let error = "";
@@ -35,7 +30,7 @@ function refuse(name: string, f: () => unknown, part: string) {
   count++;
 }
 function qualify(v: unknown) {
-  return qualifyAssignmentProducer(v, context, profile, evidence);
+  return qualifyAssignmentProducer(v, context, evidence);
 }
 refuse("before13", () => qualify(ast), "Shortcode не квалифицирован");
 const after = lowerLiteralDownloadRequests(

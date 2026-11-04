@@ -15,8 +15,11 @@ const dynamic = /\{\{|\}\}|b58fc729-690b-4000-b19f-365a4093b2ff;[a-fA-F0-9]+;/;
 function fail(source: string, message: string): never {
   throw diagnostic("DOWNLOAD.DELIVERY_PHASE_UNSUPPORTED", message, { source });
 }
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 function attr(
-  value: any,
+  value: unknown,
   expected: string,
   source: string,
   outer = false,
@@ -27,7 +30,8 @@ function attr(
     value[1][0] !== expected || !Array.isArray(value[2])
   ) fail(source, "Неподдержанный native shortcode Attr");
   const result: Record<string, string> = {};
-  for (const pair of value[2]) {
+  const attributes: readonly unknown[] = value[2];
+  for (const pair of attributes) {
     if (
       !Array.isArray(pair) || pair.length !== 2 ||
       typeof pair[0] !== "string" || typeof pair[1] !== "string" ||
@@ -158,13 +162,15 @@ export function lowerLiteralDownloadRequests(
   return doc;
 }
 if (import.meta.main) {
-  const ast = JSON.parse(await new Response(Deno.stdin.readable).text()),
-    transport = ast.meta?.[SOURCE];
-  if (transport?.t !== "MetaString" || typeof transport.c !== "string") {
+  const inspection: unknown = JSON.parse(await new Response(Deno.stdin.readable).text());
+  const ast = record(inspection) ? inspection : undefined;
+  const meta = ast && record(ast.meta) ? ast.meta : undefined;
+  const transport = meta?.[SOURCE];
+  if (!ast || !meta || !record(transport) || transport.t !== "MetaString" || typeof transport.c !== "string") {
     fail("", "Отсутствует native Download source");
   }
   const source = transport.c;
-  delete ast.meta[SOURCE];
+  delete meta[SOURCE];
   const mode = Deno.env.get("PROJECT_DOWNLOAD_LITERAL_ONLY");
   if (mode !== undefined && mode !== "1") {
     throw diagnostic(
