@@ -48,11 +48,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-prairielearn
-          ref: 0ebb9f4e49201edede210b211d7f0e3ebf067412 # PL: согласованный ordinary fixture; публикация и paired CI отдельно
+          ref: 4d39a6648d2816bab9a372877deded3320ff35e1 # PL: согласованный ordinary fixture; публикация и paired CI отдельно
           path: pl-fixture
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
-        run: test "$(git -C pl-fixture rev-parse HEAD)" = "0ebb9f4e49201edede210b211d7f0e3ebf067412"
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "4d39a6648d2816bab9a372877deded3320ff35e1"
       - name: Настоящая ordinary публикация и public proof
         env:
           CORE: ${{ github.workspace }}/core-fixture
