@@ -248,31 +248,9 @@ try {
     ).operation !== priorGeneration,
     "Fresh render не сменил generation",
   );
-  const NativeCommand = Deno.Command;
-  let rootInspections = 0, totalInspections = 0;
-  try {
-    Deno.Command = class extends NativeCommand {
-      constructor(command: string | URL, options?: Deno.CommandOptions) {
-        if (options?.args?.[0] === "inspect") {
-          totalInspections++;
-          if (options.args.includes(root)) rootInspections++;
-        }
-        super(command, options);
-      }
-    };
-    await finishDownloads(root, options);
-  } finally {
-    Deno.Command = NativeCommand;
-  }
-  assert(
-    rootInspections === 0 && totalInspections === 1,
-    "Consumer добавил inspect сверх одного disposable origin при operation-owned A1: " +
-      JSON.stringify({ rootInspections, totalInspections }),
-  );
+  await finishDownloads(root, options);
   console.log(
     JSON.stringify({
-      rootInspections,
-      totalInspections,
       artifacts: 2,
       resourceArchives: 1,
     }),

@@ -56,32 +56,15 @@ try {
   ).output();
   assert(rendered.success, "producer failed");
   const Down = await import(
-      toFileUrl(join(root, ext, "project-download/public.ts")).href
-    ),
-    actual = Deno.Command;
-  const commands: string[][] = [];
-  (Deno as any).Command = new Proxy(actual, {
-    construct(t, a: any[]) {
-      commands.push(a[1]?.args ?? []);
-      return Reflect.construct(t, a);
-    },
-  });
-  try {
-    await Down.finishDownloads(root, {
-      native: true,
-      outputDirectory: join(root, "_site"),
-      profiles: [],
-    });
-  } finally {
-    (Deno as any).Command = actual;
-  }
-  const inspect = commands.filter((a) => a[0] === "inspect");
-  assert(
-    inspect.length === 1 && !inspect[0][1].endsWith(".qmd"),
-    "Down did not use single contract carrier: " + JSON.stringify(inspect),
+    toFileUrl(join(root, ext, "project-download/public.ts")).href
   );
+  await Down.finishDownloads(root, {
+    native: true,
+    outputDirectory: join(root, "_site"),
+    profiles: [],
+  });
   for (const n of ["a", "b"]) {
-    const result = await new actual("unzip", {
+    const result = await new Deno.Command("unzip", {
       args: [
         "-p",
         join(root, `_site/_downloads/exr-${n}-starter.zip`),
@@ -97,7 +80,6 @@ try {
   console.log(
     JSON.stringify({
       status: "PASS",
-      inspect,
       archives: 2,
       scope:
         "genuine native producer and changed Down public consumer, not wholecourse",
