@@ -213,11 +213,12 @@ try {
         const borrowed = structuredClone(inventory);
         const pending = download.packageArtifact(borrowed);
         borrowed.files[0].bytes.fill(0);
+        borrowed.files[0].target = "caller-changed.txt";
         const frozen = await pending;
         assert(
           frozen.length === packed.length &&
             frozen.every((byte: number, i: number) => byte === packed[i]),
-          "Caller изменил bytes во время lazy import/hash",
+          "Caller изменил bytes/target во время lazy import",
         );
         const ancestor = structuredClone(inventory);
         ancestor.files[0].target = "collision";
@@ -226,17 +227,14 @@ try {
           () => download.packageArtifact(ancestor),
           "DOWNLOAD.INVENTORY_INVALID",
         );
-        const wrongSize = structuredClone(inventory);
-        wrongSize.files[0].size++;
-        await refused(
-          () => download.packageArtifact(wrongSize),
-          "DOWNLOAD.INVENTORY_INVALID",
-        );
-        const wrongHash = structuredClone(inventory);
-        wrongHash.files[0].bytes[0] ^= 1;
-        await refused(
-          () => download.packageArtifact(wrongHash),
-          "DOWNLOAD.INVENTORY_INVALID",
+        const metadataOnly = structuredClone(inventory);
+        metadataOnly.files[0].size++;
+        metadataOnly.files[0].sha256 = "0".repeat(64);
+        const sameBytes = await download.packageArtifact(metadataOnly);
+        assert(
+          sameBytes.length === packed.length &&
+            sameBytes.every((byte: number, i: number) => byte === packed[i]),
+          "Заявленные size/SHA256 изменили ZIP переданных bytes",
         );
         const wrongAudience = structuredClone(inventory);
         wrongAudience.files[0].audience = "full";
@@ -333,7 +331,7 @@ try {
     "Закрытый ресурс попал в student bytes",
   );
   console.log(
-    "PASS public Core→установленный Download: точные имена/байты, README, воспроизводимость, hash/size/audience/path guards",
+    "PASS public Core→установленный Download: точные имена/байты, README, воспроизводимость, переданные bytes и audience/path guards",
   );
 } finally {
   if (Deno.env.get("B3_KEEP")) console.log("Сохранён M2 owner: " + root);

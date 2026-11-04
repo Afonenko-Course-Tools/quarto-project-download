@@ -4,6 +4,7 @@ import { zip } from "../domain/zip.ts";
 
 /**
  * Один ZIP из публичного inventory Core без чтения проекта и изменения README.
+ * Упаковывает переданные bytes, не удостоверяет заявленные size/SHA256.
  * Currentness и финальный source fence принадлежат вызывающей композиции Core.
  */
 export async function packageArtifact(value: unknown): Promise<Uint8Array> {
@@ -31,13 +32,14 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
       cause,
     );
   }
-  // Все заимствованные bytes фиксируются до первого await проверки хешей.
-  const files = inventory.files.map((file) => ({
-    ...file,
-    bytes: new Uint8Array(file.bytes),
-  }));
+  // Обычные bytes уже принадлежат раннему snapshot; shared memory отделяется ниже.
+  const files = inventory.files;
   const names = new Set<string>();
   for (const file of files) {
+    // structuredClone сохраняет общую память SAB: оставляем прежнюю позднюю ownership copy.
+    if (file.bytes.buffer instanceof SharedArrayBuffer) {
+      file.bytes = new Uint8Array(file.bytes);
+    }
     if (names.has(file.target) || file.audience !== inventory.audience) {
       throw diagnostic(
         "DOWNLOAD.INVENTORY_INVALID",
@@ -58,19 +60,6 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
           { id: name, field: "target" },
         );
       }
-    }
-  }
-  for (const file of files) {
-    const digest = Array.from(
-      new Uint8Array(await crypto.subtle.digest("SHA-256", file.bytes)),
-      (byte) => byte.toString(16).padStart(2, "0"),
-    ).join("");
-    if (file.bytes.byteLength !== file.size || digest !== file.sha256) {
-      throw diagnostic(
-        "DOWNLOAD.INVENTORY_INVALID",
-        "Размер или SHA256 файла inventory не совпадает с байтами",
-        { id: file.target, field: "size/sha256" },
-      );
     }
   }
   files.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : 0);

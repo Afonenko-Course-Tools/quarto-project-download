@@ -74,7 +74,12 @@ Runtime загружает actual public operation один раз. Все model
 ordinary resource inventories получаются внутри её callback, без private
 NativeRun/resolver imports. Один batch project contexts обслуживает все artifacts;
 сравнение повторных заявок не создаёт ZIP. Упаковка каждого готового artifact
-вызывается один раз. ZIP bytes и v2 receipt facts фиксируются в памяти.
+вызывается один раз. ZIP bytes и v2 receipt facts фиксируются в памяти. Public helper
+`packageArtifact` делает один ранний snapshot переданных bytes/targets и упаковывает их;
+проверка существующей схемы/аудитории/paths/collisions сохраняется, повторное
+подтверждение заявленных size/SHA256 не выполняется. ZIP writer использует фактические
+bytes для размеров и CRC32. Для SAB-backed Uint8Array сохраняется отдельная
+поздняя ownership copy после schema parse; обычные bytes повторно не копируются. Подробнее — [публичная упаковка](../docs/public-inventory.md).
 
 После успешных owner/request fences публикация проверяет destination parents,
 symlink и foreign collisions; manifest пишется первым, ZIP затем, receipt
