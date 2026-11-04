@@ -30,13 +30,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 4a2903e6d03d1dd489b6922d113100826913cf67 # Core: проверены Native capture и actual A1; полный hosted CI PASS
+          ref: 5f4590aa4eb524830715f8020c8ff3c504197f73 # Core: Source принят; hosted CI и выпуск отдельно
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "4a2903e6d03d1dd489b6922d113100826913cf67"
+          test "$(git -C core-fixture rev-parse HEAD)" = "5f4590aa4eb524830715f8020c8ff3c504197f73"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog
@@ -48,11 +48,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-prairielearn
-          ref: df8bd4aad274d618a782265b1db9c63e9b9a40f9 # C9.0.1: published ordinary owner validation
+          ref: 0ebb9f4e49201edede210b211d7f0e3ebf067412 # PL: согласованный ordinary fixture; публикация и paired CI отдельно
           path: pl-fixture
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
-        run: test "$(git -C pl-fixture rev-parse HEAD)" = "df8bd4aad274d618a782265b1db9c63e9b9a40f9"
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "0ebb9f4e49201edede210b211d7f0e3ebf067412"
       - name: Настоящая ordinary публикация и public proof
         env:
           CORE: ${{ github.workspace }}/core-fixture
