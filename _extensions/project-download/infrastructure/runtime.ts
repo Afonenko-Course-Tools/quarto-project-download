@@ -212,6 +212,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
   let archives: { name: string; bytes: Uint8Array }[] = [],
     receiptText = "",
     ownedSignature = "";
+  let ownedSources: string[] = [];
   const output = options.outputDirectory ||
     Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR");
   const profiles = options.profiles ??
@@ -279,6 +280,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
     }
     const owned = await inspectOwnedRequests(root, sources);
     ownedSignature = JSON.stringify(owned);
+    ownedSources = owned.files.map((file) => file.source);
     const requests: Request[] = [];
     for (const file of owned.files) {
       requests.push(JSON.parse(await Deno.readTextFile(file.path)));
@@ -655,9 +657,8 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
       outputDirectory: resolve(root, resolvedOutput),
     }, async (operation) => await collect({ operation, Core }));
   } else count = await collect();
-  const sources = JSON.parse(ownedSignature).files.map((f: any) => f.source);
   if (
-    JSON.stringify(await inspectOwnedRequests(root, sources)) !== ownedSignature
+    JSON.stringify(await inspectOwnedRequests(root, ownedSources)) !== ownedSignature
   ) {
     throw diagnostic(
       "DOWNLOAD.REQUEST_INVALID",
