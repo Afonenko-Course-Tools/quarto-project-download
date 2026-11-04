@@ -31,10 +31,9 @@ Typed transport хранит отдельные `artifacts: [{exerciseId, kind}]
 «Скачать заготовку», «Скачать полный проект», «Скачать условие».
 
 Текущий native маршрут использует только Core `public.ts` и
-`withNativePublication`: actual condition, plan/materialize и inventory.
+`withNativePublication`: actual condition, plan/materialize и `ArtifactFiles`.
 Download не читает project/student как fallback и не применяет generic excludes
-к готовым owner bytes. Exact source/currentness и public/private policy остаются
-Core. README проходит только owner writer. Подробнее —
+к готовым owner bytes. Public/private policy остаётся в Core. README проходит только owner writer. Подробнее —
 [публичный runtime](../docs/public-runtime.md).
 
 Текущий public owner проверяет семантику публикации каждого документа до выдачи.
@@ -55,7 +54,7 @@ Artifacts receipts, их schema guards и per-ZIP SHA удалены; стары
 receipts не мигрируются и не участвуют в текущей операции.
 
 Ownership API inspectOwnedRequests/clearOwnedRequests сохраняет protocol1;
-files имеют optional artifacts вместе с source/resources/sha256. Native writer,
+files имеют optional artifacts вместе с source/resources/configuration. Native writer,
 inspect и cleanup выполняются последовательно, закрытые поля всей области
 проверяются до удаления. Текущая public operation должна совпадать с root/profiles/output и
 содержать каждый source заявки. Retained страницы и course.json не авторизуют bytes.
@@ -69,21 +68,22 @@ ZIP basename collision generic/model остаётся ошибкой незав�
 
 ## Подготовка и публикация архивов
 
-Orchestrator открывает actual Native publication один раз. Все model inventories и
-ordinary resource inventories получаются внутри её callback, без private
+Orchestrator открывает actual Native publication один раз. Все наборы файлов model и
+обычные наборы ресурсов получаются внутри её callback, без private
 NativeRun/resolver imports. Один batch project contexts обслуживает все artifacts;
 сравнение повторных заявок не создаёт ZIP. Упаковка каждого готового artifact
 вызывается один раз. ZIP bytes фиксируются в Download-owned draft. Public helper
-`packageArtifact` делает один ранний snapshot переданных bytes/targets и упаковывает их;
-проверка существующей схемы/аудитории/paths/collisions сохраняется, повторное
-подтверждение заявленных size/SHA256 не выполняется. ZIP writer использует фактические
-bytes для размеров и CRC32. Для SAB-backed Uint8Array сохраняется отдельная
+`packageArtifact` принимает функциональный `ArtifactFiles` без сертификатов, SHA,
+rawSource или size и делает собственную раннюю копию bytes/targets. Проверяются
+`ArtifactFilesSchema`, аудитория, paths и collisions. ZIP writer использует
+фактические bytes для размеров и CRC32. Для SAB-backed Uint8Array сохраняется отдельная
 поздняя ownership copy после schema parse; обычные bytes повторно не копируются. Подробнее — [публичная упаковка](../docs/public-inventory.md).
 
-После успешного Core closing одноразовый publish проверяет request snapshot,
+После успешного Core closing одноразовый publish проверяет
 destination parents, symlink и foreign collisions; manifest пишется первым, ZIP
 затем. Ошибка записи сохраняет manifest для следующей owned cleanup и не обещает
-rollback. Pre reset удаляет только requests. Обычные resources без активного Core
+rollback. Повторного чтения заявок или проверки свежести перед записью нет.
+Pre reset удаляет только requests. Обычные resources без активного Core
 остаются самостоятельными; private Core fallback отсутствует.
 
 Explicit starter требует native student condition. В author он адресно закрыт

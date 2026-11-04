@@ -27,15 +27,15 @@ Download владеет resource selection, ZIP и temporary requests/ownership.
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
 Целевой Quarto — 1.11.5; кандидат Download 3.5.0 использует публичный
 native TS-договор Core 9 без внешнего валидатора схем. Обычные resources независимы от Core;
-точный files inventory и current-run guards принадлежат Core.
+функциональные `ArtifactFiles`, public/private policy и native operation принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
 
 ## Публичный native runtime B3
 
 Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
-через actual `withNativePublication`, готовый artifact inventory и публичный
-resource inventory; preparation и final writer разделены. Private NativeRun fallback удалён.
+через actual `withNativePublication`, готовый `ArtifactFiles` и публичный
+`NativeResourceFiles`; preparation и final writer разделены. Private NativeRun fallback удалён.
 Адресные проверки и открытые integration gates перечислены в документе;
 source ref не заявляется установленным или выпущенным автоматически.
 

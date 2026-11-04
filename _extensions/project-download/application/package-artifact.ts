@@ -3,9 +3,8 @@ import { diagnostic } from "../diagnostics.ts";
 import { zip } from "../domain/zip.ts";
 
 /**
- * Один ZIP из публичного inventory Core без чтения проекта и изменения README.
- * Упаковывает переданные bytes, не удостоверяет заявленные size/SHA256.
- * Currentness и финальный source fence принадлежат вызывающей композиции Core.
+ * Один ZIP из функционального набора файлов Core без чтения проекта и изменения README.
+ * Размеры и CRC вычисляются по переданным bytes.
  */
 export async function packageArtifact(value: unknown): Promise<Uint8Array> {
   let supplied;
@@ -14,36 +13,36 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
     supplied = structuredClone(value);
   } catch (cause) {
     throw diagnostic(
-      "DOWNLOAD.INVENTORY_INVALID",
-      "Inventory нельзя зафиксировать",
-      { field: "inventory" },
+      "DOWNLOAD.FILES_INVALID",
+      "Невозможно получить собственную копию файлов",
+      { field: "artifact" },
       cause,
     );
   }
   const core = await sibling("course-core");
-  let inventory;
+  let artifact;
   try {
-    inventory = core.ArtifactInventorySchema.parse(supplied);
+    artifact = core.ArtifactFilesSchema.parse(supplied);
   } catch (cause) {
     throw diagnostic(
-      "DOWNLOAD.INVENTORY_INVALID",
-      "Core inventory не соответствует публичной схеме",
-      { field: "inventory" },
+      "DOWNLOAD.FILES_INVALID",
+      "Файлы Core не соответствуют публичной схеме",
+      { field: "artifact" },
       cause,
     );
   }
-  // Обычные bytes уже принадлежат раннему snapshot; shared memory отделяется ниже.
-  const files = inventory.files;
+  // Обычные bytes уже принадлежат ранней копии; shared memory отделяется ниже.
+  const files = artifact.files;
   const names = new Set<string>();
   for (const file of files) {
     // structuredClone сохраняет общую память SAB: оставляем прежнюю позднюю ownership copy.
     if (file.bytes.buffer instanceof SharedArrayBuffer) {
       file.bytes = new Uint8Array(file.bytes);
     }
-    if (names.has(file.target) || file.audience !== inventory.audience) {
+    if (names.has(file.target) || file.audience !== artifact.audience) {
       throw diagnostic(
-        "DOWNLOAD.INVENTORY_INVALID",
-        "Повторный target или чужая аудитория файла inventory",
+        "DOWNLOAD.FILES_INVALID",
+        "Повторный target или чужая аудитория файла artifact",
         { id: file.target, field: "target/audience" },
       );
     }
@@ -55,8 +54,8 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
       parts.pop();
       if (names.has(parts.join("/"))) {
         throw diagnostic(
-          "DOWNLOAD.INVENTORY_INVALID",
-          "Файл inventory пересекается с каталогом другого файла",
+          "DOWNLOAD.FILES_INVALID",
+          "Файл artifact пересекается с каталогом другого файла",
           { id: name, field: "target" },
         );
       }

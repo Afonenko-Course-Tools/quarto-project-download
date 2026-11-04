@@ -9,7 +9,7 @@ const assert = (value: unknown, message: string) => {
 };
 assert(
   typeof api?.packageArtifact === "function",
-  "B1 RED: Download не упаковывает публичный ArtifactInventory",
+  "B1 RED: Download не упаковывает публичный ArtifactFiles",
 );
 const source = Deno.env.get("CORE");
 const qrcSource = Deno.env.get("QRC");
@@ -70,7 +70,7 @@ try {
   const native = join(extensions, "course-core/native-ts");
   await put(
     "_quarto.yml",
-    `project:\n  type: book\n  output-dir: _site\n  pre-render: [quarto run ${extensions}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${extensions}/course-core/entrypoints/native-post.ts]\nbook:\n  title: B1\n  chapters: [index.qmd]\nformat:\n  html:\n    theme: none\ncourse-core-projection: student\ncourse-core-runtime: native-ts\nexercise-bank: true\nfilters:\n  - at: pre-ast\n    path: ${native}/early-context.lua\n  - at: post-quarto\n    path: ${native}/late-kind.lua\n  - at: post-render\n    path: ${native}/late-filter.lua\ncourse-project:\n  build:\n    files:\n      build.gradle: shared/build.gradle\n      settings.gradle: shared/settings.gradle\n  starter: {path: starter}\n  instructions:\n    gradle: {path: shared/gradle.md}\n`,
+    `project:\n  type: book\n  output-dir: _site\n  pre-render: [quarto run ${extensions}/course-core/entrypoints/native-pre.ts]\n  post-render: [quarto run ${extensions}/course-core/entrypoints/native-post.ts]\nbook:\n  title: B1\n  chapters: [index.qmd]\nformat:\n  html:\n    theme: none\ncourse-core-projection: student\ncourse-core-runtime: native-ts\nexercise-bank: true\nfilters:\n  - at: pre-ast\n    path: ${native}/early-context.lua\n  - at: post-quarto\n    path: ${native}/late-kind.lua\n  - at: post-render\n    path: ${native}/late-filter.lua\ncourse-project:\n  build:\n    files:\n      build.gradle: {path: shared/build.gradle, base: config}\n      settings.gradle: {path: shared/settings.gradle, base: config}\n  starter: {path: starter}\n  instructions:\n    gradle: {path: shared/gradle.md, base: config}\n`,
   );
   await put("shared/gradle.md", "JDK25. Выполните `gradle test`.\n");
   await put("shared/build.gradle", "plugins { id 'java' }\n");
@@ -164,7 +164,7 @@ try {
       });
       await operation.withProjectContexts([{
         owner: root,
-        inputs: ["projects/demo/native-input.qmd"],
+        directories: ["projects/demo"],
         profiles: [],
         format: "html",
       }], async (batch: any) => {
@@ -208,7 +208,7 @@ try {
               ...inventory,
               files: [...inventory.files, inventory.files[0]],
             }),
-          "DOWNLOAD.INVENTORY_INVALID",
+          "DOWNLOAD.FILES_INVALID",
         );
         const borrowed = structuredClone(inventory);
         const pending = download.packageArtifact(borrowed);
@@ -225,32 +225,23 @@ try {
         ancestor.files[1].target = "collision/nested.txt";
         await refused(
           () => download.packageArtifact(ancestor),
-          "DOWNLOAD.INVENTORY_INVALID",
-        );
-        const metadataOnly = structuredClone(inventory);
-        metadataOnly.files[0].size++;
-        metadataOnly.files[0].sha256 = "0".repeat(64);
-        const sameBytes = await download.packageArtifact(metadataOnly);
-        assert(
-          sameBytes.length === packed.length &&
-            sameBytes.every((byte: number, i: number) => byte === packed[i]),
-          "Заявленные size/SHA256 изменили ZIP переданных bytes",
+          "DOWNLOAD.FILES_INVALID",
         );
         const wrongAudience = structuredClone(inventory);
         wrongAudience.files[0].audience = "full";
         await refused(
           () => download.packageArtifact(wrongAudience),
-          "DOWNLOAD.INVENTORY_INVALID",
+          "DOWNLOAD.FILES_INVALID",
         );
         await refused(
           () => download.packageArtifact(JSON.parse(JSON.stringify(inventory))),
-          "DOWNLOAD.INVENTORY_INVALID",
+          "DOWNLOAD.FILES_INVALID",
         );
         const escape = structuredClone(inventory);
         escape.files[0].target = "../private";
         await refused(
           () => download.packageArtifact(escape),
-          "DOWNLOAD.INVENTORY_INVALID",
+          "DOWNLOAD.FILES_INVALID",
         );
         assert(
           JSON.stringify(batch.metrics) === beforeConsumer &&

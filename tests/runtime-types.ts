@@ -9,15 +9,15 @@ import "../_extensions/project-download/application/package-artifact.ts";
 
 type NotAny<T> = 0 extends (1 & T) ? never : true;
 type Core = SiblingModules["course-core"];
-type Inventory = Awaited<ReturnType<Core["materializeProject"]>>;
-type ResourceInventory = Awaited<
-  ReturnType<NativePublication["resourceInventory"]>
+type Artifact = Awaited<ReturnType<Core["materializeProject"]>>;
+type Resources = Awaited<
+  ReturnType<NativePublication["resourceFiles"]>
 >;
 const checked: [
   NotAny<Awaited<ReturnType<typeof sibling<"course-core">>>>,
-  NotAny<Inventory>,
-  NotAny<Inventory["files"][number]>,
-  NotAny<ResourceInventory>,
+  NotAny<Artifact>,
+  NotAny<Artifact["files"][number]>,
+  NotAny<Resources>,
 ] = [true, true, true, true];
 void checked;
 
@@ -26,10 +26,10 @@ function dtoMisuse(
   Core: Core,
   context: ProjectContractContext,
   condition: ReturnType<NativePublication["condition"]>,
-  resources: ResourceInventory,
+  resources: Resources,
 ) {
-  // @ts-expect-error Resource inventory не является учебным artifact inventory.
-  const artifact: Inventory = resources;
+  // @ts-expect-error Обычные ресурсы не являются учебным набором ArtifactFiles.
+  const artifact: Artifact = resources;
   // @ts-expect-error Context ещё не прошёл planProject и не является plan.
   Core.materializationClosure(context, condition);
   void artifact;

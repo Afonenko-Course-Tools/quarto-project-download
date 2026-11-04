@@ -4,7 +4,7 @@ import type { ArtifactRequest } from "./application/publish.ts";
 import { RESOURCE_ID } from "./domain/config.ts";
 import { child, exists, noSymlinks } from "./infrastructure/files.ts";
 
-/** Снимок временных заявок после завершения нативного рендера. */
+/** Проверенные временные заявки после завершения нативного рендера. */
 export interface OwnedRequestState {
   protocol: 1;
   root: string;
@@ -15,7 +15,6 @@ export interface OwnedRequestState {
     resources: string[];
     artifacts?: ArtifactRequest[];
     configuration?: unknown;
-    sha256: string;
   }[];
 }
 
@@ -31,18 +30,16 @@ function artifactKind(value: unknown): value is ArtifactRequest["kind"] {
 }
 function artifact(value: unknown): value is ArtifactRequest {
   return record(value) &&
-    !Object.keys(value).some((key) =>
-      !["exerciseId", "kind"].includes(key)
-    ) && resourceId(value.exerciseId) && artifactKind(value.kind);
+    !Object.keys(value).some((key) => !["exerciseId", "kind"].includes(key)) &&
+    resourceId(value.exerciseId) && artifactKind(value.kind);
 }
 
 async function hash(
-  algorithm: "SHA-1" | "SHA-256",
   bytes: Uint8Array,
 ): Promise<string> {
   return Array.from(
     new Uint8Array(
-      await crypto.subtle.digest(algorithm, new Uint8Array(bytes)),
+      await crypto.subtle.digest("SHA-1", new Uint8Array(bytes)),
     ),
   )
     .map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -183,7 +180,7 @@ export async function inspectOwnedRequests(
     }
     if (
       entry.name !==
-        await hash("SHA-1", new TextEncoder().encode(fields.source)) + ".json"
+        await hash(new TextEncoder().encode(fields.source)) + ".json"
     ) {
       throw diagnostic(
         "DOWNLOAD.REQUEST_INVALID",
@@ -199,7 +196,6 @@ export async function inspectOwnedRequests(
       ...(Object.hasOwn(fields, "configuration")
         ? { configuration: fields.configuration }
         : {}),
-      sha256: await hash("SHA-256", bytes),
     });
   }
   return state;
