@@ -15,9 +15,9 @@ try {
  try { await finish(root,{run,evaluateResources:async()=>({files:[]}),resolveArtifact} as never); }
  catch(error) { refused=String(error).includes('DOWNLOAD.CONFIG_INVALID') && String(error).includes('публичную операцию Core'); }
  if(!refused || privateResolverCalled) throw Error('Private NativeRun/resolver не являются текущей public operation');
- for(const path of [root+'/_generated/project-download/artifacts-receipt.json',root+'/_site/_downloads/exr-probe-full.zip']) {
+ for(const path of [root+'/_site/_downloads/exr-probe-full.zip']) {
   let exists=true;try{await Deno.lstat(path)}catch(error){if(error instanceof Deno.errors.NotFound)exists=false;else throw error}
-  if(exists)throw Error('Отказ старого private carrier создал ZIP/success receipt');
+  if(exists)throw Error('Отказ старого private carrier создал ZIP');
  }
- console.log('PASS private NativeRun injection refused before private resolver, ZIP and receipt; genuine trusted audience проверяется public-runtime.ts');
+ console.log('PASS private NativeRun injection refused before private resolver, ZIP; genuine trusted audience проверяется public-runtime.ts');
 }finally{await Deno.remove(root,{recursive:true});}

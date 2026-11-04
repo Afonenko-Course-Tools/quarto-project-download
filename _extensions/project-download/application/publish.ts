@@ -14,11 +14,10 @@ import {
 export type ArtifactKind = typeof ARTIFACT_KINDS[number];
 type NativeRequest = ReturnType<typeof resolveDownloadRequests>["request"];
 export type ArtifactRequest = NonNullable<NativeRequest["artifacts"]>[number];
-// Старый public port допускает отсутствие native/configuration; типы полей
-// выводятся из исполняемого owner batch, отдельного ручного DTO нет.
-export type Request =
-  & Pick<NativeRequest, "source" | "resources">
-  & Partial<Omit<NativeRequest, "source" | "resources">>;
+/** Проверенные поля заявки; raw configuration разбирает её действующий owner. */
+export type Request = Pick<NativeRequest, "source" | "resources" | "artifacts"> & {
+  configuration?: unknown;
+};
 export interface PublishPorts {
   requests(): Promise<Request[]>;
   courseResource(id: string, source: string): Promise<Resource>;

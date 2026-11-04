@@ -6,7 +6,7 @@
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
 Контракт этого ref — кандидат 3.5.0. Публичный native путь использует Core
-`withCurrentNativeOperation`, owner release proof и готовые artifact/resource inventories.
+`withNativePublication` и готовые artifact/resource inventories.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
 
@@ -239,13 +239,14 @@ caches, build outputs и class/jar исключаются. Автор обесп
 команды и ссылки README. Весь разрешённый full project упаковывается после
 Core authorization, а public guards обычных resources сохраняются.
 
-`finishDownloads(root, options)` из `public.ts` принимает явные projection/profiles,
-expectedDocuments и конечный каталог выдачи. Текущую операцию открывает публичный Core API. Модельные заявки имеют отдельный typed transport
-`artifacts: [{exerciseId, kind}]`; они не преобразуются в ID старого resources map.
-При обычном post-hook контекст загружается из установленного соседнего Core.
-Private `_generated/project-download/artifacts-receipt.json` фиксирует SHA256
-архивов, kind/source, operation/identity и release proof; он исключается из сайта вместе
-с остальными generated inputs. Он не подтверждает выполнение Java-проектов.
+`prepareNativeDownloads(publication, options)` из `public.ts` собирает готовый
+одноразовый draft внутри `Core.withNativePublication`. Orchestrator выполняет
+активный PL inspection и вызывает `draft.publish()` только после успешного Core
+closing. Native root/profiles/projection берутся из publication; options задают
+конечный каталог и адреса. `resetDownloadRequests` очищает только временные
+заявки. ZIP manifest/CRC сохраняются; artifacts receipt и per-ZIP SHA удалены.
+`finishDownloads(root, options)` обслуживает отдельные обычные resources без Core.
+Подробнее — [публичный runtime](docs/public-runtime.md).
 
 Обычные resources работают без Core/CUE. Если Core обработал AST, generic resource
 policy действует и при `course-model: false`. `course.json` и retained HTML предыдущей
@@ -352,7 +353,7 @@ Download 3.1.0 сохранил контракт Download3 и добавил д�
 
 ## Сохранённая поправка 3.3.1: ordinary owner validation
 
-[Адресная поправка](docs/release-3.3.1.md) использует частичный C publication vet с действительным Core proof и common-source guards. Full C delivery не запускается из ZIP finalizer. Она сохраняется в этом кандидате; результаты нового выпуска проверяются отдельно.
+Историческая [поправка 3.3.1](docs/release-3.3.1.md) описывает прежний proof contract. Текущий ordinary маршрут использует Native publication и partial PL inspection; full PL delivery запускается отдельно. Результаты нового выпуска проверяются отдельно.
 
 
 ## Кандидат 3.4.0: ранние literal-запросы

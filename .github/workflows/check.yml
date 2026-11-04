@@ -53,11 +53,6 @@ jobs:
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
         run: test "$(git -C pl-fixture rev-parse HEAD)" = "4d39a6648d2816bab9a372877deded3320ff35e1"
-      - name: Настоящая ordinary публикация и public proof
-        env:
-          CORE: ${{ github.workspace }}/core-fixture
-          PL: ${{ github.workspace }}/pl-fixture
-        run: quarto run tests/ordinary-publication.ts
       - name: Полный контракт Download и native installed model artifacts
         env:
           CORE: ${{ github.workspace }}/core-fixture

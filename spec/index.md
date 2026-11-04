@@ -34,8 +34,8 @@ native TS-договор Core 9 без внешнего валидатора с�
 ## Публичный native runtime B3
 
 Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
-через actual `withCurrentNativeOperation`, готовый artifact inventory и публичный
-resource inventory и текущий owner release proof. Private NativeRun fallback удалён.
+через actual `withNativePublication`, готовый artifact inventory и публичный
+resource inventory; preparation и final writer разделены. Private NativeRun fallback удалён.
 Адресные проверки и открытые integration gates перечислены в документе;
 source ref не заявляется установленным или выпущенным автоматически.
 

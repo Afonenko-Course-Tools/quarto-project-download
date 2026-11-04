@@ -119,169 +119,106 @@ try {
       .includes("PUBLIC_RESOURCE_2"),
     "Повторный render вернул stale resource",
   );
-  const { finishDownloads } = await import(
+  const Download: typeof import("../_extensions/project-download/public.ts") = await import(
     toFileUrl(join(root, ext, "project-download/public.ts")).href
   );
-  const receiptVersion = JSON.parse(
-    await Deno.readTextFile(
-      join(root, "_generated/project-download/artifacts-receipt.json"),
-    ),
+  const Core: typeof import("course-core/public.ts") = await import(
+    toFileUrl(join(root, ext, "course-core/public.ts")).href
   );
-  assert(
-    receiptVersion.schema === "project-download-artifacts-v2" &&
-      receiptVersion.operation === receiptVersion.identity.operation &&
-      receiptVersion.identity.projection === "student",
-    "Receipt подменил NativeRun sourceRunHash вместо явной operation identity",
-  );
-  const before = await Deno.readFile(starter),
-    beforeReceipt = await Deno.readTextFile(
-      join(root, "_generated/project-download/artifacts-receipt.json"),
-    );
+  const expectation = {
+    root, profiles: [], projection: "student" as const,
+    outputDirectory: join(root, "_site"),
+  };
   const refused = async (use: () => Promise<unknown>, code: string) => {
     let error = "";
-    try {
-      await use();
-    } catch (cause) {
-      error = String(cause);
-    }
+    try { await use(); } catch (cause) { error = String(cause); }
     assert(error.includes(code), "Нет адресного отказа " + code + ": " + error);
   };
-  const options = { native: true, outputDirectory: join(root, "_site") };
-  await refused(
-    () => finishDownloads(root, { ...options, profiles: ["foreign"] }),
-    "OPERATION_BINDING",
-  );
-  await refused(
-    () => finishDownloads(root, { ...options, projection: "author" }),
-    "OPERATION_BINDING",
-  );
-  await refused(
-    () =>
-      finishDownloads(root, {
-        ...options,
-        expectedDocuments: [{ source: "index.qmd", format: "revealjs" }, {
-          source: "other.qmd",
-          format: "html",
-        }],
-      }),
-    "OPERATION_BINDING",
-  );
-  await refused(
-    () =>
-      finishDownloads(root, {
-        ...options,
-        outputDirectory: join(root, "_foreign-output"),
-      }),
-    "OPERATION_BINDING",
-  );
-  await refused(
-    () =>
-      finishDownloads(root, {
-        ...options,
-        observeOperation: () =>
-          Deno.writeTextFileSync(
-            join(root, "index.qmd"),
-            statement + "\nИзменённый source\n",
-          ),
-      }),
-    "OPERATION_CHANGED",
-  );
-  assert(
-    (await Deno.readFile(starter)).every((v, i) => v === before[i]) &&
-      await Deno.readTextFile(
-          join(root, "_generated/project-download/artifacts-receipt.json"),
-        ) === beforeReceipt,
-    "Source drift до fence изменил owned output",
-  );
+  const capturedDraft: { value?: import("../_extensions/project-download/public.ts").PreparedDownloads } = {};
+  async function finishNative(
+    override: Partial<Parameters<typeof Core.withNativePublication>[0]> = {},
+    afterPrepare?: () => void | Promise<void>,
+    destinationDirectory?: string,
+  ) {
+    let draft: import("../_extensions/project-download/public.ts").PreparedDownloads | undefined;
+    try {
+      const prepared = await Core.withNativePublication({ ...expectation, ...override }, undefined,
+        async (publication) => {
+          draft = await Download.prepareNativeDownloads(publication, { destinationDirectory });
+          capturedDraft.value = draft;
+          await afterPrepare?.();
+          return draft;
+        });
+      await prepared.publish();
+      return prepared;
+    } catch (cause) {
+      try { await draft?.discard(); } catch { /* Сохраняем closing/writer cause. */ }
+      throw cause;
+    }
+  }
+  const before = await Deno.readFile(starter);
+  await refused(() => finishNative({ profiles: ["foreign"] }), "OPERATION_BINDING");
+  await refused(() => finishNative({ projection: "author" }), "OPERATION_BINDING");
+  await refused(() => finishNative({ expectedDocuments: [
+    { source: "index.qmd", format: "revealjs" },
+    { source: "other.qmd", format: "html" },
+  ] }), "OPERATION_BINDING");
+  await refused(() => finishNative({ outputDirectory: join(root, "_foreign-output") }), "OPERATION_BINDING");
+  const closingDestination = join(root, "_closing-rejected");
+  await refused(() => finishNative({}, () => {
+    Deno.writeTextFileSync(join(root, "index.qmd"), statement + "\nИзменённый source\n");
+  }, closingDestination), "OPERATION_CHANGED");
+  if (!capturedDraft.value) throw Error("Closing rejection потерял подготовленный handle");
+  const rejectedDraft = capturedDraft.value;
+  await refused(() => rejectedDraft.publish(), "discarded");
+  let newArchive = false;
+  try {
+    await Deno.stat(join(closingDestination, "_downloads/exr-demo-starter.zip"));
+    newArchive = true;
+  } catch (cause) { if (!(cause instanceof Deno.errors.NotFound)) throw cause; }
+  assert(!newArchive, "Failed closing создал новый draft ZIP");
+  assert((await Deno.readFile(starter)).every((v, i) => v === before[i]),
+    "Source drift до closing изменил owned ZIP");
   await put("index.qmd", statement);
   await render();
-  const priorGeneration = JSON.parse(
-    await Deno.readTextFile(
-      join(root, "_generated/project-download/artifacts-receipt.json"),
-    ),
-  ).operation;
-  const currentArchive = await Deno.readFile(starter),
-    currentReceipt = await Deno.readTextFile(
-      join(root, "_generated/project-download/artifacts-receipt.json"),
-    );
-  await refused(
-    () =>
-      finishDownloads(root, {
-        ...options,
-        observeOperation: async () => {
-          const begin = await new Deno.Command("quarto", {
-            args: ["run", `${ext}/course-core/entrypoints/native-pre.ts`],
-            cwd: root,
-            env: {
-              QUARTO_PROJECT_DIR: root,
-              QUARTO_PROJECT_OUTPUT_DIR: "_site",
-              QUARTO_PROJECT_INPUT_FILES: "index.qmd\nother.qmd",
-              QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES: "",
-              QUARTO_RUN_NO_NETWORK: "true",
-              DENO_NO_PACKAGE_JSON: "1",
-            },
-            stdout: "piped",
-            stderr: "piped",
-          }).output();
-          assert(
-            begin.success,
-            "Новая native generation не началась: " +
-              new TextDecoder().decode(begin.stderr),
-          );
-        },
-      }),
-    "OPERATION_CHANGED",
-  );
-  assert(
-    (await Deno.readFile(starter)).every((b, i) => b === currentArchive[i]) &&
-      await Deno.readTextFile(
-          join(root, "_generated/project-download/artifacts-receipt.json"),
-        ) === currentReceipt,
-    "Generation switch опубликовал старую подготовку",
-  );
+  const currentArchive = await Deno.readFile(starter);
+  await refused(() => finishNative({}, async () => {
+    const begin = await new Deno.Command("quarto", {
+      args: ["run", `${ext}/course-core/entrypoints/native-pre.ts`],
+      cwd: root,
+      env: {
+        QUARTO_PROJECT_DIR: root,
+        QUARTO_PROJECT_OUTPUT_DIR: "_site",
+        QUARTO_PROJECT_INPUT_FILES: "index.qmd\nother.qmd",
+        QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES: "",
+        QUARTO_RUN_NO_NETWORK: "true",
+        DENO_NO_PACKAGE_JSON: "1",
+      },
+      stdout: "piped", stderr: "piped",
+    }).output();
+    assert(begin.success, "Новая native generation не началась: " + new TextDecoder().decode(begin.stderr));
+  }), "OPERATION_CHANGED");
+  assert((await Deno.readFile(starter)).every((v, i) => v === currentArchive[i]),
+    "Generation switch опубликовал старую подготовку");
   await render();
-  assert(
-    JSON.parse(
-      await Deno.readTextFile(
-        join(root, "_generated/project-download/artifacts-receipt.json"),
-      ),
-    ).operation !== priorGeneration,
-    "Fresh render не сменил generation",
-  );
-  await finishDownloads(root, options);
-  console.log(
-    JSON.stringify({
-      artifacts: 2,
-      resourceArchives: 1,
-    }),
-  );
+  const completed = await finishNative();
+  await refused(() => completed.publish(), "DOWNLOAD.REQUEST_INVALID");
+  await completed.discard();
   const foreign = await Deno.makeTempDir({ prefix: "b2-foreign-" });
   await Deno.writeTextFile(join(foreign, "keep"), "FOREIGN");
   try {
-    await refused(() =>
-      finishDownloads(root, {
-        ...options,
-        observeOperation: () => {
-          Deno.renameSync(
-            join(root, "_site/_downloads"),
-            join(root, "_site/_downloads-saved"),
-          );
-          Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
-        },
-      }), "DOWNLOAD.PATH_INVALID");
-    assert(
-      await Deno.readTextFile(join(foreign, "keep")) === "FOREIGN" &&
-        (await Array.fromAsync(Deno.readDir(foreign))).length === 1,
-      "Повреждён чужой symlink destination",
-    );
+    await refused(() => finishNative({}, () => {
+      Deno.renameSync(join(root, "_site/_downloads"), join(root, "_site/_downloads-saved"));
+      Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
+    }), "DOWNLOAD.PATH_INVALID");
+    assert(await Deno.readTextFile(join(foreign, "keep")) === "FOREIGN" &&
+      (await Array.fromAsync(Deno.readDir(foreign))).length === 1,
+      "Повреждён чужой symlink destination");
   } finally {
     if ((await Deno.lstat(join(root, "_site/_downloads"))).isSymlink) {
       await Deno.remove(join(root, "_site/_downloads"));
     }
-    await Deno.rename(
-      join(root, "_site/_downloads-saved"),
-      join(root, "_site/_downloads"),
-    );
+    await Deno.rename(join(root, "_site/_downloads-saved"), join(root, "_site/_downloads"));
     await Deno.remove(foreign, { recursive: true });
   }
   const authoredConfig = await Deno.readTextFile(join(root, "_quarto.yml"));
@@ -297,16 +234,6 @@ try {
     statement + "\n{{< project-download exr-demo-starter >}}\n",
   );
   await render(false, "DOWNLOAD.OUTPUT_CONFLICT");
-  let successReceipt = false;
-  try {
-    await Deno.stat(
-      join(root, "_generated/project-download/artifacts-receipt.json"),
-    );
-    successReceipt = true;
-  } catch (cause) {
-    if (!(cause instanceof Deno.errors.NotFound)) throw cause;
-  }
-  assert(!successReceipt, "Collision создал success receipt");
   await put("_quarto.yml", authoredConfig);
   await put("index.qmd", statement.replace("course-role=demonstration ", ""));
   await render(false, "DOWNLOAD.FULL_UNQUALIFIED");

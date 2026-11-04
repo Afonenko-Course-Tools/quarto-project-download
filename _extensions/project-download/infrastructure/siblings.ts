@@ -7,7 +7,7 @@ export type SiblingModules = {
   "reference-catalog": typeof import("../../reference-catalog/public.ts");
 };
 export type {
-  NativeOperation,
+  NativePublication,
   ProjectContractContext,
   ProjectPlan,
 } from "../../course-core/public.ts";

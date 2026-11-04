@@ -1,77 +1,60 @@
-# Публичный native runtime Download
+# Публичная Native публикация Download
 
-Runtime получает текущую операцию только через Core `public.ts`. До зависимых
-resources, README или ZIP он вызывает owner `validateRelease` по всему captured
-catalog, включая effective course/assessment каждого документа. Наличие course
-в корневом config не определяет необходимость проверки. Вызов связан с теми же
-root, ordered profiles, projection, source/format coverage и final fences.
+Core открывает `withNativePublication(expectation, selection, use)` и внутри
+callback предоставляет `NativePublication`: текущие catalog/identity/course,
+condition/document/resources и project-contract batch. Core проверяет семантику
+публикуемых документов и владеет currentness, audience, path и lifetime guards.
+Обычная публикация не требует полной grading/seed qualification PL.
 
-Если рядом установлен PrairieLearn public module, Download вызывает существующий
-`inspectPublication` C (кандидат9.0.1): один genuine Core validation pass проверяет
-metadata/assessment shape, пороги, принадлежность members и project/common sources.
-Полученный от C реальный публичный Core proof проходит Core runtime schema;
-отсутствующий proof не заменяется fallback или пустым результатом. Полная
-grading composition/prepared correlation относится к delivery и не запускается
-из ordinary ZIP finalizer. Если PL не выбран Core, действует общий proof,
-без PL business data. Для отсутствующего PL используется прежний generic Core
-validation. Final fences остаются у Core. Ordinary vet не даёт assignment прав.
+Orchestrator вызывает `PL.inspectPublication(publication)` только при активном
+`course.adapters: [prairielearn]`. Установленный, но неактивный PL не запускает
+inspection. Отсутствующий активный PL — ошибка; ошибка инициализации установленного
+модуля сохраняет исходную причину. Download сам PL не загружает.
 
-Проекты открываются через `operation.withProjectContexts` той же generation/S,
-пакетно по настоящему формату. Публичный Core договор использует технический
-input `<projectRoot>/native-input.qmd`; создаёт недостающий input только сам Core
-в disposable копии. Планы переиспользуются по format/project/audience. Metadata,
-origin и bytes не восстанавливаются B из каталогов или receipts.
+`prepareNativeDownloads(publication, options)` собирает готовые ZIP bytes внутри
+живого callback. Native root/profiles/projection/source output берутся из Core;
+options задают конечный destination, baseUrl/catalogBaseUrl/referenceCatalog и
+submission. `PreparedDownloads` владеет только своими bytes/options и снимком
+проверенных Download requests. Borrowed Core methods/project contexts и PL
+capabilities не сохраняются в draft.
 
-`materializationClosure` выдаёт document/Gradle/local fragments с их bases,
-resources и уникальными reference tokens. QRC `bindConditionLinks` связывает
-обычные ссылки, а public `createBodyLinks` — reference href/label; результат
-передаётся как linksBySource/referencesBySource. Один Core writer включает
-полное замыкание resources с suffix/anchors. `materializeCondition` создаёт
-полный README/resources без code/build; subset по reason не применяется.
-README после Core и ZIP после упаковки не исправляются.
+После успешного closing вызывается `draft.publish()`. Состояния одноразовые:
+`prepared → publishing → published|failed` либо `prepared → discarded`.
+Повторный/reentrant publish отклоняется до записи. `discard()` до публикации
+освобождает draft; после success/failure освобождает только buffers. Во время
+publishing discard отказывает. Discard не удаляет старые, чужие или частично
+записанные outputs. При closing rejection сохранённый внутри callback handle
+позволяет discard; новые archive writes этого draft ещё не начались.
 
-Native filter переносит собственную effective Download config в typed request.
-Дополнительного root metadata inspect у consumer нет. Ordinary resource selection
-не читает bytes: их авторизует public resourceInventory. Самостоятельный noCore
-маршрут сохраняет собственные inspect/config/resource guards и не загружает Core.
+`resetDownloadRequests(root)` удаляет только прежнюю owned requests directory
+с прежними path guards. Он не inspect-ит output и не удаляет ZIP.
+`clearOwned` вызывается только final writer. Именной
+`.project-download-manifest.json` записывается перед архивами: следующая обычная
+очистка знает собственные имена даже после частичной writer failure. Это не
+rollback всех результатов render/Site. JSON artifacts receipts, per-ZIP SHA и
+release proof больше не создаются, не читаются и не чистятся; исторические
+сохранённые файлы не мигрируются. CRC и deterministic ZIP packaging сохраняются.
 
-Порядок: Download pre, Core native-pre, при PL его public prepare после Core pre,
-Core передаёт валидатору C свои четыре плоскости native metadata; отдельного
-Lua-захвата C нет. Затем выполняются render/late/Core native-post и
-Download post `--native`. Для native author вызывают post `--native --author`.
-Expectation не содержит прежнего scalar format: exact formats приходят из
-native catalog либо expectedDocuments. Student/full — native projections
-student/author; full artifact в student по-прежнему требует открытой demonstration
-с настоящим поздним public solution. Default kind использует owner-emitted
-course-artifact-context. Ordinary revealjs model materialization честно получает
-CONDITION_UNQUALIFIED у Core; HTML fallback не создаётся.
+Project plans переиспользуются по format/project/audience внутри
+`publication.withProjectContracts`; Core сам создаёт технический
+`<projectRoot>/native-input.qmd` в disposable копии. `materializationClosure`
+сохраняет bases/resources/reference tokens; QRC связывает ссылки до единственного
+README writer. `materializeCondition` включает условие/resources без code/build.
+Download не исправляет README или ZIP после Core writer.
 
-`finishDownloads` принимает projection/profiles/expectedDocuments, publication и
-catalog bases, final destinationDirectory. `observeOperation(catalog, release)`
-в том же callback даёт Publisher public proof/metrics для coverage. Native output
-и final mount разделены; publication идёт после final Core/request fences.
-ZIP bytes фиксируются внутри callbacks. Manifest пишется первым, receipt —
-последним. Receipt v2 содержит operation/identity/release и SHA256 архивов;
-это журнал результата, не новое source authority. Старый v1 нужен только cleanup.
+Student/full соответствуют Core projections student/author. Explicit starter
+в author получает `DOWNLOAD.STARTER_UNQUALIFIED`: author condition не является
+student inventory. Full в student требует открытой demonstration с фактическим
+публичным решением. Reveal model остаётся `CONDITION_UNQUALIFIED`, HTML fallback
+не создаётся. Role filtering не квалифицирует произвольный неразмеченный текст
+или свежесть native execution cache.
 
-Точный состав текущей пары задан CI того же Git ref. Адресные fixtures проверяют
-HTML student/full, condition-only/default, fragment origins/resources, generated
-resource inventory, Reveal owner/resources и отдельный noCore. Прохождение этих
-проверок не означает приёмку установленного полного курса или assignment/P.
+`finishDownloads(root, options)` обслуживает отдельный ordinary resource режим
+без Core и PL. Его inspect/config/resource privacy guards сохраняются; native
+flag, observe callback и самостоятельное acquisition внутри finish удалены.
+Native CLI post orchestrates Core session, optional PL inspection, preparation,
+closing и publish. Author выбирается `--native --author`, student — `--native`.
 
-Explicit kind=starter в author operation получает DOWNLOAD.STARTER_UNQUALIFIED
-до A1/materialization: author condition нельзя выдать за student inventory.
-Обычные Java banks сохраняют такие shortcodes и в full profile; поэтому arbitrary
-full-course render пока не квалифицирован. Нужен genuine typed assignment student
-condition после actual P либо отдельно принятый маршрут. Дополнительный render,
-межоперационный ZIP shortcut или repair не добавляется. Проверенный author/full
-fixture использует kind=full и не заменяет этот обязательный integration gate.
-
-## Планы проектов в 3.5.0
-
-Единственный batch-вызов Download использует `operation.withProjectContracts`
-Core 9.3.0. Namespace/origins, планы, closure, материализация и упаковка ZIP
-сохраняют прежние публичные контракты. Узкий контекст не требует полного
-`effectiveMetadata`; общий resource selection и privacy/final fences не меняются.
-Собственный progress 3.4.1 сохраняется. Новый source ref ещё не подтверждает
-установленную композицию или ускорение полного курса.
+Адресные существующие fixtures проверяют ZIP entries/README/resources, конечные
+URL, privacy и отсутствие новых archive writes при failed closing. Source ref
+не подтверждает приёмку полного курса, assignment/P, CI или установленный выпуск.

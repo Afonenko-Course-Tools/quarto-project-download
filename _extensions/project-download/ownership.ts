@@ -14,6 +14,7 @@ export interface OwnedRequestState {
     source: string;
     resources: string[];
     artifacts?: ArtifactRequest[];
+    configuration?: unknown;
     sha256: string;
   }[];
 }
@@ -195,6 +196,9 @@ export async function inspectOwnedRequests(
       source: fields.source,
       resources: fields.resources,
       ...(fields.artifacts ? { artifacts: fields.artifacts } : {}),
+      ...(Object.hasOwn(fields, "configuration")
+        ? { configuration: fields.configuration }
+        : {}),
       sha256: await hash("SHA-256", bytes),
     });
   }

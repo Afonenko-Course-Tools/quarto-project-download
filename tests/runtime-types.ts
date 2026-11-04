@@ -1,6 +1,6 @@
 import { sibling } from "../_extensions/project-download/infrastructure/siblings.ts";
 import type {
-  NativeOperation,
+  NativePublication,
   ProjectContractContext,
   SiblingModules,
 } from "../_extensions/project-download/infrastructure/siblings.ts";
@@ -11,7 +11,7 @@ type NotAny<T> = 0 extends (1 & T) ? never : true;
 type Core = SiblingModules["course-core"];
 type Inventory = Awaited<ReturnType<Core["materializeProject"]>>;
 type ResourceInventory = Awaited<
-  ReturnType<NativeOperation["resourceInventory"]>
+  ReturnType<NativePublication["resourceInventory"]>
 >;
 const checked: [
   NotAny<Awaited<ReturnType<typeof sibling<"course-core">>>>,
@@ -25,7 +25,7 @@ void checked;
 function dtoMisuse(
   Core: Core,
   context: ProjectContractContext,
-  condition: ReturnType<NativeOperation["condition"]>,
+  condition: ReturnType<NativePublication["condition"]>,
   resources: ResourceInventory,
 ) {
   // @ts-expect-error Resource inventory не является учебным artifact inventory.

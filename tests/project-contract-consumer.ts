@@ -55,14 +55,26 @@ try {
     },
   ).output();
   assert(rendered.success, "producer failed");
-  const Down = await import(
+  const Down: typeof import("../_extensions/project-download/public.ts") = await import(
     toFileUrl(join(root, ext, "project-download/public.ts")).href
   );
-  await Down.finishDownloads(root, {
-    native: true,
-    outputDirectory: join(root, "_site"),
-    profiles: [],
-  });
+  const Core: typeof import("course-core/public.ts") = await import(
+    toFileUrl(join(root, ext, "course-core/public.ts")).href
+  );
+  let draft: import("../_extensions/project-download/public.ts").PreparedDownloads | undefined;
+  try {
+    const prepared = await Core.withNativePublication({
+      root, outputDirectory: join(root, "_site"), profiles: [], projection: "student",
+    }, undefined, async (publication) => {
+      draft = await Down.prepareNativeDownloads(publication, {});
+      return draft;
+    });
+    await prepared.publish();
+  } catch (cause) {
+    try { await draft?.discard(); } catch { /* Сохраняем причину отказа. */ }
+    throw cause;
+  }
+
   for (const n of ["a", "b"]) {
     const result = await new Deno.Command("unzip", {
       args: [

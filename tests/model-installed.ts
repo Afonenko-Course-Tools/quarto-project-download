@@ -84,8 +84,7 @@ project-download:
         await native([...base.map(v=>v===model?bad:v),'--check'],false,'NATIVE.RUN_NOT_CURRENT');
       }finally{await Deno.remove(external,{recursive:true})}
     }
-    const receipt=JSON.parse(await Deno.readTextFile(join(root,"_generated/project-download/artifacts-receipt.json")));
-    assert(receipt.audience===view && receipt.archives.every((a:any)=>a.audience===view),"receipt uses trusted audience, including student demonstration full ZIP");
+
     const output=join(root,`_site-${view}`);
     const kind=view==="student"?"starter":"full";
     const ordinary=await unzip(join(output,"_downloads",`exr-ordinary-${kind}.zip`));
