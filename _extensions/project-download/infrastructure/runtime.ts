@@ -60,7 +60,10 @@ async function inspect(root: string) {
 function archiveName(name: string): boolean {
   return name.endsWith(".zip") && RESOURCE_ID.test(name.slice(0, -4));
 }
-export async function clearOwned(root: string, output: string): Promise<void> {
+export const clearOwned = __metrics.wrapAsync({
+  id: "project-download.infrastructure.runtime.clearOwned",
+  kind: "io",
+}, async function clearOwned(root: string, output: string): Promise<void> {
   const outputRoot = resolve(root, output);
   const directory = child(outputRoot, "_downloads");
   if (!await exists(directory)) return;
@@ -94,10 +97,13 @@ export async function clearOwned(root: string, output: string): Promise<void> {
     }
   }
   await Deno.remove(manifest);
-}
-export async function prepare(root: string): Promise<void> {
+});
+export const prepare = __metrics.wrapAsync({
+  id: "project-download.infrastructure.runtime.prepare",
+  kind: "io",
+}, async function prepare(root: string): Promise<void> {
   return await progress(`Подготовка материалов: ${root}`, () => prepareInternal(root));
-}
+});
 async function prepareInternal(root: string): Promise<void> {
   const inspected = Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR")
     ? undefined
@@ -187,7 +193,10 @@ async function validateRelease(
     metricsAfter: operation.metrics,
   };
 }
-export async function finish(
+export const finish = __metrics.wrapAsync({
+  id: "project-download.infrastructure.runtime.finish",
+  kind: "io",
+}, async function finish(
   root: string,
   options: FinishOptions = {},
 ): Promise<number> {
@@ -196,7 +205,7 @@ export async function finish(
     reportProgress(`Финализация материалов — archives=${count}`);
     return count;
   });
-}
+});
 async function finishInternal(root: string, options: FinishOptions): Promise<number> {
   const directory = join(root, "_generated/project-download/requests");
   let native = options.native === true;
@@ -779,19 +788,3 @@ async function publishArchives(
     createNew: true,
   });
 }
-
-// @ts-expect-error JS binding сохраняет публичную сигнатуру для Performance ABI.
-clearOwned = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.clearOwned",
-  kind: "io",
-}, clearOwned);
-// @ts-expect-error JS binding сохраняет публичную сигнатуру для Performance ABI.
-prepare = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.prepare",
-  kind: "io",
-}, prepare);
-// @ts-expect-error JS binding сохраняет публичную сигнатуру для Performance ABI.
-finish = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.finish",
-  kind: "io",
-}, finish);
