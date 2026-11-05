@@ -26,6 +26,8 @@ filters:
   - project-download
   - at: post-quarto
     path: capture.lua
+  - at: post-render
+    path: capture-final.lua
 project-download:
   resources:
     public-data: {path: /data}
@@ -79,6 +81,24 @@ return {{
 }}
 `,
   );
+  // Проверяем semantic role после штатного HTML renderer, без чтения HTML-разметки.
+  await Deno.writeTextFile(
+    join(root, "capture-final.lua"),
+    `local wrappers=pandoc.List()
+return {{
+ Div=function(node)
+  if node.classes:includes('project-download') then
+   local links=0
+   node:walk({Link=function(link)if link.classes:includes('project-download') then links=links+1 end end})
+   wrappers:insert({links=links,text=pandoc.utils.stringify(node)})
+  end
+ end,
+ Pandoc=function(doc)
+  local file=assert(io.open('presentation-final-ast.json','w'));file:write(pandoc.json.encode(wrappers));file:close();return doc
+ end
+}}
+`,
+  );
   const started = performance.now();
   const run = await new Deno.Command(Deno.env.get("QUARTO") ?? "quarto", {
     args: ["render", "index.qmd", "--fail-if-warnings"],
@@ -120,6 +140,15 @@ return {{
         link.target === "_downloads/public-data.zip" && link.download === ""
       ),
     "Потеряны ссылки, href или download",
+  );
+  const wrappers = JSON.parse(
+    await Deno.readTextFile(join(root, "presentation-final-ast.json")),
+  );
+  assert(
+    wrappers.length === (htmlOutput ? 1 : 0) &&
+      (!htmlOutput ||
+        wrappers[0].links === 1 && wrappers[0].text.includes("⤓ Комплект")),
+    "Semantic role Download должна сохраняться на целом native блоке, не на авторских callout",
   );
   if (htmlOutput) {
     const html = await Deno.readTextFile(join(root, "_site/index.html"));
