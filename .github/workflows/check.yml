@@ -30,29 +30,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 5f4590aa4eb524830715f8020c8ff3c504197f73 # Core: Source принят; hosted CI и выпуск отдельно
+          ref: d21ddfdc9e4fde58145275751dccfc1c997777df # Core: согласованный native API и функциональные файлы
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "5f4590aa4eb524830715f8020c8ff3c504197f73"
+          test "$(git -C core-fixture rev-parse HEAD)" = "d21ddfdc9e4fde58145275751dccfc1c997777df"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog
-          ref: 798f8c0d9f87fd5dcfe9ee85b79df57e647d2f3c # QRC 3.2.0: inferred TS contracts, preserving accepted history
+          ref: 541a44836cf5ec934a101059cbee77c9ff47d134 # QRC: согласованный native API ссылок
           path: qrc-fixture
           persist-credentials: false
       - name: Проверить закреплённый QRC
-        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "798f8c0d9f87fd5dcfe9ee85b79df57e647d2f3c"
+        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "541a44836cf5ec934a101059cbee77c9ff47d134"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-prairielearn
-          ref: 4d39a6648d2816bab9a372877deded3320ff35e1 # PL: согласованный ordinary fixture; публикация и paired CI отдельно
+          ref: fcd3320eb6dcbe0fde897ecafafcb9c0b31fb9fc # PL: согласованный public API; полный CI проверяется отдельно
           path: pl-fixture
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
-        run: test "$(git -C pl-fixture rev-parse HEAD)" = "4d39a6648d2816bab9a372877deded3320ff35e1"
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "fcd3320eb6dcbe0fde897ecafafcb9c0b31fb9fc"
       - name: Полный контракт Download и native installed model artifacts
         env:
           CORE: ${{ github.workspace }}/core-fixture
