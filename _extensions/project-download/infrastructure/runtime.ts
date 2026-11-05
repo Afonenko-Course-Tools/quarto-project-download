@@ -224,13 +224,17 @@ async function prepareDownloadsInternal(
       sources.map((source: string) => resolve(root, source)),
     );
     if (inspected) {
-      for (
-        const path of [
-          ...inspected.files.config,
-          ...inspected.files.configResources,
-        ]
-      ) {
-        authoredInputs.add(resolve(root, path));
+      for (const path of inspected.files.config) authoredInputs.add(resolve(root, path));
+      // configResources включает и публичные metadata resources; это не author-only список.
+      // Берём из него только готовые пути явно подключённых filters.
+      for (const declaration of Array.isArray(inspected.config.filters)
+        ? inspected.config.filters : inspected.config.filters ? [inspected.config.filters] : []) {
+        const path = typeof declaration === "string" ? declaration
+          : record(declaration) ? declaration.path : undefined;
+        if (typeof path === "string") {
+          const absolute = resolve(root, path);
+          if (inspected.files.configResources.includes(absolute)) authoredInputs.add(absolute);
+        }
       }
       // inspect даёт готовые пути filters, но hook оставляет строкой команды.
       // Прежнее извлечение путей нужно только для запрета hook-исходников в ZIP.

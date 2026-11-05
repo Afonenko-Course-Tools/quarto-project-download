@@ -16,6 +16,7 @@ try {
     join(root, "data/filter with spaces.lua"),
     "return {}\n",
   );
+  await Deno.writeTextFile(join(root, "data/filter string.lua"), "return {}\n");
   await Deno.writeTextFile(join(root, "data/course style.css"), "body {}\n");
   await Deno.writeTextFile(join(root, "data/public.csv"), "42\n");
   await Deno.writeTextFile(
@@ -26,6 +27,8 @@ try {
   pre-render: ['quarto run "data/hook with spaces.ts"']
 filters:
   - path: data/filter with spaces.lua
+  - data/filter string.lua
+course-material: data/public.csv
 format:
   html:
     css: data/course style.css
@@ -39,6 +42,7 @@ format:
   for (
     const name of [
       "filter with spaces.lua",
+      "filter string.lua",
       "hook with spaces.ts",
       "course style.css",
       "public.csv",
@@ -54,25 +58,24 @@ format:
         },
       }),
     );
+    const publicFile = name === "public.csv" || name === "course style.css";
     let error = "";
     try {
       const count = await finish(root);
-      if (name !== "public.csv" || count !== 1) {
+      if (!publicFile || count !== 1) {
         throw Error("Авторский файл попал в ZIP: " + name);
       }
     } catch (cause) {
       error = String(cause);
     }
     if (
-      name === "public.csv"
-        ? !!error
-        : !error.includes("RESOURCE.PRIVATE_OR_SOURCE")
+      publicFile ? !!error : !error.includes("RESOURCE.PRIVATE_OR_SOURCE")
     ) {
       throw Error(name + ": " + error);
     }
   }
   console.log(
-    "PASS: native configResources для filter/CSS, quoted hook path, public ZIP; hooks не выполнялись",
+    "PASS: native filter string/path, quoted hook path; публичные metadata CSV/CSS разрешены, hooks не выполнялись",
   );
 } finally {
   await Deno.remove(root, { recursive: true });

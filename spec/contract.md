@@ -176,8 +176,10 @@ request.json сохраняет выбранные ресурсы до отде�
 child независимо от количества запросов. Новых inspect/hash на shortcode нет.
 Полный курс и общий выигрыш производительности этим не заявляются.
 
-В ordinary `finish` готовые `files.config` и `files.configResources` из Quarto
-inspect защищают author config/filter/style файлы от попадания в resource ZIP.
+В ordinary `finish` готовые `files.config` и пути явно подключённых
+filters из `files.configResources` Quarto inspect защищают author config/filter
+файлы от попадания в resource ZIP. Весь `configResources` не считается закрытым:
+публичные CSV/CSS из metadata сохраняют обычную выдачу.
 Quarto 1.11.5 не включает hook внутри `quarto run "путь с пробелами.ts"` в эти
 списки и не выдаёт готовый argv: прежнее извлечение существующих путей сохранено
 только для pre/post-render строк. Оно не исполняет команду и не объявляет полную
