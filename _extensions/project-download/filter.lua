@@ -10,7 +10,17 @@ local function plain(value)
  if kind=='Inlines' or kind=='MetaInlines' or kind=='Blocks' or kind=='MetaBlocks' then return pandoc.utils.stringify(value) end
  local result={};for key,child in pairs(value or {}) do result[key]=plain(child) end;return result
 end
-return {{Pandoc=function(doc)
+local function isRequest(span)
+ return span.t=='Span' and (span.classes:includes('project-download-request') or span.classes:includes('project-download-raw-request'))
+end
+-- Quarto уже распознал авторские callout; метка живёт только до замены carrier на Link.
+local inCallout='data-project-download-in-callout'
+return {{Callout=function(node)
+ node.content=node.content:walk({Span=function(span)
+  if isRequest(span) then span.attributes[inCallout]='true';return span end
+ end})
+ return node
+end},{Pandoc=function(doc)
  local context=transport.context();local calls=transport.drain(context.key)
  local root=quarto.project.directory
  local exercises,visible,seen={},{},{}
@@ -24,7 +34,7 @@ return {{Pandoc=function(doc)
   elseif span.classes:includes('project-download-request') then
    local positional,named=pandoc.List({span.attributes.resource}),pandoc.List()
    for key,value in pairs(span.attributes) do
-    if key=='kind' then named:insert({key=key,value=value}) elseif key~='resource' then fail('Чужой literal request attribute') end
+    if key=='kind' then named:insert({key=key,value=value}) elseif key~='resource' and key~=inCallout then fail('Чужой literal request attribute') end
    end
    named:insert({key='text',value=pandoc.utils.stringify(span.content)})
    local call={ordinal=nextOrdinal,positional=positional,named=named,inline=true};nextOrdinal=nextOrdinal+1
@@ -54,13 +64,22 @@ return {{Pandoc=function(doc)
   end
   for _,call in ipairs(visible) do if not decisions[call.ordinal] then fail('Пропущен Download result ordinal') end end
   request=resolved.request
-  doc=walk(doc,{Span=function(span)
-   if not (span.classes:includes('project-download-request') or span.classes:includes('project-download-raw-request')) then return end
+  local function replace(span)
+   if not isRequest(span) then return end
    local ordinal=tonumber(span.attributes['data-project-download-ordinal']);local link=decisions[ordinal]
    if not link then fail('Нет решения для native request') end
    decisions[ordinal]=nil
    return pandoc.Link({pandoc.Str(link.text)},link.href,'',pandoc.Attr('',{'project-download'},{download=''}))
-  end})
+  end
+  local function standalone(block)
+   if not quarto.doc.is_format('html') or #block.content~=1 then return end
+   local span=block.content[1]
+   if not isRequest(span) or span.attributes[inCallout]=='true' then return end
+   local link=replace(span)
+   return quarto.Callout({type='none',appearance='minimal',content={pandoc.Para({pandoc.Str('⤓'),pandoc.Space(),link})}}),false
+  end
+  -- Topdown сохраняет inline и даёт обрамить только отдельный Para/Plain carrier.
+  doc=walk(doc,{traverse='topdown',Para=standalone,Plain=standalone,Span=replace})
   for _ in pairs(decisions) do fail('Неиспользованный Download result') end
  end
  local source=context.source

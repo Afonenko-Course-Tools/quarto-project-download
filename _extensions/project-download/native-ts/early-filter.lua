@@ -4,7 +4,7 @@ local metrics=dofile(pandoc.path.join({pandoc.path.directory(dir),'observability
 local walk=metrics.wrap_walk({id='project-download.early.walk',kind='ast_walk',scope='full-document'},function(node,filter)return node:walk(filter)end)
 local transport=dofile(pandoc.path.join({pandoc.path.directory(dir),'request-transport.lua'}))
 local reserved={['project-download-request']=true,['project-download-raw-request']=true}
-local fields={['project-download-native-source']=true,['project-download-native-batch']=true,['project-download-native-result']=true,['data-project-download-ordinal']=true}
+local fields={['project-download-native-source']=true,['project-download-native-batch']=true,['project-download-native-result']=true,['data-project-download-ordinal']=true,['data-project-download-in-callout']=true}
 local function fail()assert(false,'DOWNLOAD.DELIVERY_PHASE_UNSUPPORTED: Авторский reserved Download transport')end
 return {{Pandoc=function(doc)
  local context=transport.context();transport.begin(context.key)

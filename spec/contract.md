@@ -30,6 +30,13 @@ Typed transport хранит отдельные `artifacts: [{exerciseId, kind}]
 У каждого model ZIP имя `ID-kind.zip`, контекстный caption при пустой text:
 «Скачать заготовку», «Скачать полный проект», «Скачать условие».
 
+В HTML отдельный Para/Plain с одним shortcode или literal request оформляется
+публичным конструктором `quarto.Callout` (`type: none`, `appearance: minimal`):
+знак ⤓ и прежняя ссылка с `download`. Inline-контекст и существующие авторские
+callout сохраняются без дополнительного обрамления. Другие форматы получают
+прежнюю ссылку. Оформление не изменяет запрос, подпись, href, targets или ZIP;
+новые CSS, параметры и зависимости не вводятся.
+
 Текущий native маршрут использует только Core `public.ts` и
 `withNativePublication`: actual condition, plan/materialize и `ArtifactFiles`.
 Download не читает project/student как fallback и не применяет generic excludes
