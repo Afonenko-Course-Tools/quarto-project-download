@@ -48,6 +48,12 @@ project-download:
 {{< project-download public-data text="Во вложенном блоке" >}}
 :::
 :::
+
+::: {.callout-note}
+# {{< project-download public-data text="Заголовок блока" >}}
+
+Содержание авторского блока.
+:::
 `,
   );
   await Deno.writeTextFile(
@@ -90,7 +96,7 @@ return {{
     await Deno.readTextFile(join(root, "presentation-ast.json")),
   );
   assert(
-    ast.callouts.length === (htmlOutput ? 3 : 2),
+    ast.callouts.length === (htmlOutput ? 4 : 3),
     `Неверное число новых и авторских callout: ${JSON.stringify(ast.callouts)}`,
   );
   const generated = ast.callouts.find((node: { text: string }) =>
@@ -108,7 +114,7 @@ return {{
     "Inline shortcode разорвал предложение",
   );
   assert(
-    ast.links.length === 4 &&
+    ast.links.length === 5 &&
       ast.links.every((link: { target: string; download: string }) =>
         link.target === "_downloads/public-data.zip" && link.download === ""
       ),

@@ -16,9 +16,11 @@ end
 -- Quarto уже распознал авторские callout; метка живёт только до замены carrier на Link.
 local inCallout='data-project-download-in-callout'
 return {{Callout=function(node)
- node.content=node.content:walk({Span=function(span)
+ local mark={Span=function(span)
   if isRequest(span) then span.attributes[inCallout]='true';return span end
- end})
+ end}
+ node.content=node.content:walk(mark)
+ if node.title then node.title=node.title:walk(mark) end
  return node
 end},{Pandoc=function(doc)
  local context=transport.context();local calls=transport.drain(context.key)
