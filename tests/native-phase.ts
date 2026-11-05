@@ -62,7 +62,7 @@ try {
     const r = await new Deno.Command(Deno.env.get("QUARTO") ?? "quarto", {
       args: ["render", "index.qmd", "--to", format],
       cwd: root,
-      env: { PROJECT_DOWNLOAD_LITERAL_ONLY: "1" },
+      env: { XDG_CACHE_HOME: join(root, "cache") },
       stdout: "piped",
       stderr: "piped",
     }).output();
@@ -82,6 +82,11 @@ try {
       ["project-download, course-core", "html", "author"],
     ]
   ) {
+    if (
+      Deno.args.includes("--html-student") &&
+      (order !== "project-download, course-core" || projection !== "student" ||
+        format !== "html")
+    ) continue;
     await config(order, projection, format);
     await run(order + "/" + projection, format);
     const html = await Deno.readTextFile(join(root, "_site/index.html"));
@@ -119,13 +124,13 @@ try {
   await config("project-download, course-core");
   await Deno.writeTextFile(
     join(root, "index.qmd"),
-    '# Отказ\n\n`{{< project-download missing text="Текст" >}}`\n',
+    "# Отказ\n\n`{{< project-download missing kind=bad >}}`\n",
   );
   await run(
-    "restrictive after genuine early",
+    "invalid callback after genuine early",
     "html",
     false,
-    "DOWNLOAD.DELIVERY_PHASE_UNSUPPORTED",
+    "DOWNLOAD.REQUEST_INVALID",
   );
   let invoked = false, error = "";
   try {
@@ -151,7 +156,7 @@ try {
   );
   assert(
     !afterFailure.some((p) => p.includes("/project-download/requests/")),
-    "restrictive callback wrote Download sidecar",
+    "invalid callback wrote Download sidecar",
   );
   // Известная внешняя Core M1 recovery: только точные пустые Quarto support dirs,
   // НЕ изменение продукта/исключение из source fence. Nonrecursive remove сохраняет непустое.

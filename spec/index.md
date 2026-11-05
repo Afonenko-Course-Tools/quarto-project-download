@@ -53,5 +53,7 @@ source ref не заявляется установленным или выпу�
 
 ## Ранняя owner-фаза
 
-[Контракт 3.4.0](../docs/release-3.4.0.md) задаёт literal lowering перед Core,
-единый TS request decoder и одну позднюю native batch без нового resolver.
+[Текущий фазовый контракт](contract.md#ранняя-и-поздняя-native-фазы) использует
+штатные callbacks Quarto, единый TS decoder и один поздний native batch.
+Прежний optional literal-only lowering удалён; документ
+[3.4.0](../docs/release-3.4.0.md) сохраняет историю прежнего кандидата.

@@ -30,7 +30,7 @@ Typed transport хранит отдельные `artifacts: [{exerciseId, kind}]
 У каждого model ZIP имя `ID-kind.zip`, контекстный caption при пустой text:
 «Скачать заготовку», «Скачать полный проект», «Скачать условие».
 
-В HTML отдельный Para/Plain с одним shortcode или literal request оформляется
+В HTML отдельный Para/Plain с одним shortcode оформляется
 публичным конструктором `quarto.Callout` (`type: none`, `appearance: minimal`):
 знак ⤓ и прежняя ссылка с `download`. Inline-контекст и существующие авторские
 callout сохраняются без дополнительного обрамления. Другие форматы получают
@@ -139,35 +139,46 @@ consumer typecheck. Before/after oracle сравнивает outputs и diagnost
 archive/public inventory/runtime suites остаются самостоятельными gates.
 
 
-## Ранняя и поздняя native-фазы 3.4.0
+## Ранняя и поздняя native-фазы
 
-Download должен стоять перед Core в `filters` при раннем literal capture.
-`PROJECT_DOWNLOAD_LITERAL_ONLY=1` — только ограничение actual callbacks, не
-источник прав. В этом режиме собственный pre-ast filter переводит строгие
-literal reader Span в прежний `.project-download-request`. Динамические,
-неизвестные параметры и авторские reserved transport Attr отвергаются. Другие
-shortcodes остаются в ведении Core. Core profile и prior authority по-прежнему
-обязаны связывать реальные phases, bytes и окружение.
+Quarto исполняет `project-download` через штатный shortcode callback. Ранний
+Lua pre-ast проверяет авторские reserved Attr и начинает document-local buffer;
+собственного чтения reader Span и режима `PROJECT_DOWNLOAD_LITERAL_ONLY` нет.
+Порядок Download/Core не меняет native видимость поздних запросов.
 
 Единственный request decoder — [domain/request.ts](../_extensions/project-download/domain/request.ts).
-Он проверяет syntax всех actual callbacks, включая consumed/stringify carriers.
-Config, resource и default-kind policy применяются только к surviving inline
-Span на прежней post-quarto фазе. Code/Raw/attr callback с допустимым missing ID
-может оставаться текстом без конфигурации и ZIP-заявки; неверный syntax отказывает.
-Metadata, реально дошедшая как inline Span, сохраняет обычное разрешение ресурса.
+Он проверяет синтаксис всех actual callbacks, включая Code/Raw/attr и consumed
+callbacks. Config, resource и default-kind policy применяются только к Span,
+которые сохранились после штатных conditional/shortcode фаз Quarto. Допустимый
+missing ID в Code/Raw/attr остаётся текстом без конфигурации и ZIP-заявки;
+неверный синтаксис отказывает. Метаданные с сохранившимся Span разрешают ресурс.
 
-Lua сохраняет extended native AST и bounded document-local buffer. Поздний TS
-получает один малый batch и возвращает source/ordinal-bound решения; whole late
-AST не проходит JSON round-trip. Buffer не является authority и очищается при
-drain; другой input/root/format, отсутствие ранней фазы и повторный drain отвергаются.
-Лимиты buffer — 16384 actual callbacks и 16 MiB сериализованных аргументов на документ.
+Buffer необходим: callback может быть исполнен и затем превращён Quarto в текст
+или удалён другим фильтром; один оставшийся AST не содержит его аргументов.
+Span хранит только ordinal и текст callback, чтобы Quarto мог сохранить inline
+или stringify поведение. Поздний обход использует те же записи buffer в порядке
+видимого документа, а затем добавляет невидимые callbacks только для syntax check.
+Другой input/root/format, отсутствие ранней фазы и повторный drain отвергаются;
+лимиты — 16384 callbacks и 16 MiB сериализованных аргументов на документ.
 
-Без запросов новых TS children нет. Ordinary callbacks используют один late TS
-child на документ, независимо от их числа. Restrictive literal документы могут
-использовать один early и один late TS child. Предварительный AST preflight
-нужен до генерации собственных markers; новых inspect, filesystem indexing или
-hash на shortcode нет. Это не заявление об ускорении полного курса.
+Extended AST остаётся в Lua: штатные Callout/ConditionalBlock/Theorem
+обрабатываются native walk без JSON round-trip целого позднего документа. `pandoc.utils.run_json_filter`
+принимает и возвращает Pandoc-документ; пустой документ с MetaString переносит
+один малый JSON batch в существующий TS decoder и его source/ordinal-bound
+результат обратно. Решение TS превращается в штатный Link, а существующий
+request.json сохраняет выбранные ресурсы до отдельного project post-render,
+когда доступны все документы для ZIP. Это фазовые границы native API, не новые
+форматы авторского источника. Список видимых callbacks и ZIP bytes отдельно не
+копируются. Публичный `packageArtifact` сохраняет собственную защитную копию
+внешних bytes до асинхронного обращения к Core.
 
-Restrictive runtime callback отказывает до Download buffer record, links и
-sidecar. Уже выполненная Core early-фаза может оставить временные файлы; это
-незавершённая операция, не delivery/publication/ZIP authority.
+Без callbacks TS child не запускается; иначе на документ нужен один поздний
+child независимо от количества запросов. Новых inspect/hash на shortcode нет.
+Полный курс и общий выигрыш производительности этим не заявляются.
+
+В ordinary `finish` готовые `files.config` и `files.configResources` из Quarto
+inspect защищают author config/filter/style файлы от попадания в resource ZIP.
+Quarto 1.11.5 не включает hook внутри `quarto run "путь с пробелами.ts"` в эти
+списки и не выдаёт готовый argv: прежнее извлечение существующих путей сохранено
+только для pre/post-render строк. Оно не исполняет команду и не объявляет полную
+поддержку shell-синтаксиса. Адресная проверка — `tests/ordinary-source-guards.ts`.

@@ -367,13 +367,14 @@ Download 3.1.0 сохранил контракт Download3 и добавил д�
 Историческая [поправка 3.3.1](docs/release-3.3.1.md) описывает прежний proof contract. Текущий ordinary маршрут использует Native publication и partial PL inspection; full PL delivery запускается отдельно. Результаты нового выпуска проверяются отдельно.
 
 
-## Кандидат 3.4.0: ранние literal-запросы
+## Native callbacks и поздний выбор ресурсов
 
-[Точный фазовый контракт](docs/release-3.4.0.md) переносит literal
-`project-download` в инертный запрос до раннего Core capture. Для этого порядка
-подключения используйте `filters: [project-download, course-core]`. Обычный
-native handler и независимые resources сохраняются; правила kind, captions и
-ZIP не меняются. Видимость ссылок по-прежнему разрешает Quarto.
+[Текущий фазовый контракт](spec/contract.md#ранняя-и-поздняя-native-фазы)
+использует штатный shortcode callback Quarto и один поздний TS decoder.
+Видимость ссылок разрешает Quarto; синтаксис проверяется также у callbacks,
+которые были превращены в текст или удалены. Прежний optional literal-only
+режим удалён. Отдельный shortcode в HTML получает минимальный штатный callout;
+inline и авторские callout сохраняют структуру.
 
 Этот ref ещё не заявляет выпуск, установленный курс или успешный полный экспорт.
 

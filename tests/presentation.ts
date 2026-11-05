@@ -54,6 +54,10 @@ project-download:
 
 Содержание авторского блока.
 :::
+
+::: {.content-visible when-format=revealjs}
+{{< project-download missing text="Скрытый запрос" >}}
+:::
 `,
   );
   await Deno.writeTextFile(
@@ -81,9 +85,6 @@ return {{
     cwd: root,
     env: {
       XDG_CACHE_HOME: join(root, "cache"),
-      ...(Deno.args.includes("--literal")
-        ? { PROJECT_DOWNLOAD_LITERAL_ONLY: "1" }
-        : {}),
     },
     stdout: "piped",
     stderr: "piped",
@@ -133,9 +134,9 @@ return {{
     "Архив не опубликован",
   );
   console.log(
-    `PASS: native ${htmlOutput ? "HTML" : "GFM"}, ${
-      Deno.args.includes("--literal") ? "literal" : "shortcode"
-    }, standalone/inline/авторские callout, href/download и ZIP; ${
+    `PASS: native ${
+      htmlOutput ? "HTML" : "GFM"
+    }, shortcode, standalone/inline/авторские callout, href/download и ZIP; ${
       (performance.now() - started).toFixed(0)
     } мс`,
   );
