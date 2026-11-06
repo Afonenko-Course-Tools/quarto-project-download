@@ -31,7 +31,9 @@ Quarto определения Pandoc/Quarto. Команды выполняютс
 ```sh
 quarto run tools/check-lua.ts --probe
 quarto run tools/check-lua.ts
-bash -n tools/check.sh _extensions/project-download/native-ts/late-filter.sh tests/fixtures/*.sh
+for script in tools/check.sh _extensions/project-download/native-ts/late-filter.sh tests/fixtures/*.sh; do
+  bash -n "$script"
+done
 shellcheck tools/check.sh _extensions/project-download/native-ts/late-filter.sh tests/fixtures/*.sh
 ```
 
@@ -53,6 +55,15 @@ Performance из его шаблона. Их проверку и синхрон�
 этот же исходник; изменяемые пути передаются явными аргументами или окружением.
 Проверка внешней строки не выдаётся за проверку содержащейся в ней программы.
 Ожидаемые ошибки отрицательных контролей сохраняются.
+
+Отдельно учитываются намеренно ошибочный `unknown.lua`, создаваемый LuaLS
+probe, и две диагностические вставки в копии проверенных Lua-программ:
+`tests/native-carriers.ts` добавляет marker callback, `tests/phase-cost.ts` —
+marker обхода. Это генерируемые контрольные фрагменты, а не непрозрачные данные.
+Проверка исходного Lua не выдаётся за статическую проверку изменённой копии:
+отрицательный probe должен дать ожидаемую диагностику, а изменённые native
+программы проверяются соответствующими сценариями исполнения. Измерительный
+сценарий до render требует ровно одну известную точку подстановки.
 
 Текст условия, JSON/YAML, изображения и непрозрачные bytes, которые используются
 лишь как входные данные проверки ZIP, не являются отдельными исполняемыми
