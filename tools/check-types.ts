@@ -21,7 +21,7 @@ if (typeof inventory !== "object" || inventory === null || !("typescript" in inv
 if (JSON.stringify([...files].sort()) !== JSON.stringify([...inventory.typescript].sort())) {
   throw Error("Перечень собственных TS файлов изменился: обновите typecheck/coverage.json");
 }
-const imports: Record<string, string> = {};
+const imports: Record<string, string> = { "project-download/": toFileUrl(join(root, "_extensions/project-download") + "/").href };
 for (const key of ["stdlib/path", "stdlib/fs"]) {
   imports[key] = import.meta.resolve(key).replace(
     /^https:\/\/jsr\.io\/@std\/(path|fs)\/([^/]+)\/mod\.ts$/,

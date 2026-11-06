@@ -89,40 +89,12 @@ project-download:
   );
   await Deno.writeTextFile(
     join(root, "capture.lua"),
-    `local result={callouts={},links={},paragraphs={}}
-return {{
- Callout=function(node)
-  result.callouts[#result.callouts+1]={text=pandoc.utils.stringify(node.content),type=node.type,appearance=node.appearance,icon=node.icon}
- end,
- Link=function(node)
-  if node.classes:includes('project-download') then
-   result.links[#result.links+1]={text=pandoc.utils.stringify(node.content),target=node.target,download=node.attributes.download}
-  end
- end,
- Para=function(node) result.paragraphs[#result.paragraphs+1]=pandoc.utils.stringify(node) end,
- Pandoc=function(doc)
-  local file=assert(io.open('presentation-ast.json','w'));file:write(pandoc.json.encode(result));file:close();return doc
- end
-}}
-`,
+    await Deno.readTextFile(join(repo, "tests/fixtures/presentation-capture.lua")),
   );
   // Проверяем semantic role после штатного HTML renderer, без чтения HTML-разметки.
   await Deno.writeTextFile(
     join(root, "capture-final.lua"),
-    `local wrappers=pandoc.List()
-return {{
- Div=function(node)
-  if node.classes:includes('project-download') then
-   local links=0
-   node:walk({Link=function(link)if link.classes:includes('project-download') then links=links+1 end end})
-   wrappers:insert({links=links,text=pandoc.utils.stringify(node)})
-  end
- end,
- Pandoc=function(doc)
-  local file=assert(io.open('presentation-final-ast.json','w'));file:write(pandoc.json.encode(wrappers));file:close();return doc
- end
-}}
-`,
+    await Deno.readTextFile(join(repo, "tests/fixtures/presentation-final.lua")),
   );
   const started = performance.now();
   const run = await new Deno.Command(Deno.env.get("QUARTO") ?? "quarto", {

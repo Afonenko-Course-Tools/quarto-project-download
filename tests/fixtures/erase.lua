@@ -1,0 +1,1 @@
+return {{Span=function(s)if s.classes:includes('project-download-raw-request') or s.classes:includes('project-download-request') then return {} end end}}

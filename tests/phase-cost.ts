@@ -20,9 +20,7 @@ try {
   const observer = join(root, "quarto-observer.sh");
   await Deno.writeTextFile(
     observer,
-    `#!/usr/bin/env bash\nset -euo pipefail\nprintf '%s\\n' "$*" >> "$DOWNLOAD_COST_LOG"\nexec ${
-      JSON.stringify(q)
-    } "$@"\n`,
+    await Deno.readTextFile(join(repo, "tests/fixtures/quarto-observer.sh")),
   );
   await Deno.chmod(observer, 0o700);
   for (const [name, source] of [["before", base], ["after", repo]]) {
@@ -69,6 +67,7 @@ try {
           cwd: root,
           env: {
             QUARTO: observer,
+            DOWNLOAD_REAL_QUARTO: q,
             DOWNLOAD_COST_LOG: log,
           },
           stdout: "piped",

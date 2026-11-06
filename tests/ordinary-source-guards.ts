@@ -10,13 +10,13 @@ try {
   await Deno.writeTextFile(join(root, "index.qmd"), "# Материалы\n");
   await Deno.writeTextFile(
     join(root, "data/hook with spaces.ts"),
-    'throw Error("HOOK_MUST_NOT_RUN");\n',
+    await Deno.readTextFile(join(repo, "tests/fixtures/forbidden-hook.ts")),
   );
   await Deno.writeTextFile(
     join(root, "data/filter with spaces.lua"),
-    "return {}\n",
+    await Deno.readTextFile(join(repo, "tests/fixtures/empty-filter.lua")),
   );
-  await Deno.writeTextFile(join(root, "data/filter string.lua"), "return {}\n");
+  await Deno.writeTextFile(join(root, "data/filter string.lua"), await Deno.readTextFile(join(repo, "tests/fixtures/empty-filter.lua")));
   await Deno.writeTextFile(join(root, "data/course style.css"), "body {}\n");
   await Deno.writeTextFile(join(root, "data/public.csv"), "42\n");
   await Deno.writeTextFile(

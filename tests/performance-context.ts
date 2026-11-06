@@ -1,3 +1,5 @@
+import { dirname, fromFileUrl, join } from "stdlib/path";
+const repo = dirname(dirname(fromFileUrl(import.meta.url)));
 // Проверяет ABI-контракт фасада и настоящие дочерние процессы без зависимости от Core.
 import { createMetrics, type OperationSpec } from "../_extensions/project-download/observability/bridge.ts";
 const assert = (value: unknown, message: string) => { if (!value) throw Error(message); };
@@ -38,15 +40,17 @@ try {
   bound.wrapSync({ id: "document", kind: "function", document_id: "chapter.qmd", attributes: { extension_id: "foreign", custom: true } } as OperationSpec, () => 1)();
   assert(specs[0].document_id === "chapter.qmd" && specs[0].attributes?.extension_id === "project-download" && specs[0].attributes?.custom === true, "Фасад потерял document/extension context");
   const probe = root + "/probe.ts";
-  await Deno.writeTextFile(probe, `if(Deno.env.get('DOWNLOAD_SENTINEL')!=='functional')throw Error('Потерян functional env');console.log(Deno.env.get('COURSE_PERF_PARENT_SPAN_ID')??'unlinked');`);
+  await Deno.writeTextFile(probe, await Deno.readTextFile(join(repo, "tests/fixtures/span-child.ts")));
   const unlinked = await new Deno.Command(Deno.execPath(), { args: ["run", "--allow-env", probe], env: bound.childEnv(Deno.env.toObject()), clearEnv: true, stdout: "piped" }).output();
   assert(unlinked.success && new TextDecoder().decode(unlinked.stdout).trim() === "unlinked", "Actual Deno child унаследовал ghost parent");
   const git = await new Deno.Command("which", { args: ["git"], stdout: "piped" }).output();
   const realGit = new TextDecoder().decode(git.stdout).trim(); assert(git.success && realGit, "Git отсутствует");
   await Deno.mkdir(root + "/bin");
   const log = root + "/children.jsonl";
-  await Deno.writeTextFile(root + "/bin/git", `#!/usr/bin/env -S ${Deno.execPath()} run -A\nif(Deno.env.get('DOWNLOAD_SENTINEL')!=='functional')throw Error('Потерян functional env');await Deno.writeTextFile(${JSON.stringify(log)},JSON.stringify({parent:Deno.env.get('COURSE_PERF_PARENT_SPAN_ID'),args:Deno.args})+'\\n',{append:true});const child=new Deno.Command(${JSON.stringify(realGit)},{args:Deno.args,stdin:'inherit',stdout:'inherit',stderr:'inherit'}).spawn();Deno.exit((await child.status).code);\n`);
+  await Deno.writeTextFile(root + "/bin/git", `#!/usr/bin/env -S ${Deno.execPath()} run -A\n` + await Deno.readTextFile(join(repo, "tests/fixtures/git-child.ts")));
   await Deno.chmod(root + "/bin/git", 0o755);
+  Deno.env.set("DOWNLOAD_CHILD_LOG", log);
+  Deno.env.set("DOWNLOAD_REAL_GIT", realGit);
   Deno.env.set("PATH", root + "/bin:" + saved.PATH);
   await Deno.mkdir(root + "/data");
   await Deno.writeTextFile(root + "/data/public.csv", "PUBLIC");

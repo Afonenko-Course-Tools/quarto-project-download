@@ -97,7 +97,7 @@ try {
   );
   await put(
     "generate.lua",
-    "return {{Pandoc=function(doc) local f=assert(io.open('generated.svg','wb')); f:write('<svg xmlns=\"http://www.w3.org/2000/svg\"><text>GENERATED_RESOURCE</text></svg>'); f:close(); return doc end}}\n",
+    await Deno.readTextFile(join(repo, "tests/fixtures/generate-resource.lua")),
   );
   const config = await Deno.readTextFile(join(root, "_quarto.yml"));
   await put(

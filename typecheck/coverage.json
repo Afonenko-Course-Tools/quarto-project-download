@@ -18,6 +18,10 @@
     "tests/contract-consistency.ts",
     "tests/contract-types.ts",
     "tests/diagnostics.ts",
+    "tests/fixtures/env-resource-child.ts",
+    "tests/fixtures/forbidden-hook.ts",
+    "tests/fixtures/git-child.ts",
+    "tests/fixtures/span-child.ts",
     "tests/model-artifacts.ts",
     "tests/model-receipts.ts",
     "tests/native-buffer.ts",
@@ -49,10 +53,18 @@
     "_extensions/project-download/native-ts/early-filter.lua",
     "_extensions/project-download/request-transport.lua",
     "_extensions/project-download/shortcodes.lua",
+    "tests/fixtures/echo.lua",
+    "tests/fixtures/empty-filter.lua",
+    "tests/fixtures/erase.lua",
+    "tests/fixtures/generate-resource.lua",
+    "tests/fixtures/presentation-capture.lua",
+    "tests/fixtures/presentation-final.lua",
     "tests/native-buffer.lua"
   ],
   "shell": [
     "_extensions/project-download/native-ts/late-filter.sh",
+    "tests/fixtures/git-env.sh",
+    "tests/fixtures/quarto-observer.sh",
     "tools/check.sh"
   ],
   "delegated": {

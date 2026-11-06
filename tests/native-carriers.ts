@@ -118,7 +118,7 @@ try {
   );
   await Deno.writeTextFile(
     join(root, "_extensions/echo/echo.lua"),
-    "return {echo=function(args)return pandoc.Str(pandoc.utils.stringify(args[1])) end}",
+    await Deno.readTextFile(join(repo, "tests/fixtures/echo.lua")),
   );
   await run("Code missing resource/no config", "`" + call + "`");
   await run(
@@ -177,7 +177,7 @@ try {
   );
   await Deno.writeTextFile(
     join(root, "erase.lua"),
-    "return {{Span=function(s)if s.classes:includes('project-download-raw-request') or s.classes:includes('project-download-request') then return {} end end}}",
+    await Deno.readTextFile(join(repo, "tests/fixtures/erase.lua")),
   );
   await Deno.writeTextFile(
     join(root, "_quarto.yml"),
