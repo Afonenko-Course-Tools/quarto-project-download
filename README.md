@@ -277,6 +277,9 @@ policy действует и при `course-model: false`. `course.json` и reta
 CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog PL=/path/to/quarto-course-prairielearn bash tools/check.sh
 ```
 
+[Строгие проверки TS, Lua и shell](docs/typechecking.md) охватывают конечный
+состав собственного кода и исполняемых fixtures.
+
 Для статической проверки native-цепи нужны фактические публичные типы `CORE`/`PL`/`QRC`; ссылки только на типы стираются, поэтому обычные resources исполняются без Core.
 
 Штатный набор проверяет каждый актуальный suite один раз. Он охватывает
