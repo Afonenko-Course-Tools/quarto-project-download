@@ -33,7 +33,7 @@ export function diagnostic(
   context: DiagnosticContext = {},
   cause?: unknown,
 ): Error & { code: string } {
-  const place = (value: { source?: string | undefined; id?: string | undefined; field?: string }) =>
+  const place = (value: Pick<DiagnosticContext, "source" | "id" | "field">) =>
     [
       value.source && `файл: ${value.source}`,
       value.id && `ID: ${value.id}`,

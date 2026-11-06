@@ -33,13 +33,14 @@ if (JSON.stringify(delegated.sort()) !== JSON.stringify([...bridges].sort()) ||
     JSON.stringify(paths.filter((file) => bridges.includes(file)).sort()) !== JSON.stringify([...bridges].sort())) {
   throw Error("Два канонических bridge Performance должны быть отслеживаемыми и делегированными");
 }
+const groups = { typescript: inventory.typescript, lua: inventory.lua, shell: inventory.shell };
 for (const [language, suffix] of [["typescript", ".ts"], ["lua", ".lua"], ["shell", ".sh"]] as const) {
   const files = own.filter((file) => file.endsWith(suffix));
-  if (JSON.stringify(files.sort()) !== JSON.stringify([...inventory[language]].sort())) {
+  if (JSON.stringify(files.sort()) !== JSON.stringify([...groups[language]].sort())) {
     throw Error(`Состав ${language} изменился: обновите typecheck/coverage.json`);
   }
 }
-const files = inventory.typescript;
+const files = groups.typescript;
 const imports: Record<string, string> = { "project-download/": toFileUrl(join(root, "_extensions/project-download") + "/").href };
 for (const key of ["stdlib/path", "stdlib/fs"]) {
   imports[key] = import.meta.resolve(key).replace(
