@@ -59,7 +59,8 @@
     "tests/fixtures/generate-resource.lua",
     "tests/fixtures/presentation-capture.lua",
     "tests/fixtures/presentation-final.lua",
-    "tests/native-buffer.lua"
+    "tests/native-buffer.lua",
+    "typecheck/download.lua"
   ],
   "shell": [
     "_extensions/project-download/native-ts/late-filter.sh",
