@@ -65,7 +65,11 @@
   ],
   "shell": [
     "_extensions/project-download/native-ts/late-filter.sh",
+    "tests/fixtures/foreign-tool-failure.sh",
+    "tests/fixtures/git-early-failure.sh",
     "tests/fixtures/git-env.sh",
+    "tests/fixtures/git-failure.sh",
+    "tests/fixtures/git-warning.sh",
     "tests/fixtures/quarto-observer.sh",
     "tools/check.sh"
   ],

@@ -111,7 +111,7 @@ try {
   const fake = root + "/fake-quarto";
   await Deno.writeTextFile(
     fake,
-    "#!/bin/sh\nprintf 'FOREIGN_STDOUT_ID\\n'\nprintf 'FOREIGN_STDERR_ID\\n' >&2\nexit 23\n",
+    await Deno.readTextFile(new URL("./fixtures/foreign-tool-failure.sh", import.meta.url)),
   );
   await Deno.chmod(fake, 0o755);
   const previous = Deno.env.get("QUARTO");
@@ -221,7 +221,7 @@ try {
   const git = fakeBin + "/git";
   await Deno.writeTextFile(
     git,
-    "#!/bin/sh\nprintf 'GIT_STDOUT_ID\\n'\nprintf 'GIT_STDERR_ID\\n' >&2\nexit 17\n",
+    await Deno.readTextFile(new URL("./fixtures/git-failure.sh", import.meta.url)),
   );
   await Deno.chmod(git, 0o755);
   await Deno.writeTextFile(root + "/data/sample.csv", "1,2");
@@ -260,7 +260,7 @@ try {
     }
     await Deno.writeTextFile(
       git,
-      "#!/bin/sh\nif [ \"$1\" = init ]; then exit 0; fi\nprintf 'GIT_EARLY_STDOUT\\n'\nprintf 'GIT_EARLY_STDERR\\n' >&2\nexit 19\n",
+      await Deno.readTextFile(new URL("./fixtures/git-early-failure.sh", import.meta.url)),
     );
     try {
       await resourceFiles(root, { path: "/many" });
@@ -282,7 +282,7 @@ try {
     }
     await Deno.writeTextFile(
       git,
-      "#!/bin/sh\nif [ \"$1\" = init ]; then exit 0; fi\ncat >/dev/null\nprintf 'WARNING_ALLOWED\\n' >&2\nexit 1\n",
+      await Deno.readTextFile(new URL("./fixtures/git-warning.sh", import.meta.url)),
     );
     const files = await resourceFiles(root, { path: "/data" });
     assert(
