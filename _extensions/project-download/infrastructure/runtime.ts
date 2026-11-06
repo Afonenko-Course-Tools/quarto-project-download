@@ -142,16 +142,16 @@ export const resetDownloadRequests = __metrics.wrapAsync({
 });
 /** Адреса и содержимое выдачи; Native context принадлежит Core. */
 export interface NativeDownloadOptions {
-  destinationDirectory?: string;
-  baseUrl?: string;
-  catalogBaseUrl?: string;
+  destinationDirectory?: string | undefined;
+  baseUrl?: string | undefined;
+  catalogBaseUrl?: string | undefined;
   referenceCatalog?: unknown;
   submission?: Parameters<SiblingModules["course-core"]["materializeProject"]>[2]["submission"];
 }
 export interface OrdinaryDownloadOptions {
-  destinationDirectory?: string;
-  profiles?: string[];
-  outputDirectory?: string;
+  destinationDirectory?: string | undefined;
+  profiles?: string[] | undefined;
+  outputDirectory?: string | undefined;
 }
 export interface PreparedDownloads {
   publish(): Promise<number>;
@@ -424,7 +424,7 @@ async function prepareDownloadsInternal(
                 targets: {},
               },
             baseUrl,
-            catalogBaseUrl: options.catalogBaseUrl,
+            ...(options.catalogBaseUrl === undefined ? {} : { catalogBaseUrl: options.catalogBaseUrl }),
             sources: Object.fromEntries(
               operation.catalog.documents.map((d) => [d.source, d.output]),
             ),
@@ -442,8 +442,8 @@ async function prepareDownloadsInternal(
             const urls: Record<string, string> = {},
               resourceLinks: string[] = [];
             for (const link of fragment.links) {
-              const pathname = link.split(/[?#]/)[0],
-                target = pathname.split("/").pop();
+              const [pathname = ""] = link.split(/[?#]/);
+              const target = pathname.split("/").pop();
               if (
                 artifacts.some((a) =>
                   a.exerciseId + "-" + a.kind + ".zip" === target

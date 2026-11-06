@@ -48,7 +48,7 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
   const selected = new Map<string, Resource>();
   const model = new Map<
     string,
-    { files: ArchiveEntry[]; package?: () => Promise<Uint8Array> }
+    { files: ArchiveEntry[]; package?: (() => Promise<Uint8Array>) | undefined }
   >();
   const requests = await progress("Чтение заявок", () => ports.requests());
   await progress("Подготовка заявок", async () => {
@@ -196,7 +196,8 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
 
 function equalFiles(a: ArchiveEntry[], b: ArchiveEntry[]): boolean {
   return a.length === b.length &&
-    a.every((file, i) =>
-      file.name === b[i].name && equalBytes(file.bytes, b[i].bytes)
-    );
+    a.every((file, i) => {
+      const other = b[i];
+      return other !== undefined && file.name === other.name && equalBytes(file.bytes, other.bytes);
+    });
 }

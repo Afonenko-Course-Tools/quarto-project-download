@@ -20,7 +20,7 @@ try {
       [core, "course-core"],
       [qrc, "reference-catalog"],
       [repo, "project-download"],
-    ]
+    ] as const
   ) {
     const c = await new Deno.Command("cp", {
       args: ["-R", join(source, "_extensions", name), join(root, ext, name)],

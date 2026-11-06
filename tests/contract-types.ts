@@ -16,7 +16,7 @@ const lawful: Resource = {
   gitignore: null,
 };
 const consumer = (value: Configuration) =>
-  value.resources.data.path.toUpperCase();
+  value.resources.data?.path.toUpperCase();
 const nullable: boolean | null | undefined = config["course-model"];
 lawful.include?.map((value) => value.toUpperCase());
 void checked;

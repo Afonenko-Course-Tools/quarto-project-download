@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 // Реальный public Core producer и временная установленная раскладка; не полный курс.
 import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url)));
@@ -168,7 +169,7 @@ try {
         profiles: [],
         format: "html",
       }], async (batch) => {
-        const plan = await core.planProject(batch.groups[0].contexts[0], {
+        const plan = await core.planProject(required(required(batch.groups[0]).contexts[0]), {
           audience: "student",
         });
         const inventory = await core.materializeProject(plan, condition, {
@@ -212,8 +213,8 @@ try {
         );
         const borrowed = structuredClone(inventory);
         const pending = download.packageArtifact(borrowed);
-        borrowed.files[0].bytes.fill(0);
-        borrowed.files[0].target = "caller-changed.txt";
+        required(borrowed.files[0]).bytes.fill(0);
+        required(borrowed.files[0]).target = "caller-changed.txt";
         const frozen = await pending;
         assert(
           frozen.length === packed.length &&
@@ -221,14 +222,14 @@ try {
           "Caller изменил bytes/target во время lazy import",
         );
         const ancestor = structuredClone(inventory);
-        ancestor.files[0].target = "collision";
-        ancestor.files[1].target = "collision/nested.txt";
+        required(ancestor.files[0]).target = "collision";
+        required(ancestor.files[1]).target = "collision/nested.txt";
         await refused(
           () => download.packageArtifact(ancestor),
           "DOWNLOAD.FILES_INVALID",
         );
         const wrongAudience = structuredClone(inventory);
-        wrongAudience.files[0].audience = "full";
+        required(wrongAudience.files[0]).audience = "full";
         await refused(
           () => download.packageArtifact(wrongAudience),
           "DOWNLOAD.FILES_INVALID",
@@ -238,7 +239,7 @@ try {
           "DOWNLOAD.FILES_INVALID",
         );
         const escape = structuredClone(inventory);
-        escape.files[0].target = "../private";
+        required(escape.files[0]).target = "../private";
         await refused(
           () => download.packageArtifact(escape),
           "DOWNLOAD.FILES_INVALID",

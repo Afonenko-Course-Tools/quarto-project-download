@@ -23,7 +23,7 @@ try {
     await Deno.readTextFile(join(repo, "tests/fixtures/quarto-observer.sh")),
   );
   await Deno.chmod(observer, 0o700);
-  for (const [name, source] of [["before", base], ["after", repo]]) {
+  for (const [name, source] of [["before", base], ["after", repo]] as const) {
     if (
       Deno.env.get("DOWNLOAD_COST_SELECT") &&
       name !== Deno.env.get("DOWNLOAD_COST_SELECT")

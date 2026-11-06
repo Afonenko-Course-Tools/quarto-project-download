@@ -42,6 +42,7 @@
     "tests/render.ts",
     "tests/request-contract.ts",
     "tests/request-paths.ts",
+    "tests/required.ts",
     "tests/resource-membership-native.ts",
     "tests/runtime-batch.ts",
     "tests/runtime-types.ts",

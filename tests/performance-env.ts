@@ -20,7 +20,7 @@ try {
   const script = root + "/child.ts";
   const module = new URL("../_extensions/project-download/infrastructure/files.ts", import.meta.url).href;
   await Deno.writeTextFile(script, await Deno.readTextFile(join(repo, "tests/fixtures/env-resource-child.ts")));
-  for (const [mode, permission] of [["summary", "--deny-env"], ["off", "--allow-env=COURSE_PERF_MODE"], ["summary", "--allow-env=COURSE_PERF_MODE"]]) {
+  for (const [mode, permission] of [["summary", "--deny-env"], ["off", "--allow-env=COURSE_PERF_MODE"], ["summary", "--allow-env=COURSE_PERF_MODE"]] as const) {
     const result = await new Deno.Command(Deno.execPath(), {
       args: ["run", "--no-config", "--no-lock", "--no-prompt", "--import-map", importMap, "--allow-read", "--allow-write", "--allow-run", permission, script, module, root],
       env: { DOWNLOAD_ENV_LOG: log, DOWNLOAD_REAL_GIT: gitPath, COURSE_PERF_MODE: mode, DOWNLOAD_ENV_SENTINEL: "inherited", COURSE_PERF_PARENT_SPAN_ID: "original-ghost", PATH: root + "/bin:" + Deno.env.get("PATH") },

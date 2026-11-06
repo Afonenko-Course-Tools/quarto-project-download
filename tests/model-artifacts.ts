@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 import { publish, type PublishPorts } from "../_extensions/project-download/application/publish.ts";
 import { zip } from "../_extensions/project-download/domain/zip.ts";
 const assert = (value:unknown, message:string) => { if (!value) throw Error(message); };
@@ -16,8 +17,8 @@ for (const kind of ["starter", "full", "conditions"] as const) {
     save:async(value)=>{saved=value},
   });
   assert(count===1 && saved.length===1, "one contextual model archive");
-  assert(saved[0].name===`exr-demo-${kind}.zip`, "ID-kind ZIP filename");
-  assert(saved[0].bytes.every((b,i)=>b===zip(archive)[i]), "payload bytes preserved");
+  assert(required(saved[0]).name===`exr-demo-${kind}.zip`, "ID-kind ZIP filename");
+  assert(required(saved[0]).bytes.every((b,i)=>b===zip(archive)[i]), "payload bytes preserved");
 }
 let rejected=false;
 try {

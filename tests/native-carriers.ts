@@ -134,7 +134,7 @@ try {
       ["bad-id", '{{< project-download Bad text="Текст" >}}'],
       ["bad-kind", '{{< project-download missing kind=other text="Текст" >}}'],
       ["bad-key", '{{< project-download missing unknown=1 text="Текст" >}}'],
-    ]
+    ] as const
   ) await run(name, "`" + call + "`", "DOWNLOAD.REQUEST_INVALID");
   await run("inline missing resource", call, "DOWNLOAD.CONFIG_INVALID");
   await run(

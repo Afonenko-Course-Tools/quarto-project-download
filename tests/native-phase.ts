@@ -80,7 +80,7 @@ try {
       ["course-core, project-download", "html", "student"],
       ["project-download, course-core", "revealjs", "student"],
       ["project-download, course-core", "html", "author"],
-    ]
+    ] as const
   ) {
     if (
       Deno.args.includes("--html-student") &&

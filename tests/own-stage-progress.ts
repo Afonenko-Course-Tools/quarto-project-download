@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 import { publish, type PublishPorts } from "../_extensions/project-download/application/publish.ts";
 import { finish, resetDownloadRequests } from "../_extensions/project-download/infrastructure/runtime.ts";
 const assert = (value: unknown, message: string) => { if (!value) throw Error(message); };
@@ -51,7 +52,7 @@ try {
         assert(quiet || has("Сборка ZIP — archives=1/1"), "Архив посчитан после упаковки");
         assert(!has("files=1"), "Передача draft не объявляет запись файла");
         calls.push("save");
-        assert(archives.length === 1 && archives[0].name === "data.zip" && archives[0].bytes[0] === 80 && archives[0].bytes[1] === 75, "ZIP и дедупликация сохранены");
+        assert(archives.length === 1 && required(archives[0]).name === "data.zip" && required(archives[0]).bytes[0] === 80 && required(archives[0]).bytes[1] === 75, "ZIP и дедупликация сохранены");
       },
     };
     const count = await publish(config, ["student"], ports);

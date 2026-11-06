@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 // Малый настоящий render ordinary resource; без Core и полного курса.
 import { copy } from "stdlib/fs";
 import { dirname, fromFileUrl, join } from "stdlib/path";
@@ -144,7 +145,7 @@ project-download:
   assert(
     wrappers.length === (htmlOutput ? 1 : 0) &&
       (!htmlOutput ||
-        wrappers[0].links === 1 && wrappers[0].text.includes("⤓ Комплект")),
+        required(wrappers[0]).links === 1 && required(wrappers[0]).text.includes("⤓ Комплект")),
     "Semantic role Download должна сохраняться на целом native блоке, не на авторских callout",
   );
   if (htmlOutput) {

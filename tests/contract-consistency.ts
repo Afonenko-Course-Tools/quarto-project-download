@@ -24,7 +24,7 @@ async function check(root: string) {
       ["course-core", "CORE"],
       ["course-prairielearn", "PL"],
       ["reference-catalog", "QRC"],
-    ]
+    ] as const
   ) {
     const source = Deno.env.get(variable);
     if (!source) throw Error(`${variable} required for actual public types`);

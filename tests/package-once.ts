@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 // Узкая проверка порта упаковки; native proof находится в public-runtime.ts.
 import { publish } from "../_extensions/project-download/application/publish.ts";
 import { zip } from "../_extensions/project-download/domain/zip.ts";
@@ -28,7 +29,7 @@ await publish({ resources: {}, "course-model": true }, [], {
     }),
   files: () => Promise.reject(Error("Нельзя повторно читать project tree")),
   save: (archives) => {
-    if (archives.length !== 1 || archives[0].name !== "exr-demo-starter.zip") {
+    if (archives.length !== 1 || required(archives[0]).name !== "exr-demo-starter.zip") {
       throw Error("Потеряна identity ZIP");
     }
     saves++;
