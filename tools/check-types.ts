@@ -48,7 +48,14 @@ try {
     cwd: root, stdout: "inherit", stderr: "inherit",
   }).output();
   if (!result.success) Deno.exitCode = result.code;
-  else console.log(JSON.stringify({ checked: files.length, strict: true, scope: "Собственные TS source/tests/tools; bridge проверяет владелец Performance" }));
+  else {
+    const lint = await new Deno.Command(Deno.execPath(), {
+      args: ["lint", "--config", temporary, ...files.map((file) => join(root, file))],
+      cwd: root, stdout: "inherit", stderr: "inherit",
+    }).spawn().status;
+    if (!lint.success) Deno.exitCode = lint.code;
+    else console.log(JSON.stringify({ checked: files.length, strict: true, scope: "Собственные TS source/tests/tools; bridge проверяет владелец Performance" }));
+  }
 } finally {
   await Deno.remove(temporary);
 }
