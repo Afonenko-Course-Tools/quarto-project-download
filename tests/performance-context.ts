@@ -58,7 +58,13 @@ try {
   linked = false;
   const unlinkedFiles = await resourceFiles(root, { path: "data" });
   assert(unlinkedFiles.length === 1 && unlinkedFiles[0].name === "public.csv", "Unlinked Git потерял functional env");
-  const children = (await Deno.readTextFile(log)).trim().split("\n").map(line => JSON.parse(line));
+  const children = (await Deno.readTextFile(log)).trim().split("\n").map(line => {
+    const child: unknown = JSON.parse(line);
+    if (typeof child !== "object" || child === null || !("args" in child) ||
+      !Array.isArray(child.args) || !child.args.every((arg: unknown) => typeof arg === "string") ||
+      ("parent" in child && typeof child.parent !== "string")) throw Error("Некорректный журнал дочернего процесса");
+    return { args: child.args, parent: "parent" in child ? child.parent : undefined };
+  });
   assert(children.length === 4 && children.slice(0, 2).every(child => child.parent === "project-download.infrastructure.files.resourceFiles"), "Git child не получил фактический parent span");
   assert(children.slice(2).every(child => child.parent === undefined), "Unlinked Git унаследовал ghost parent без clearEnv");
   assert(children[0].args[0] === "init" && children[1].args.includes("check-ignore"), "Изменились native argv");

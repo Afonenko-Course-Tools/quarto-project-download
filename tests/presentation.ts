@@ -8,6 +8,31 @@ const htmlOutput = !Deno.args.includes("--gfm");
 const assert = (value: unknown, message: string) => {
   if (!value) throw Error(message);
 };
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function strings(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item: unknown) => typeof item === "string");
+}
+function presentation(value: unknown) {
+  if (!record(value) || !Array.isArray(value.callouts) || !Array.isArray(value.links) || !strings(value.paragraphs)) throw Error("Некорректный presentation AST");
+  const callouts = value.callouts.map((node: unknown) => {
+    if (!record(node) || typeof node.text !== "string") throw Error("Некорректный callout AST");
+    return node;
+  });
+  const links = value.links.map((link: unknown) => {
+    if (!record(link) || typeof link.target !== "string" || typeof link.download !== "string") throw Error("Некорректный link AST");
+    return link;
+  });
+  return { callouts, links, paragraphs: value.paragraphs };
+}
+function wrapperList(value: unknown) {
+  if (!Array.isArray(value)) throw Error("Некорректный wrapper AST");
+  return value.map((node: unknown) => {
+    if (!record(node) || typeof node.links !== "number" || typeof node.text !== "string") throw Error("Некорректный wrapper AST");
+    return { links: node.links, text: node.text };
+  });
+}
 try {
   await copy(join(repo, "_extensions"), join(root, "_extensions"));
   await Deno.mkdir(join(root, "data"));
@@ -113,14 +138,14 @@ return {{
     run.success,
     new TextDecoder().decode(run.stdout) + new TextDecoder().decode(run.stderr),
   );
-  const ast = JSON.parse(
+  const ast = presentation(JSON.parse(
     await Deno.readTextFile(join(root, "presentation-ast.json")),
-  );
+  ));
   assert(
     ast.callouts.length === (htmlOutput ? 4 : 3),
     `Неверное число новых и авторских callout: ${JSON.stringify(ast.callouts)}`,
   );
-  const generated = ast.callouts.find((node: { text: string }) =>
+  const generated = ast.callouts.find((node) =>
     node.text === "⤓ Комплект"
   );
   assert(
@@ -136,14 +161,14 @@ return {{
   );
   assert(
     ast.links.length === 5 &&
-      ast.links.every((link: { target: string; download: string }) =>
+      ast.links.every((link) =>
         link.target === "_downloads/public-data.zip" && link.download === ""
       ),
     "Потеряны ссылки, href или download",
   );
-  const wrappers = JSON.parse(
+  const wrappers = wrapperList(JSON.parse(
     await Deno.readTextFile(join(root, "presentation-final-ast.json")),
-  );
+  ));
   assert(
     wrappers.length === (htmlOutput ? 1 : 0) &&
       (!htmlOutput ||

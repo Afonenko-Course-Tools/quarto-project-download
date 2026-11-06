@@ -76,7 +76,7 @@ try {
       return;
     }
     assert(p.success, name + ": " + stderr);
-    const requests = [];
+    const requests: unknown[] = [];
     requests.push(JSON.parse(
       await Deno.readTextFile(
         join(
@@ -87,9 +87,11 @@ try {
     ));
     assert(
       requests.length === 1 &&
+        typeof requests[0] === "object" && requests[0] !== null &&
+        "resources" in requests[0] &&
         JSON.stringify(requests[0].resources) ===
           JSON.stringify(expectedRequest ? [expectedRequest] : []) &&
-        !requests[0].artifacts,
+        !("artifacts" in requests[0]),
       name + ": stringify создал resource request",
     );
     const html = await Deno.readTextFile(join(root, "_site/index.html"));
