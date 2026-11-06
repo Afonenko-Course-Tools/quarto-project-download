@@ -1,3 +1,6 @@
+> Исторический кандидат. В текущем ref optional literal-only lowering удалён.
+> Действующий договор — [spec/contract.md](../spec/contract.md#ранняя-и-поздняя-native-фазы).
+
 # Download 3.4.0 — кандидат раннего literal capture
 
 Основа — опубликованный 3.3.1. Core9.1.1, C9.0.1 и публичный ZIP writer не

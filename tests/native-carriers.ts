@@ -34,13 +34,12 @@ try {
     name: string,
     body: string,
     error?: string,
-    restrictive = false,
     metadata = false,
     expectedRequest?: string,
   ) {
     if (
       Deno.env.get("NATIVE_CARRIER_BASE") &&
-      (name.startsWith("authored reserved") || name === "restrictive callback")
+      name.startsWith("authored reserved")
     ) return;
     if (
       Deno.env.get("CARRIER_CASE") &&
@@ -58,7 +57,7 @@ try {
       p = await new Deno.Command(q, {
         args: ["render", "index.qmd"],
         cwd: root,
-        env: restrictive ? { PROJECT_DOWNLOAD_LITERAL_ONLY: "1" } : {},
+        env: { XDG_CACHE_HOME: join(root, "cache") },
         stdout: "piped",
         stderr: "piped",
       }).output(),
@@ -76,19 +75,14 @@ try {
     }
     assert(p.success, name + ": " + stderr);
     const requests = [];
-    for await (
-      const e of Deno.readDir(
-        join(root, "_generated/project-download/requests"),
-      )
-    ) {
-      requests.push(
-        JSON.parse(
-          await Deno.readTextFile(
-            join(root, "_generated/project-download/requests", e.name),
-          ),
+    requests.push(JSON.parse(
+      await Deno.readTextFile(
+        join(
+          root,
+          "_generated/project-download/requests/index.qmd/request.json",
         ),
-      );
-    }
+      ),
+    ));
     assert(
       requests.length === 1 &&
         JSON.stringify(requests[0].resources) ===
@@ -143,7 +137,6 @@ try {
     "metadata native syntax refusal",
     call,
     "DOWNLOAD.REQUEST_INVALID",
-    false,
     true,
   );
   await Deno.writeTextFile(
@@ -154,7 +147,6 @@ try {
     "metadata live request",
     "{{< project-download data >}}",
     undefined,
-    false,
     true,
     "data",
   );
@@ -173,13 +165,11 @@ try {
     "escaped literal",
     '{{{< project-download missing text="Текст" >}}}',
     undefined,
-    true,
   );
   await run(
     "shortcodes off",
     "```{.text shortcodes=false}\n" + call + "\n```",
     undefined,
-    true,
   );
   await Deno.writeTextFile(
     join(root, "erase.lua"),
@@ -204,12 +194,6 @@ try {
     "authored reserved Header",
     "# Текст {.project-download-raw-request}",
     "DOWNLOAD.DELIVERY_PHASE_UNSUPPORTED",
-  );
-  await run(
-    "restrictive callback",
-    "`" + call + "`",
-    "DOWNLOAD.DELIVERY_PHASE_UNSUPPORTED",
-    true,
   );
   console.log(
     JSON.stringify({

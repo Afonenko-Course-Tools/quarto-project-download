@@ -1,5 +1,5 @@
 import { publish } from "../_extensions/project-download/application/publish.ts";
-import { prepare } from "../_extensions/project-download/infrastructure/runtime.ts";
+import { resetDownloadRequests } from "../_extensions/project-download/infrastructure/runtime.ts";
 const assert=(v:unknown,m:string)=>{if(!v)throw Error(m);};
 const root=await Deno.makeTempDir({prefix:"download-progress-"});
 const previousQuiet=Deno.env.get("QUARTO_PROJECT_SCRIPT_QUIET"),previousOutput=Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR");
@@ -9,8 +9,15 @@ try{
  for(const quiet of [false,true]){
   Deno.env.set("QUARTO_PROJECT_SCRIPT_QUIET",quiet?"1":"0");const stderr:string[]=[],stdout:unknown[]=[];
   console.error=(...v:unknown[])=>{stderr.push(v.join(" "));};console.log=(...v:unknown[])=>{stdout.push(v);};
-  await prepare(root);
-  assert(quiet?stderr.length===0:stderr[0]?.includes("начало")&&/готово \([0-9.]+ с\)/.test(stderr.at(-1)??""),"Prepare stage or quiet contract");
+  const requests=root+"/_generated/project-download/requests";
+  await Deno.mkdir(requests+"/index.qmd",{recursive:true});
+  await Deno.writeTextFile(requests+"/index.qmd/request.json",JSON.stringify({source:"index.qmd",resources:[]}));
+  await Deno.mkdir(root+"/_site/_downloads",{recursive:true});
+  await Deno.writeTextFile(root+"/_site/_downloads/keep.zip","Ранее опубликованный архив");
+  await resetDownloadRequests(root);
+  assert(!(await Deno.lstat(requests).catch(error=>{if(error instanceof Deno.errors.NotFound)return undefined;throw error;})),"Reset удаляет временные заявки");
+  assert(await Deno.readTextFile(root+"/_site/_downloads/keep.zip")==="Ранее опубликованный архив","Reset сохраняет опубликованный архив");
+  assert(stderr.length===0&&stdout.length===0,"Reset не добавляет вывод в протокол");
   stderr.length=0;const calls:string[]=[];let zipBytes:Uint8Array|undefined;
   const ports={
    requests:async()=>{assert(quiet||stderr[0]?.includes("начало"),"Progress must precede collecting materials");calls.push("requests");return[{source:"index.qmd",resources:["data"]}];},

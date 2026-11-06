@@ -1,4 +1,4 @@
-import { dirname, fromFileUrl, join } from "stdlib/path";
+import { dirname, fromFileUrl, join, resolve, toFileUrl } from "stdlib/path";
 const root = dirname(dirname(fromFileUrl(import.meta.url))),
   map = await Deno.makeTempFile({ suffix: ".json" });
 let scratch: string | undefined;
@@ -12,28 +12,61 @@ async function copy(from: string, to: string) {
   }
 }
 async function check(root: string) {
+  const imports: Record<string, string> = {};
+  for (const key of ["stdlib/path", "stdlib/fs"]) {
+    imports[key] = import.meta.resolve(key).replace(
+      /^https:\/\/jsr\.io\/@std\/(path|fs)\/([^/]+)\/mod\.ts$/,
+      "jsr:@std/$1@$2",
+    ).replace("jsr:/", "jsr:");
+  }
+  for (
+    const [name, variable] of [
+      ["course-core", "CORE"],
+      ["course-prairielearn", "PL"],
+      ["reference-catalog", "QRC"],
+    ]
+  ) {
+    const source = Deno.env.get(variable);
+    if (!source) throw Error(`${variable} required for actual public types`);
+    let extension: string | undefined;
+    for (
+      const path of [
+        resolve(source, "_extensions", name),
+        resolve(source, "_extensions/Afonenko-Course-Tools", name),
+        resolve(source),
+      ]
+    ) {
+      try {
+        if ((await Deno.stat(join(path, "public.ts"))).isFile) {
+          extension = await Deno.realPath(path);
+          break;
+        }
+      } catch (error) {
+        if (!(error instanceof Deno.errors.NotFound)) throw error;
+      }
+    }
+    if (!extension) throw Error(`${variable}: public.ts not found`);
+    const target = toFileUrl(extension + "/").href;
+    imports[toFileUrl(join(root, "_extensions", name) + "/").href] = target;
+    if (name === "course-core") imports["course-core/"] = target;
+  }
+  await Deno.writeTextFile(map, JSON.stringify({ imports }));
   return await new Deno.Command(Deno.execPath(), {
     args: [
       "check",
+      "--deny-import",
       "--no-lock",
       "--no-config",
       "--import-map",
       map,
       join(root, "tests/contract-types.ts"),
+      join(root, "tests/runtime-types.ts"),
     ],
     stdout: "piped",
     stderr: "piped",
   }).output();
 }
 try {
-  const imports: Record<string, string> = {};
-  for (const key of ["stdlib/path", "stdlib/fs"]) {
-    imports[key] = import.meta.resolve(key).replace(
-      /^https:\/\/jsr\.io\/@std\/(path|fs)\/([^/]+)\/mod\.ts$/,
-      "jsr:@std/$1@$2",
-    );
-  }
-  await Deno.writeTextFile(map, JSON.stringify({ imports }));
   const current = await check(root);
   if (!current.success) {
     await Deno.stderr.write(current.stderr);
@@ -45,6 +78,10 @@ try {
   await Deno.copyFile(
     join(root, "tests/contract-types.ts"),
     join(scratch, "tests/contract-types.ts"),
+  );
+  await Deno.copyFile(
+    join(root, "tests/runtime-types.ts"),
+    join(scratch, "tests/runtime-types.ts"),
   );
   const file = join(scratch, "_extensions/project-download/domain/config.ts");
   let source = await Deno.readTextFile(file);

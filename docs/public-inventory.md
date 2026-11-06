@@ -1,36 +1,40 @@
-# Публичная упаковка готового inventory
+# Публичная упаковка файлов Core
 
-`_extensions/project-download/public.ts` предоставляет `packageArtifact(inventory)`.
-Операция принимает готовый `ArtifactInventory` по схеме из соседнего
-`course-core/public.ts`, фиксирует собственные байты, проверяет размер, SHA256,
-аудиторию и пересечения targets, сортирует имена и создаёт ZIP один раз.
-Авторские каталоги и receipts не читаются; README входит в ZIP теми же байтами,
-которые предоставил Core. После упаковки исправлять ссылки внутри ZIP нельзя.
+`_extensions/project-download/public.ts` предоставляет `packageArtifact(files)`.
+Операция принимает функциональный `ArtifactFiles` по `ArtifactFilesSchema` из
+соседнего `course-core/public.ts`:
 
-Импорт Download и отдельная операция `zip(entries)` не требуют Core.
-Публичный Core загружается только при вызове `packageArtifact`.
-
-Композиция вызывает упаковку внутри callback текущей operation-owned A1 batch, держит ZIP
-в памяти до успешной финальной проверки Core и только затем публикует bytes.
-Проверка формы inventory и хешей не подтверждает текущесть исходников сама по себе.
-Выбор operation, exercise, audience и полномочий остаётся у владельца композиции;
-другой operation нельзя принимать только по корректной форме UUID.
-
-Проверка реального public producer и временной установленной namespaced раскладки:
-
-```bash
-CORE=/absolute/core-checkout QRC=/absolute/qrc-checkout \
-  QUARTO_RUN_NO_NETWORK=true quarto run tests/public-inventory.ts
+```ts
+{
+  exerciseId: string;
+  audience: "student" | "full";
+  files: {
+    target: string;
+    audience: "student" | "full";
+    reason: string;
+    bytes: Uint8Array;
+  }[];
+}
 ```
 
-Fixture выполняет native pre/render/post, настоящий public loader Core, QRC bindings, materialization,
-упаковку и распаковку. Он сравнивает имена и каждый байт с inventory, проверяет
-повреждённые DTO и сохранность README. Это проверка публичной границы, а не
-квалификация всего Java/SP или штатного post-render composition entrypoint.
-Production runtime теперь использует этот public loader и public ordinary resource inventory; детали и оставшиеся owner gates описаны в [native runtime](public-runtime.md). Runtime-issued condition обязателен для IO; JSON/clone finalized DTO его не заменяет.
+Пакет не содержит сертификата операции, SHA, исходного пути или заявленного
+размера. Download делает собственную копию входных bytes и targets до ленивого
+импорта Core, проверяет форму, аудиторию и пересечения targets, сортирует имена
+и создаёт ZIP один раз. Размеры и CRC32 вычисляются по фактическим bytes.
+README проходит без изменений. Чтение проекта, построение README и выбор
+публичных/закрытых материалов остаются в Core.
 
-B3 на Core998 добавляет реальный validateRelease и operation.withProjectContexts.
-Actual root-generated SVG выявил owner membership blocker; этот M2 остаётся
-непройденным до новой принятой Core дельты, прежний GREEN относится к B2/Core978.
-Опция B3_KEEP сохраняет временный owner для диагностики следующего разрешённого
-повтора, не меняя проверок или bytes.
+Для обычного ArrayBuffer ранняя копия изолирует ZIP от последующих изменений
+вызывающего кода. `structuredClone` сохраняет общую память SharedArrayBuffer,
+поэтому после проверки схемы выполняется отдельная копия таких bytes.
+До неё общая память может измениться; после неё ZIP владеет своими данными.
+
+Обычные `project-download.resources` работают без Core. Публичный Core
+загружается при вызове `packageArtifact`; import расширения сам его не запускает.
+
+Различающие проверки `tests/package-bytes.ts` используют настоящий Core и
+распаковку ZIP: точные бинарные bytes, README/src/resources, student/full,
+запрещённые targets, пересечения файлов/каталогов и изменения caller memory.
+`tests/public-inventory.ts` проверяет настоящую native операцию Core,
+материализацию, конечные ссылки README и generated resources.
+Это адресные проверки, не приёмка полного курса или опубликованного выпуска.

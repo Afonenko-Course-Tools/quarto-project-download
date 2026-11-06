@@ -30,14 +30,23 @@ Typed transport хранит отдельные `artifacts: [{exerciseId, kind}]
 У каждого model ZIP имя `ID-kind.zip`, контекстный caption при пустой text:
 «Скачать заготовку», «Скачать полный проект», «Скачать условие».
 
+В HTML отдельный Para/Plain с одним shortcode оформляется
+публичным конструктором `quarto.Callout` (`type: none`, `appearance: minimal`):
+знак ⤓ и прежняя ссылка с `download`. Весь сгенерированный блок сохраняет
+существующую семантическую роль `project-download` через native Attr, чтобы
+потребитель мог применить к нему то же правило contextual Download, что и к ссылке.
+Inline-контекст и существующие авторские
+callout сохраняются без дополнительного обрамления. Другие форматы получают
+прежнюю ссылку. Оформление не изменяет запрос, подпись, href, targets или ZIP;
+новые CSS, параметры и зависимости не вводятся.
+
 Текущий native маршрут использует только Core `public.ts` и
-`withCurrentNativeOperation`: actual condition, plan/materialize и inventory.
+`withNativePublication`: actual condition, plan/materialize и `ArtifactFiles`.
 Download не читает project/student как fallback и не применяет generic excludes
-к готовым owner bytes. Exact source/currentness и public/private policy остаются
-Core. README проходит только owner writer. Подробнее —
+к готовым owner bytes. Public/private policy остаётся в Core. README проходит только owner writer. Подробнее —
 [публичный runtime](../docs/public-runtime.md).
 
-Текущий public owner проверяет effective release каждого документа до выдачи.
+Текущий public owner проверяет семантику публикации каждого документа до выдачи.
 HTML student/full, condition-only closure и native default kind используют один
 Core writer; ordinary reveal model остаётся CONDITION_UNQUALIFIED. Root-generated resources проверяются теми же текущими membership, visibility
 и inventory guards; предгенерация не заменяет разрешённую текущую операцию.
@@ -46,41 +55,48 @@ Core writer; ordinary reveal model остаётся CONDITION_UNQUALIFIED. Root-
 
 ZIP: STORE, UTF-8, фиксированная дата, sorted names; independent fresh runs дают
 одинаковые bytes. Symlink/path escapes/специальные файлы/чужие output collisions
-запрещены. Pre-hook очищает только owned output текущего audience и requests.
-Другие outputs и чужие ZIP сохраняются. Новые receipts `project-download-artifacts-v2` содержат name/sha256,
-model kind/exerciseId/source, profiles, operation, публичную identity и release proof/metrics.
-Receipt подтверждает архивы, а не source authority. Старый v1 узнаётся только
-как собственный cleanup объект и не предоставляет authority текущей операции.
+запрещены. Pre-hook `resetDownloadRequests` очищает только requests, не ZIP.
+`prepareNativeDownloads` собирает draft без final output writes/cleanup; publish
+выполняется после Core closing. Одноразовые состояния и failure/discard semantics
+задают [публичный runtime](../docs/public-runtime.md). Final writer очищает только
+owned ZIP по именному manifest; partial failure не обещает rollback.
+Artifacts receipts, их schema guards и per-ZIP SHA удалены; старые generated
+receipts не мигрируются и не участвуют в текущей операции.
 
 Ownership API inspectOwnedRequests/clearOwnedRequests сохраняет protocol1;
-files имеют optional artifacts вместе с source/resources/sha256. Native writer,
+files имеют optional artifacts вместе с source/resources/configuration. Заявка
+хранится как `requests/<owner-relative-source>/request.json`, без хеша. Путь
+канонический, JSON source должен совпадать с адресом. Native writer,
 inspect и cleanup выполняются последовательно, закрытые поля всей области
 проверяются до удаления. Текущая public operation должна совпадать с root/profiles/output и
 содержать каждый source заявки. Retained страницы и course.json не авторизуют bytes.
 
-Все requests/receipts/generated inputs исключаются из публикации. Course Core
+Все requests/generated inputs исключаются из публикации. Course Core
 authoring не использует audience wrappers; full-only страницы и model permissions
 определяют преподавательское содержание. Полная acceptance проверяет реальные
 student/full/student DOM, каждый ZIP, privacy, QRC/search/hrefs и установленный пакет.
 
-Receipt audience происходит из trusted native projection: student либо full
-для author. Full demonstration artifact в student не меняет projection.
-
 ZIP basename collision generic/model остаётся ошибкой независимо от порядка.
 
-## Пакетная public proof-фаза
+## Подготовка и публикация архивов
 
-Runtime загружает actual public operation один раз. Все model inventories и
-ordinary resource inventories получаются внутри её callback, без private
+Orchestrator открывает actual Native publication один раз. Все наборы файлов model и
+обычные наборы ресурсов получаются внутри её callback, без private
 NativeRun/resolver imports. Один batch project contexts обслуживает все artifacts;
 сравнение повторных заявок не создаёт ZIP. Упаковка каждого готового artifact
-вызывается один раз. ZIP bytes и v2 receipt facts фиксируются в памяти.
+вызывается один раз. ZIP bytes фиксируются в Download-owned draft. Public helper
+`packageArtifact` принимает функциональный `ArtifactFiles` без сертификатов, SHA,
+rawSource или size и делает собственную раннюю копию bytes/targets. Проверяются
+`ArtifactFilesSchema`, аудитория, paths и collisions. ZIP writer использует
+фактические bytes для размеров и CRC32. Для SAB-backed Uint8Array сохраняется отдельная
+поздняя ownership copy после schema parse; обычные bytes повторно не копируются. Подробнее — [публичная упаковка](../docs/public-inventory.md).
 
-После успешных owner/request fences публикация проверяет destination parents,
-symlink и foreign collisions; manifest пишется первым, ZIP затем, receipt
-последним. Ошибка записи не создаёт success receipt. Standalone pre cleanup
-сохраняет своё назначение. Обычные resources без активного Core остаются
-самостоятельными; старый private Core fallback в этом ref отсутствует.
+После успешного Core closing одноразовый publish проверяет
+destination parents, symlink и foreign collisions; manifest пишется первым, ZIP
+затем. Ошибка записи сохраняет manifest для следующей owned cleanup и не обещает
+rollback. Повторного чтения заявок или проверки свежести перед записью нет.
+Pre reset удаляет только requests. Обычные resources без активного Core
+остаются самостоятельными; private Core fallback отсутствует.
 
 Explicit starter требует native student condition. В author он адресно закрыт
 DOWNLOAD.STARTER_UNQUALIFIED до genuine student authority; full artifact не
@@ -106,7 +122,7 @@ Git selection, ZIP bytes и публичный ownership API сохраняют 
 
 Пакетный мост Core 8.2.3 и Download 3.2.2 требует собственной native/installed
 проверки точных refs. Проверка ABI с тестовым агентом и прежний Core fallback
-не подтверждают новую proof-фазу. Body v2 и delivery v3 этим дополнением
+не подтверждают текущую publication-фазу. Body v2 и delivery v3 этим дополнением
 не изменяются.
 
 ## Типы исполняемого договора
@@ -126,35 +142,48 @@ consumer typecheck. Before/after oracle сравнивает outputs и diagnost
 archive/public inventory/runtime suites остаются самостоятельными gates.
 
 
-## Ранняя и поздняя native-фазы 3.4.0
+## Ранняя и поздняя native-фазы
 
-Download должен стоять перед Core в `filters` при раннем literal capture.
-`PROJECT_DOWNLOAD_LITERAL_ONLY=1` — только ограничение actual callbacks, не
-источник прав. В этом режиме собственный pre-ast filter переводит строгие
-literal reader Span в прежний `.project-download-request`. Динамические,
-неизвестные параметры и авторские reserved transport Attr отвергаются. Другие
-shortcodes остаются в ведении Core. Core profile и prior authority по-прежнему
-обязаны связывать реальные phases, bytes и окружение.
+Quarto исполняет `project-download` через штатный shortcode callback. Ранний
+Lua pre-ast проверяет авторские reserved Attr и начинает document-local buffer;
+собственного чтения reader Span и режима `PROJECT_DOWNLOAD_LITERAL_ONLY` нет.
+Порядок Download/Core не меняет native видимость поздних запросов.
 
 Единственный request decoder — [domain/request.ts](../_extensions/project-download/domain/request.ts).
-Он проверяет syntax всех actual callbacks, включая consumed/stringify carriers.
-Config, resource и default-kind policy применяются только к surviving inline
-Span на прежней post-quarto фазе. Code/Raw/attr callback с допустимым missing ID
-может оставаться текстом без конфигурации и ZIP-заявки; неверный syntax отказывает.
-Metadata, реально дошедшая как inline Span, сохраняет обычное разрешение ресурса.
+Он проверяет синтаксис всех actual callbacks, включая Code/Raw/attr и consumed
+callbacks. Config, resource и default-kind policy применяются только к Span,
+которые сохранились после штатных conditional/shortcode фаз Quarto. Допустимый
+missing ID в Code/Raw/attr остаётся текстом без конфигурации и ZIP-заявки;
+неверный синтаксис отказывает. Метаданные с сохранившимся Span разрешают ресурс.
 
-Lua сохраняет extended native AST и bounded document-local buffer. Поздний TS
-получает один малый batch и возвращает source/ordinal-bound решения; whole late
-AST не проходит JSON round-trip. Buffer не является authority и очищается при
-drain; другой input/root/format, отсутствие ранней фазы и повторный drain отвергаются.
-Лимиты buffer — 16384 actual callbacks и 16 MiB сериализованных аргументов на документ.
+Buffer необходим: callback может быть исполнен и затем превращён Quarto в текст
+или удалён другим фильтром; один оставшийся AST не содержит его аргументов.
+Span хранит только ordinal и текст callback, чтобы Quarto мог сохранить inline
+или stringify поведение. Поздний обход использует те же записи buffer в порядке
+видимого документа, а затем добавляет невидимые callbacks только для syntax check.
+Другой input/root/format, отсутствие ранней фазы и повторный drain отвергаются;
+лимиты — 16384 callbacks и 16 MiB сериализованных аргументов на документ.
 
-Без запросов новых TS children нет. Ordinary callbacks используют один late TS
-child на документ, независимо от их числа. Restrictive literal документы могут
-использовать один early и один late TS child. Предварительный AST preflight
-нужен до генерации собственных markers; новых inspect, filesystem indexing или
-hash на shortcode нет. Это не заявление об ускорении полного курса.
+Extended AST остаётся в Lua: штатные Callout/ConditionalBlock/Theorem
+обрабатываются native walk без JSON round-trip целого позднего документа. `pandoc.utils.run_json_filter`
+принимает и возвращает Pandoc-документ; пустой документ с MetaString переносит
+один малый JSON batch в существующий TS decoder и его source/ordinal-bound
+результат обратно. Решение TS превращается в штатный Link, а существующий
+request.json сохраняет выбранные ресурсы до отдельного project post-render,
+когда доступны все документы для ZIP. Это фазовые границы native API, не новые
+форматы авторского источника. Список видимых callbacks и ZIP bytes отдельно не
+копируются. Публичный `packageArtifact` сохраняет собственную защитную копию
+внешних bytes до асинхронного обращения к Core.
 
-Restrictive runtime callback отказывает до Download buffer record, links и
-sidecar. Уже выполненная Core early-фаза может оставить временные файлы; это
-незавершённая операция, не delivery/publication/ZIP authority.
+Без callbacks TS child не запускается; иначе на документ нужен один поздний
+child независимо от количества запросов. Новых inspect/hash на shortcode нет.
+Полный курс и общий выигрыш производительности этим не заявляются.
+
+В ordinary `finish` готовые `files.config` и пути явно подключённых
+filters из `files.configResources` Quarto inspect защищают author config/filter
+файлы от попадания в resource ZIP. Весь `configResources` не считается закрытым:
+публичные CSV/CSS из metadata сохраняют обычную выдачу.
+Quarto 1.11.5 не включает hook внутри `quarto run "путь с пробелами.ts"` в эти
+списки и не выдаёт готовый argv: прежнее извлечение существующих путей сохранено
+только для pre/post-render строк. Оно не исполняет команду и не объявляет полную
+поддержку shell-синтаксиса. Адресная проверка — `tests/ordinary-source-guards.ts`.

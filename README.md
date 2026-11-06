@@ -6,7 +6,7 @@
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
 Контракт этого ref — кандидат 3.5.0. Публичный native путь использует Core
-`withCurrentNativeOperation`, owner release proof и готовые artifact/resource inventories.
+`withNativePublication` и готовые функциональные файлы Core.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
 
@@ -45,6 +45,12 @@ project-download:
 ```qmd
 {{< project-download seminar-data text="Скачать данные семинара" >}}
 ```
+
+В HTML отдельный shortcode оформляется штатным Quarto callout минимального
+вида со знаком ⤓. Дополнительные блоки и CSS в исходнике не нужны. Shortcode
+внутри предложения остаётся ссылкой; уже существующий авторский callout
+повторно не обрамляется. Подпись, адрес и состав архива сохраняются.
+Для остальных форматов остаётся обычная ссылка без новых LaTeX-зависимостей.
 
 Пути обработчиков соответствуют установке из GitHub; локальная установка может
 создавать каталог без проекта. Пример `examples/materials` использует локальную
@@ -155,7 +161,8 @@ export interface OwnedRequestState {
     path: string;
     source: string;
     resources: string[];
-    sha256: string;
+    artifacts?: { exerciseId: string; kind: "starter" | "full" | "conditions" }[];
+    configuration?: unknown;
   }[];
 }
 export function inspectOwnedRequests(
@@ -171,8 +178,12 @@ export function clearOwnedRequests(
 путях файловой системы. Расширение возвращает абсолютные канонические `root`,
 `directory` и `files[].path`. `directory` задаёт точную область изменяемых заявок,
 даже когда она отсутствует; в этом случае `files` пуст. Каждый элемент содержит
-источник, ID ресурсов и SHA-256 точных текущих байтов заявки. Пустая заявка
-документа без видимого shortcode также входит в снимок.
+источник, ID ресурсов и выбранную конфигурацию. Пустая заявка
+документа без видимого shortcode также входит в список.
+Заявка находится по прямому адресу
+`_generated/project-download/requests/<source>/request.json`, где `<source>` —
+канонический относительный путь документа. Исходное имя становится каталогом;
+части пути сохраняются без хеширования или кодирования имени.
 
 Вызывайте `inspectOwnedRequests` после ожидаемого завершения нативного дочернего
 процесса: hooks и фильтры этого процесса
@@ -184,9 +195,9 @@ export function clearOwnedRequests(
 файлы и опубликованные архивы.
 
 Оба вызова отклоняют ссылки в корне, его родителях, каталогах области и файлах,
-включая ссылки без цели; специальные файлы, вложенные каталоги и посторонние
+включая ссылки без цели; специальные файлы, непредусмотренные каталоги и посторонние
 записи; повреждённые или дополнительные поля заявки; неизвестный источник,
-несоответствие имени источнику и недопустимый ID ресурса. Ошибка проверки
+несоответствие пути источнику и недопустимый ID ресурса. Ошибка проверки
 предшествует очистке. Внутренние имена файлов и JSON транспорта принадлежат
 расширению: потребитель использует этот API и не воспроизводит их алгоритм.
 
@@ -239,13 +250,14 @@ caches, build outputs и class/jar исключаются. Автор обесп
 команды и ссылки README. Весь разрешённый full project упаковывается после
 Core authorization, а public guards обычных resources сохраняются.
 
-`finishDownloads(root, options)` из `public.ts` принимает явные projection/profiles,
-expectedDocuments и конечный каталог выдачи. Текущую операцию открывает публичный Core API. Модельные заявки имеют отдельный typed transport
-`artifacts: [{exerciseId, kind}]`; они не преобразуются в ID старого resources map.
-При обычном post-hook контекст загружается из установленного соседнего Core.
-Private `_generated/project-download/artifacts-receipt.json` фиксирует SHA256
-архивов, kind/source, operation/identity и release proof; он исключается из сайта вместе
-с остальными generated inputs. Он не подтверждает выполнение Java-проектов.
+`prepareNativeDownloads(publication, options)` из `public.ts` собирает готовый
+одноразовый draft внутри `Core.withNativePublication`. Orchestrator выполняет
+активный PL inspection и вызывает `draft.publish()` только после успешного Core
+closing. Native root/profiles/projection берутся из publication; options задают
+конечный каталог и адреса. `resetDownloadRequests` очищает только временные
+заявки. ZIP manifest/CRC сохраняются; artifacts receipt и per-ZIP SHA удалены.
+`finishDownloads(root, options)` обслуживает отдельные обычные resources без Core.
+Подробнее — [публичный runtime](docs/public-runtime.md).
 
 Обычные resources работают без Core/CUE. Если Core обработал AST, generic resource
 policy действует и при `course-model: false`. `course.json` и retained HTML предыдущей
@@ -262,13 +274,15 @@ policy действует и при `course-model: false`. `course.json` и reta
 | `entrypoints` | Явные обработчики сборки |
 
 ```sh
-CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog bash tools/check.sh
+CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog PL=/path/to/quarto-course-prairielearn bash tools/check.sh
 ```
+
+Для статической проверки native-цепи нужны фактические публичные типы `CORE`/`PL`/`QRC`; ссылки только на типы стираются, поэтому обычные resources исполняются без Core.
 
 Штатный набор проверяет каждый актуальный suite один раз. Он охватывает
 воспроизводимость ZIP, файловые границы и кириллицу, настоящие временные
-установки, standalone student/full/student, current operation и inventory,
-origin/href/resources, privacy, source/generation drift и сохранение чужих
+установки, standalone student/full/student, native operation и функциональные файлы,
+href/resources, privacy, самостоятельные bytes и сохранение чужих
 outputs. Модельный путь использует Core 9 без внешнего валидатора схем.
 Удалённые private hooks не являются положительным результатом текущего API;
 [карта переноса проверок](tests/legacy-harness-mapping.md) задаёт их замену.
@@ -287,7 +301,7 @@ outputs. Модельный путь использует Core 9 без внеш
 свой ID и исходный вывод. Публичную сборку проверяйте штатным
 `quarto render --fail-if-warnings`; отдельного warning-режима расширения нет.
 
-Локальная проверка `CORE=/absolute/path/to/quarto-course bash tools/check.sh`
+Локальная проверка `CORE=/absolute/path/to/quarto-course QRC=/absolute/path/to/quarto-reference-catalog PL=/absolute/path/to/quarto-course-prairielearn bash tools/check.sh`
 включает контекст собственных диагностик, foreign CLI-потоки, ZIP, профили,
 владение заявками и установленные namespaced/plain/active подключения.
 Успешный рендер не выполняет стартовый проект и не доставляет его в LMS.
@@ -350,16 +364,17 @@ Download 3.1.0 сохранил контракт Download3 и добавил д�
 
 ## Сохранённая поправка 3.3.1: ordinary owner validation
 
-[Адресная поправка](docs/release-3.3.1.md) использует частичный C publication vet с действительным Core proof и common-source guards. Full C delivery не запускается из ZIP finalizer. Она сохраняется в этом кандидате; результаты нового выпуска проверяются отдельно.
+Историческая [поправка 3.3.1](docs/release-3.3.1.md) описывает прежний proof contract. Текущий ordinary маршрут использует Native publication и partial PL inspection; full PL delivery запускается отдельно. Результаты нового выпуска проверяются отдельно.
 
 
-## Кандидат 3.4.0: ранние literal-запросы
+## Native callbacks и поздний выбор ресурсов
 
-[Точный фазовый контракт](docs/release-3.4.0.md) переносит literal
-`project-download` в инертный запрос до раннего Core capture. Для этого порядка
-подключения используйте `filters: [project-download, course-core]`. Обычный
-native handler и независимые resources сохраняются; правила kind, captions и
-ZIP не меняются. Видимость ссылок по-прежнему разрешает Quarto.
+[Текущий фазовый контракт](spec/contract.md#ранняя-и-поздняя-native-фазы)
+использует штатный shortcode callback Quarto и один поздний TS decoder.
+Видимость ссылок разрешает Quarto; синтаксис проверяется также у callbacks,
+которые были превращены в текст или удалены. Прежний optional literal-only
+режим удалён. Отдельный shortcode в HTML получает минимальный штатный callout;
+inline и авторские callout сохраняют структуру.
 
 Этот ref ещё не заявляет выпуск, установленный курс или успешный полный экспорт.
 

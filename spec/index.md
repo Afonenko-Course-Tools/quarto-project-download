@@ -27,15 +27,15 @@ Download владеет resource selection, ZIP и temporary requests/ownership.
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
 Целевой Quarto — 1.11.5; кандидат Download 3.5.0 использует публичный
 native TS-договор Core 9 без внешнего валидатора схем. Обычные resources независимы от Core;
-точный files inventory и current-run guards принадлежат Core.
+функциональные `ArtifactFiles`, public/private policy и native operation принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
 Документация установленного выпуска читается из того же immutable tag, что и код.
 
 ## Публичный native runtime B3
 
 Текущая source партия использует [публичный runtime](../docs/public-runtime.md)
-через actual `withCurrentNativeOperation`, готовый artifact inventory и публичный
-resource inventory и текущий owner release proof. Private NativeRun fallback удалён.
+через actual `withNativePublication`, готовый `ArtifactFiles` и публичный
+`NativeResourceFiles`; preparation и final writer разделены. Private NativeRun fallback удалён.
 Адресные проверки и открытые integration gates перечислены в документе;
 source ref не заявляется установленным или выпущенным автоматически.
 
@@ -53,5 +53,7 @@ source ref не заявляется установленным или выпу�
 
 ## Ранняя owner-фаза
 
-[Контракт 3.4.0](../docs/release-3.4.0.md) задаёт literal lowering перед Core,
-единый TS request decoder и одну позднюю native batch без нового resolver.
+[Текущий фазовый контракт](contract.md#ранняя-и-поздняя-native-фазы) использует
+штатные callbacks Quarto, единый TS decoder и один поздний native batch.
+Прежний optional literal-only lowering удалён; документ
+[3.4.0](../docs/release-3.4.0.md) сохраняет историю прежнего кандидата.

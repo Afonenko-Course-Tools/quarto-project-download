@@ -5,7 +5,7 @@ import {
   child,
   resourceFiles,
 } from "../_extensions/project-download/infrastructure/files.ts";
-import { prepare } from "../_extensions/project-download/infrastructure/runtime.ts";
+import { finish } from "../_extensions/project-download/infrastructure/runtime.ts";
 const assert = (value: unknown, message: string) => {
   if (!value) throw Error(message);
 };
@@ -118,8 +118,8 @@ try {
   Deno.env.set("QUARTO", fake);
   try {
     try {
-      await prepare(root);
-      throw Error("Внешний отказ должен завершить prepare");
+      await finish(root);
+      throw Error("Внешний отказ должен завершить finish");
     } catch (error) {
       const failure = error as Error & {
         tool?: string;
@@ -156,7 +156,7 @@ try {
   }
   // Существующие исключения программиста не становятся внешней диагностикой.
   try {
-    await prepare({} as unknown as string);
+    await finish({} as unknown as string);
     throw Error("TypeError expected");
   } catch (error) {
     assert(
@@ -168,7 +168,7 @@ try {
   Deno.env.set("QUARTO", root + "/missing-quarto");
   try {
     try {
-      await prepare(root);
+      await finish(root);
       throw Error("Startup refusal expected");
     } catch (error) {
       const failure = error as Error & {
@@ -190,7 +190,7 @@ try {
   const runner = Deno.env.get("QUARTO_TEST_BIN") || Deno.env.get("QUARTO") ||
     "quarto";
   const pre = new URL(
-    "../_extensions/project-download/entrypoints/pre.ts",
+    "../_extensions/project-download/entrypoints/post.ts",
     import.meta.url,
   ).pathname;
   const cli = await new Deno.Command(runner, {

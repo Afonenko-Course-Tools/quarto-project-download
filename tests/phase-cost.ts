@@ -55,14 +55,7 @@ try {
         );
       }
     }
-    for (
-      const [n, restrictive] of (name === "after"
-        ? [[0, false], [1, false], [13, false], [0, true], [1, true], [
-          13,
-          true,
-        ]]
-        : [[0, false], [1, false], [13, false]]) as [number, boolean][]
-    ) {
+    for (const n of [0, 1, 13]) {
       await Deno.writeTextFile(
         join(root, "index.qmd"),
         "# Пакет\n\n" +
@@ -77,7 +70,6 @@ try {
           env: {
             QUARTO: observer,
             DOWNLOAD_COST_LOG: log,
-            ...(restrictive ? { PROJECT_DOWNLOAD_LITERAL_ONLY: "1" } : {}),
           },
           stdout: "piped",
           stderr: "piped",
@@ -94,14 +86,13 @@ try {
         ).length;
       if (name === "after") {
         assert(
-          early === (restrictive && n ? 1 : 0) && late === (n ? 1 : 0),
+          early === 0 && late === (n ? 1 : 0),
           "ordinary phase cost depends on requests: " + JSON.stringify(calls),
         );
       }
       rows.push({
         name,
         requests: n,
-        restrictive,
         fullWalkLogOccurrences:
           (new TextDecoder().decode(r.stderr).match(/DOWNLOAD_TEST_WALK/g) ??
             []).length,
