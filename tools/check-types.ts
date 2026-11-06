@@ -29,8 +29,9 @@ const delegated = Object.values(inventory.delegated).flatMap((value: unknown) =>
   if (!strings(value)) throw Error("Неверный перечень делегированных файлов");
   return value;
 });
-if (JSON.stringify(delegated.sort()) !== JSON.stringify([...bridges].sort())) {
-  throw Error("Делегированы только два канонических bridge Performance");
+if (JSON.stringify(delegated.sort()) !== JSON.stringify([...bridges].sort()) ||
+    JSON.stringify(paths.filter((file) => bridges.includes(file)).sort()) !== JSON.stringify([...bridges].sort())) {
+  throw Error("Два канонических bridge Performance должны быть отслеживаемыми и делегированными");
 }
 for (const [language, suffix] of [["typescript", ".ts"], ["lua", ".lua"], ["shell", ".sh"]] as const) {
   const files = own.filter((file) => file.endsWith(suffix));
