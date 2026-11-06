@@ -44,11 +44,20 @@ try {
       ) {
         const path = join(root, "_extensions/project-download", file),
           source = await Deno.readTextFile(path);
+        const bodies = [
+          "function(node,filter)return node:walk(filter)end",
+          "function(node,filter)return (node.walk --[[@as DownloadDocumentWalk]])(node,filter)end",
+        ];
+        const matches = bodies.filter((body) => source.includes(body));
+        const body = matches[0];
+        if (matches.length !== 1 || !body || source.split(body).length !== 2) {
+          throw Error(`Не найдена единственная точка измерения walk: ${name}/${file}`);
+        }
         await Deno.writeTextFile(
           path,
-          source.replaceAll(
-            "function(node,filter)return node:walk(filter)end",
-            "function(node,filter)io.stderr:write('DOWNLOAD_TEST_WALK\\n');return node:walk(filter)end",
+          source.replace(
+            body,
+            body.replace("return ", "io.stderr:write('DOWNLOAD_TEST_WALK\\n');return "),
           ),
         );
       }
