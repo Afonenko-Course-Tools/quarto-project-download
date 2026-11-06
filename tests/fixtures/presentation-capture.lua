@@ -1,6 +1,9 @@
+---@type {callouts: {text: string, type: string, appearance: string, icon?: boolean}[], links: {text: string, target: string, download?: string}[], paragraphs: string[]}
 local result={callouts={},links={},paragraphs={}}
 return {{
- Callout=function(node)
+ Callout=
+ ---@param node DownloadCallout
+ function(node)
   result.callouts[#result.callouts+1]={text=pandoc.utils.stringify(node.content),type=node.type,appearance=node.appearance,icon=node.icon}
  end,
  Link=function(node)

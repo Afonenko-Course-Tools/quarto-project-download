@@ -1,3 +1,6 @@
+---@class DownloadCapturedWrappers: pandoc.List
+---@field [integer] {links: integer, text: string}
+---@type DownloadCapturedWrappers
 local wrappers=pandoc.List()
 return {{
  Div=function(node)
