@@ -5,22 +5,40 @@ const tracked = await new Deno.Command("git", {
   args: ["ls-files", "-z"], cwd: root, stdout: "piped", stderr: "piped",
 }).output();
 if (!tracked.success) throw Error(new TextDecoder().decode(tracked.stderr));
-const files = new TextDecoder().decode(tracked.stdout).split("\0").filter((file) =>
-  file.endsWith(".ts") && !file.includes("/vendor/") &&
-  file !== "_extensions/project-download/observability/bridge.ts"
-);
-// Новая сама проверка входит в compile graph ещё до первого commit.
-if (!files.includes("tools/check-types.ts")) files.push("tools/check-types.ts");
+const paths = new TextDecoder().decode(tracked.stdout).split("\0").filter(Boolean);
+const bridges = [
+  "_extensions/project-download/observability/bridge.ts",
+  "_extensions/project-download/observability/bridge.lua",
+];
+const own = paths.filter((file) => !file.includes("/vendor/") && !bridges.includes(file));
+const unsupported = own.filter((file) => /\.(?:js|cjs|mjs|jsx|tsx)$/.test(file));
+if (unsupported.length) throw Error("Добавьте языковую проверку: " + unsupported.join(", "));
 const inventory: unknown = JSON.parse(await Deno.readTextFile(join(root, "typecheck/coverage.json")));
 function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item: unknown) => typeof item === "string");
 }
-if (typeof inventory !== "object" || inventory === null || !("typescript" in inventory) || !strings(inventory.typescript)) {
-  throw Error("Неверный перечень TS coverage");
+if (typeof inventory !== "object" || inventory === null ||
+    !("typescript" in inventory) || !strings(inventory.typescript) ||
+    !("lua" in inventory) || !strings(inventory.lua) ||
+    !("shell" in inventory) || !strings(inventory.shell) ||
+    !("delegated" in inventory) || typeof inventory.delegated !== "object" ||
+    inventory.delegated === null || Array.isArray(inventory.delegated)) {
+  throw Error("Неверный перечень языкового покрытия");
 }
-if (JSON.stringify([...files].sort()) !== JSON.stringify([...inventory.typescript].sort())) {
-  throw Error("Перечень собственных TS файлов изменился: обновите typecheck/coverage.json");
+const delegated = Object.values(inventory.delegated).flatMap((value: unknown) => {
+  if (!strings(value)) throw Error("Неверный перечень делегированных файлов");
+  return value;
+});
+if (JSON.stringify(delegated.sort()) !== JSON.stringify([...bridges].sort())) {
+  throw Error("Делегированы только два канонических bridge Performance");
 }
+for (const [language, suffix] of [["typescript", ".ts"], ["lua", ".lua"], ["shell", ".sh"]] as const) {
+  const files = own.filter((file) => file.endsWith(suffix));
+  if (JSON.stringify(files.sort()) !== JSON.stringify([...inventory[language]].sort())) {
+    throw Error(`Состав ${language} изменился: обновите typecheck/coverage.json`);
+  }
+}
+const files = inventory.typescript;
 const imports: Record<string, string> = { "project-download/": toFileUrl(join(root, "_extensions/project-download") + "/").href };
 for (const key of ["stdlib/path", "stdlib/fs"]) {
   imports[key] = import.meta.resolve(key).replace(
