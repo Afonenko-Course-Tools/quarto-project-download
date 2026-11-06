@@ -1,7 +1,7 @@
 ---@class DownloadCapturedWrappers: pandoc.List
 ---@field [integer] {links: integer, text: string}
 ---@type DownloadCapturedWrappers
-local wrappers=pandoc.List()
+local wrappers=pandoc.List() --[[@as DownloadCapturedWrappers]]
 return {{
  Div=function(node)
   if node.classes:includes('project-download') then

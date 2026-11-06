@@ -6,10 +6,9 @@ local transport=dofile(pandoc.path.join({dir,'request-transport.lua'}))
 local metrics=require('./observability/bridge').create_metrics('project-download',1)
 local walk=metrics.wrap_walk({id='project-download.filter.walk',kind='ast_walk',scope='full-document'},
 ---@param node pandoc.Pandoc
----@param filter DownloadFilter
-function(node,filter)return node:walk(filter)end)
+---@param filter DownloadFilter|DownloadAttributeFilter
+function(node,filter)return (node.walk --[[@as DownloadDocumentWalk]])(node,filter)end)
 ---@param message string
----@return never
 local function fail(message)assert(false,'DOWNLOAD.REQUEST_INVALID: '..message..'\nфайл: '..tostring(quarto.doc.input_file or ''))end
 ---@param value pandoc.MetaValue|nil
 ---@return DownloadJson
@@ -17,12 +16,13 @@ local function plain(value)
  if type(value)=='boolean' or type(value)=='number' or type(value)=='string' then return value end
  local kind=pandoc.utils.type(value)
  if kind=='Inlines' or kind=='MetaInlines' or kind=='Blocks' or kind=='MetaBlocks' then return pandoc.utils.stringify(value) end
+ ---@type DownloadJsonTable
  local result={};for key,child in pairs(value or {}) do result[key]=plain(child) end;return result
 end
 ---@param span pandoc.Inline
 ---@return boolean
 local function isRequest(span)
- return span.t=='Span' and span.classes:includes('project-download-raw-request')
+ return span.t=='Span' and (span --[[@as pandoc.Span]]).classes:includes('project-download-raw-request')
 end
 -- Quarto уже распознал авторские callout; метка живёт только до замены carrier на Link.
 local inCallout='data-project-download-in-callout'
@@ -30,10 +30,14 @@ return {{Callout=
 ---@param node DownloadCallout
 function(node)
  local mark={Span=function(span)
-  if isRequest(span) then span.attributes[inCallout]='true';return span end
+  if isRequest(span) then
+   ---@type string
+   span.attributes[inCallout]='true';return span
+  end
  end}
- node.content=node.content:walk(mark)
- if node.title then node.title=node.title:walk(mark) end
+ node.content=node.content:walk(mark) --[[@as pandoc.Blocks]]
+ if node.title then node.title=node.title:walk(mark) --[[@as pandoc.Inlines]]
+ end
  return node
 end},{Pandoc=function(doc)
  local context=transport.context();local calls=transport.drain(context.key)
@@ -41,7 +45,7 @@ end},{Pandoc=function(doc)
  ---@type {[string]: DownloadJson}
  local exercises={}
  ---@type DownloadInvocationList
- local requests=pandoc.List()
+ local requests=pandoc.List() --[[@as DownloadInvocationList]]
  doc=walk(doc,{Div=function(div)if div.identifier~='' then exercises[div.identifier]=plain(div.attributes) end end,
  Span=function(span)
   if isRequest(span) then
@@ -63,7 +67,8 @@ end},{Pandoc=function(doc)
  if #requests>0 then
   local batch={source=context.source,native=native,courseProcessed=processed,configuration=configuration,exercises=exercises,artifactContext=plain(doc.meta['course-artifact-context']),requests=requests}
   if doc.meta['project-download']==nil then batch.configuration=nil end
-  if doc.meta.course and doc.meta.course.view then batch.view=pandoc.utils.stringify(doc.meta.course.view) end
+  local course=doc.meta.course --[[@as {view?: pandoc.MetaValue}|nil]]
+  if course and course.view then batch.view=pandoc.utils.stringify(course.view) end
   local carrier=pandoc.Pandoc({}, {['project-download-native-batch']=pandoc.MetaString(pandoc.json.encode(batch))})
   ---@type DownloadJsonFilter
   local runJsonFilter=pandoc.utils.run_json_filter
@@ -83,8 +88,12 @@ end},{Pandoc=function(doc)
   ---@return pandoc.Link|nil
   local function replace(span)
    if not isRequest(span) then return end
-   local ordinal=tonumber(span.attributes['data-project-download-ordinal']);local link=decisions[ordinal]
+   -- Ранний проход того же документа уже проверил canonical ordinal carrier.
+   local ordinal=tonumber(span.attributes['data-project-download-ordinal'])
+   ---@cast ordinal integer
+   local link=decisions[ordinal]
    if not link then fail('Нет решения для native request') end
+   ---@cast link DownloadResolvedLink
    decisions[ordinal]=nil
    return pandoc.Link({pandoc.Str(link.text)},link.href,'',pandoc.Attr('',{'project-download'},{download=''}))
   end
@@ -92,10 +101,12 @@ end},{Pandoc=function(doc)
   ---@return pandoc.RawInline|nil, boolean|nil
   local function standalone(block)
    if not quarto.doc.is_format('html') or #block.content~=1 then return end
-   local span=block.content[1]
-   if not isRequest(span) or span.attributes[inCallout]=='true' then return end
+   local span=block.content[1] --[[@as pandoc.Inline]]
+   if not isRequest(span) or (span --[[@as pandoc.Span]]).attributes[inCallout]=='true' then return end
+   ---@cast span pandoc.Span
    local link=replace(span)
-   return quarto.Callout({type='none',appearance='minimal',attr=pandoc.Attr('',{'project-download'}),content={pandoc.Para({pandoc.Str('⤓'),pandoc.Space(),link})}}),false
+   ---@cast link pandoc.Link
+   return (quarto.Callout --[[@as DownloadCalloutConstructor]])({type='none',appearance='minimal',attr=pandoc.Attr('',{'project-download'}),content={pandoc.Para({pandoc.Str('⤓'),pandoc.Space(),link})}}),false
   end
   -- Topdown сохраняет inline и даёт обрамить только отдельный Para/Plain carrier.
   doc=walk(doc,{traverse='topdown',Para=standalone,Plain=standalone,Span=replace})

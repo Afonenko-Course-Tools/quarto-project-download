@@ -1,5 +1,14 @@
 ---@meta
 
+-- Bundled API объявляет корень namespace как безымянную таблицу. Именованный
+-- класс связывает её существующие library-поля, не меняя их сигнатуры.
+---@class pandoc
+pandoc = {}
+
+-- Все Inline имеют native tag t; bundled базовый класс пропускает это поле.
+---@class pandoc.Inline
+---@field t string
+
 -- Только статические описания существующих native API и wire-полей.
 -- run_json_filter возвращает Pandoc по публичному договору Pandoc Lua;
 -- bundled utils.lua Quarto 1.11.5 описывает параметры, но пропускает @return.
@@ -44,7 +53,9 @@
 
 -- JSON-проекция сохраняет произвольные авторские metadata; их предметные
 -- схемы проверяет существующий TS decoder, а не Lua-фильтр.
----@alias DownloadJson boolean|number|string|DownloadJson[]|{[string]: DownloadJson}
+---@alias DownloadJson boolean|number|string|DownloadJsonTable
+---@class DownloadJsonTable
+---@field [string|integer] DownloadJson
 
 ---@class DownloadResolvedLink
 ---@field ordinal integer
@@ -82,11 +93,19 @@
 ---@alias DownloadCalloutConstructor fun(options: DownloadCalloutOptions): pandoc.RawInline
 
 ---@class DownloadAttributed
----@field classes? string[]
+---@field classes? pandoc.List
 ---@field attributes? {[string]: string}
 
----@alias DownloadFilterValue function|'topdown'|'typewise'
----@alias DownloadFilter {[string]: DownloadFilterValue}
+---@class DownloadFilter
+---@field traverse? 'topdown'|'typewise'
+---@field Div? fun(node: pandoc.Div): pandoc.Div|nil
+---@field Span? fun(node: pandoc.Span): pandoc.Span|pandoc.Link|nil
+---@field Para? fun(node: pandoc.Para): pandoc.RawInline|nil, boolean|nil
+---@field Plain? fun(node: pandoc.Plain): pandoc.RawInline|nil, boolean|nil
+
+---@alias DownloadAttributeFilter {[string]: fun(node: DownloadAttributed)}
+-- Native Pandoc walk поддерживает traverse, не описанный в bundled map.
+---@alias DownloadDocumentWalk fun(self: pandoc.Pandoc, filter: DownloadFilter|DownloadAttributeFilter): pandoc.Pandoc
 
 ---@class DownloadWalkSpec
 ---@field id string
@@ -94,7 +113,7 @@
 ---@field scope 'full-document'
 
 ---@class DownloadMetrics
----@field wrap_walk fun(spec: DownloadWalkSpec, fn: fun(node: pandoc.Pandoc, filter: DownloadFilter): pandoc.Pandoc): fun(node: pandoc.Pandoc, filter: DownloadFilter): pandoc.Pandoc
+---@field wrap_walk fun(spec: DownloadWalkSpec, fn: fun(node: pandoc.Pandoc, filter: DownloadFilter|DownloadAttributeFilter): pandoc.Pandoc): fun(node: pandoc.Pandoc, filter: DownloadFilter|DownloadAttributeFilter): pandoc.Pandoc
 
 ---@class DownloadMetricsBridge
 ---@field create_metrics fun(extension_id: string, abi_version: integer): DownloadMetrics

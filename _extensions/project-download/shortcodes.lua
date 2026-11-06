@@ -7,9 +7,9 @@ return {['project-download']=
 ---@param kwargs {[string]: pandoc.Inlines}
 function(args,kwargs)
  ---@type DownloadArgumentList
- local positional=pandoc.List()
+ local positional=pandoc.List() --[[@as DownloadArgumentList]]
  ---@type DownloadNamedArgumentList
- local named=pandoc.List()
+ local named=pandoc.List() --[[@as DownloadNamedArgumentList]]
  for _,value in ipairs(args) do positional:insert(pandoc.utils.stringify(value)) end
  for key,value in pairs(kwargs) do named:insert({key=key,value=pandoc.utils.stringify(value)}) end
  table.sort(named,function(a,b)return a.key<b.key end)

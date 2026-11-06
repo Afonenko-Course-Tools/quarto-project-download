@@ -3,12 +3,14 @@ local owner=debug.getinfo(1,'S').source:gsub('^@','')
 local key='project-download/native-buffer:'..pandoc.path.normalize(owner)
 ---@type DownloadSharedBuffer
 local shared=package.loaded[key]
-if type(shared)~='table' then shared={};package.loaded[key]=shared end
----@type DownloadTransport
+if type(shared)~='table' then shared={}
+ ---@type DownloadSharedBuffer
+ package.loaded[key]=shared
+end
 local M={}
 ---@param message string
----@return never
 local function fail(message) assert(false,'DOWNLOAD.DELIVERY_PHASE_UNSUPPORTED: '..message) end
+---@return {source: string, key: string}
 function M.context()
  local root=assert(quarto.project.directory,'DOWNLOAD.CONFIG_INVALID: project-download требует проект Quarto')
  local input=quarto.doc.input_file
@@ -24,6 +26,7 @@ function M.begin(source) shared.active={source=source,calls={},bytes=0} end
 function M.record(value)
  local context=M.context();local active=shared.active
  if not active or active.source~=context.key then fail('Нет действующей ранней owner фазы') end
+ ---@cast active DownloadActiveBuffer
  value.ordinal=#active.calls;value.inline=false
  ---@cast value DownloadRecordedInvocation
  local bytes=#pandoc.json.encode(value)
@@ -36,6 +39,7 @@ end
 function M.drain(source)
  local active=shared.active;shared.active=nil
  if not active or active.source~=source then fail('Чужой или незавершённый native Download batch') end
+ ---@cast active DownloadActiveBuffer
  return active.calls
 end
-return M
+return M --[[@as DownloadTransport]]
