@@ -2,7 +2,6 @@
 local dir=pandoc.path.directory(debug.getinfo(1,'S').source:gsub('^@',''))
 ---@type DownloadTransport
 local transport=dofile(pandoc.path.join({dir,'request-transport.lua'}))
----@type DownloadMetrics
 local metrics=require('./observability/bridge').create_metrics('project-download',1)
 local walk=metrics.wrap_walk({id='project-download.filter.walk',kind='ast_walk',scope='full-document'},
 ---@param node pandoc.Pandoc

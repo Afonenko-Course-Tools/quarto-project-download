@@ -117,13 +117,6 @@ pandoc = {}
 -- Native Pandoc walk поддерживает traverse, не описанный в bundled map.
 ---@alias DownloadDocumentWalk fun(self: pandoc.Pandoc, filter: DownloadFilter|DownloadAttributeFilter): pandoc.Pandoc
 
----@class DownloadWalkSpec
----@field id string
----@field kind 'ast_walk'
----@field scope 'full-document'
-
----@class DownloadMetrics
----@field wrap_walk fun(spec: DownloadWalkSpec, fn: fun(node: pandoc.Pandoc, filter: DownloadFilter|DownloadAttributeFilter): pandoc.Pandoc): fun(node: pandoc.Pandoc, filter: DownloadFilter|DownloadAttributeFilter): pandoc.Pandoc
-
+-- Dynamic dofile загружает тот же закреплённый модуль Performance.
 ---@class DownloadMetricsBridge
----@field create_metrics fun(extension_id: string, abi_version: integer): DownloadMetrics
+---@field create_metrics fun(extension_id: string, abi_version?: integer): CoursePerfMetrics

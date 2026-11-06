@@ -1,7 +1,7 @@
 # Проверка собственного кода Download
 
 Состав поддерживаемых файлов закреплён в `typecheck/coverage.json`.
-`tools/check-types.ts` сверяет конечный список TypeScript с отслеживаемыми
+`tools/check-types.ts` сверяет конечные списки TypeScript, Lua и shell с отслеживаемыми
 исходниками Git и проверяет source, tests, tools и исполняемые fixtures.
 Новые файлы добавляют в этот список в том же изменении.
 
@@ -29,19 +29,25 @@ Quarto. Временная конфигурация удаляется посл�
 Quarto определения Pandoc/Quarto. Команды выполняются раздельно:
 
 ```sh
-quarto run tools/check-lua.ts --probe
-quarto run tools/check-lua.ts
+quarto run tools/check-types.ts --lua
 for script in tools/check.sh _extensions/project-download/native-ts/late-filter.sh tests/fixtures/*.sh; do
   bash -n "$script"
 done
 shellcheck tools/check.sh _extensions/project-download/native-ts/late-filter.sh tests/fixtures/*.sh
 ```
 
-`--probe` проверяет саму конфигурацию: намеренно неизвестный тип обязан
-вызвать диагностику `no-unknown`. Обычная проверка включает строгую диагностику
-типов, nil, union и формы таблиц. Она использует один процесс проверки LuaLS
-и выводит полный JSON с диагностикой. `DOWNLOAD_QUARTO_SHARE` позволяет явно
-указать штатный каталог `share`, если расположение Quarto нестандартное.
+Lua использует единый checker `quarto-course-performance@05803ba2ee66171cec12c5fb9027da2642e5518a`.
+По умолчанию он берётся из соседнего `../quarto-course-performance`; переменная
+`PERFORMANCE` задаёт другой checkout этой же закреплённой редакции. Тонкий вызов
+передаёт конечный собственный список `--scope`, точное исключение канонического
+bridge и каталог его типов. Собственного движка LuaLS и установщика здесь нет.
+Каталоги Pandoc/Quarto определяются каноническим checker через `quarto --paths`.
+`LUA_LANGUAGE_SERVER` при необходимости задаёт абсолютный путь к LuaLS 3.19.2.
+Для CI применяется общий `tools/setup-lua-ci.sh` из того же Performance checkout:
+он принимает новый абсолютный каталог, проверяет SHA256 и версию установки.
+Контрольный `--probe` принадлежит тому же каноническому инструменту, а не локальной
+копии настроек. Строгие type/strong/no-unknown, nil/union и форма таблиц сохраняются;
+внешний bridge подключён как библиотека и не объявляется собственной проверкой.
 
 Канонические `observability/bridge.ts` и `bridge.lua` создаются владельцем
 Performance из его шаблона. Их проверку и синхронизацию выполняют по этому

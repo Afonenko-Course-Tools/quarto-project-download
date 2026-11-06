@@ -46,7 +46,6 @@
     "tests/resource-membership-native.ts",
     "tests/runtime-batch.ts",
     "tests/runtime-types.ts",
-    "tools/check-lua.ts",
     "tools/check-types.ts"
   ],
   "lua": [
