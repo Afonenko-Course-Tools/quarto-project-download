@@ -1,0 +1,68 @@
+{
+  "typescript": [
+    "_extensions/project-download/application/package-artifact.ts",
+    "_extensions/project-download/application/publish.ts",
+    "_extensions/project-download/diagnostics.ts",
+    "_extensions/project-download/domain/config.ts",
+    "_extensions/project-download/domain/request.ts",
+    "_extensions/project-download/domain/zip.ts",
+    "_extensions/project-download/entrypoints/post.ts",
+    "_extensions/project-download/entrypoints/pre.ts",
+    "_extensions/project-download/infrastructure/files.ts",
+    "_extensions/project-download/infrastructure/runtime.ts",
+    "_extensions/project-download/infrastructure/siblings.ts",
+    "_extensions/project-download/native-ts/late-filter.ts",
+    "_extensions/project-download/ownership.ts",
+    "_extensions/project-download/public.ts",
+    "tests/archive.ts",
+    "tests/contract-consistency.ts",
+    "tests/contract-types.ts",
+    "tests/diagnostics.ts",
+    "tests/model-artifacts.ts",
+    "tests/model-receipts.ts",
+    "tests/native-buffer.ts",
+    "tests/native-carriers.ts",
+    "tests/native-phase.ts",
+    "tests/ordinary-source-guards.ts",
+    "tests/own-stage-progress.ts",
+    "tests/ownership.ts",
+    "tests/package-bytes.ts",
+    "tests/package-once.ts",
+    "tests/performance-context.ts",
+    "tests/performance-env.ts",
+    "tests/phase-cost.ts",
+    "tests/presentation.ts",
+    "tests/project-contract-consumer.ts",
+    "tests/public-inventory.ts",
+    "tests/public-runtime.ts",
+    "tests/render.ts",
+    "tests/request-contract.ts",
+    "tests/request-paths.ts",
+    "tests/resource-membership-native.ts",
+    "tests/runtime-batch.ts",
+    "tests/runtime-types.ts",
+    "tools/check-types.ts"
+  ],
+  "lua": [
+    "_extensions/project-download/filter.lua",
+    "_extensions/project-download/native-ts/early-filter.lua",
+    "_extensions/project-download/request-transport.lua",
+    "_extensions/project-download/shortcodes.lua",
+    "tests/native-buffer.lua"
+  ],
+  "shell": [
+    "_extensions/project-download/native-ts/late-filter.sh",
+    "tools/check.sh"
+  ],
+  "delegated": {
+    "Performance canonical template": [
+      "_extensions/project-download/observability/bridge.ts",
+      "_extensions/project-download/observability/bridge.lua"
+    ]
+  },
+  "retired": [
+    "tests/install-context.ts",
+    "tests/model-installed.ts",
+    "tests/native-installed.ts"
+  ]
+}

@@ -1,7 +1,7 @@
 // Реальный public Core producer и временная установленная раскладка; не полный курс.
 import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url)));
-const api = await import(
+const api: typeof import("../_extensions/project-download/public.ts") | undefined = await import(
   toFileUrl(join(repo, "_extensions/project-download/public.ts")).href
 ).catch(() => undefined);
 const assert = (value: unknown, message: string) => {
@@ -58,13 +58,13 @@ try {
     join(qrcSource, "_extensions/reference-catalog"),
     join(extensions, "reference-catalog"),
   );
-  const core = await import(
+  const core: typeof import("course-core/public.ts") = await import(
     toFileUrl(join(extensions, "course-core/public.ts")).href
   );
-  const download = await import(
+  const download: typeof import("../_extensions/project-download/public.ts") = await import(
     toFileUrl(join(extensions, "project-download/public.ts")).href
   );
-  const qrc = await import(
+  const qrc: typeof import("reference-catalog/public.ts") = await import(
     toFileUrl(join(extensions, "reference-catalog/public.ts")).href
   );
   const native = join(extensions, "course-core/native-ts");
@@ -129,7 +129,7 @@ try {
       projection: "student",
       outputDirectory: join(root, "_site"),
     },
-    async (operation: any) => {
+    async (operation) => {
       await operation.validateRelease({ expectedSources: ["index.qmd"] });
       const condition = operation.condition({
         source: "index.qmd",
@@ -167,7 +167,7 @@ try {
         directories: ["projects/demo"],
         profiles: [],
         format: "html",
-      }], async (batch: any) => {
+      }], async (batch) => {
         const plan = await core.planProject(batch.groups[0].contexts[0], {
           audience: "student",
         });

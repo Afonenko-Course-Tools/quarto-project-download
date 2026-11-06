@@ -18,15 +18,15 @@ try {
   const specs: OperationSpec[] = [], spans: string[] = [];
   let linked = true;
   const metrics = {
-    wrapSync(spec: OperationSpec, action: (...args: any[]) => any) {
+    wrapSync<Args extends unknown[], Result>(spec: OperationSpec, action: (...args: Args) => Result) {
       specs.push(spec);
-      return (...args: any[]) => { spans.push(spec.id); try { return action(...args); } finally { spans.pop(); } };
+      return (...args: Args): Result => { spans.push(spec.id); try { return action(...args); } finally { spans.pop(); } };
     },
-    wrapAsync(spec: OperationSpec, action: (...args: any[]) => any) {
+    wrapAsync<Args extends unknown[], Result>(spec: OperationSpec, action: (...args: Args) => Result) {
       specs.push(spec);
-      return async (...args: any[]) => { if (!linked) return await action(...args); spans.push(spec.id); try { return await action(...args); } finally { spans.pop(); } };
+      return async (...args: Args) => { if (!linked) return await action(...args); spans.push(spec.id); try { return await action(...args); } finally { spans.pop(); } };
     },
-    wrapWalk(spec: OperationSpec, action: (...args: any[]) => any) { return this.wrapSync(spec, action); },
+    wrapWalk<Args extends unknown[], Result>(spec: OperationSpec, action: (...args: Args) => Result) { return this.wrapSync(spec, action); },
     childEnv(env: Record<string, string>) {
       const result = { ...env }; delete result.COURSE_PERF_PARENT_SPAN_ID;
       if (spans.length) result.COURSE_PERF_PARENT_SPAN_ID = spans.at(-1)!;

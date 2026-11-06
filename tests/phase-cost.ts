@@ -3,7 +3,7 @@ import { dirname, fromFileUrl, join } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url))),
   base = Deno.env.get("DOWNLOAD_BASE"),
   root = await Deno.makeTempDir({ prefix: "download-cost-" }),
-  rows: any[] = [],
+  rows: {name: string; requests: number; fullWalkLogOccurrences: number; ms: number; earlyTS: number; lateTS: number; tool: string; stdoutBytes: number; stderrBytes: number}[] = [],
   q = Deno.env.get("QUARTO") ?? "/opt/quarto/bin/quarto";
 if (!base) throw Error("DOWNLOAD_BASE обязателен для paired measurement");
 function assert(v: unknown, m: string) {

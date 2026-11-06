@@ -8,7 +8,8 @@ const repo = dirname(dirname(fromFileUrl(import.meta.url))),
 function assert(v: unknown, m: string) {
   if (!v) throw Error(m);
 }
-const rows: any[] = [];
+interface Row { name: string; exit: number; callbackLogOccurrences: number; ms: number; mainSha256?: string }
+const rows: Row[] = [];
 try {
   await copy(
     join(Deno.env.get("NATIVE_CARRIER_BASE") ?? repo, "_extensions"),
@@ -62,13 +63,14 @@ try {
         stderr: "piped",
       }).output(),
       stderr = td.decode(p.stderr);
-    rows.push({
+    const row: Row = {
       name,
       exit: p.code,
       callbackLogOccurrences:
         (stderr.match(/DOWNLOAD_TEST_CALLBACK/g) ?? []).length,
       ms: performance.now() - t,
-    });
+    };
+    rows.push(row);
     if (error) {
       assert(!p.success && stderr.includes(error), name + ": " + stderr);
       return;
@@ -92,7 +94,7 @@ try {
     );
     const html = await Deno.readTextFile(join(root, "_site/index.html"));
     const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
-    rows.at(-1).mainSha256 = Array.from(
+    row.mainSha256 = Array.from(
       new Uint8Array(
         await crypto.subtle.digest("SHA-256", new TextEncoder().encode(main)),
       ),
