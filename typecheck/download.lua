@@ -64,7 +64,8 @@ pandoc = {}
 ---@class DownloadJsonTable
 ---@field [string|integer] DownloadJson
 
----@class DownloadResolvedLink
+-- После существующего guard уточняются те же поля того же объекта candidate.
+---@class DownloadResolvedLink: DownloadLinkCandidate
 ---@field ordinal number
 ---@field href string
 ---@field text string
