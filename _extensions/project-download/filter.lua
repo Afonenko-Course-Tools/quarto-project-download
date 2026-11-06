@@ -59,10 +59,10 @@ end},{Pandoc=function(doc)
  local native=pandoc.utils.stringify(doc.meta['course-core-runtime'] or '')=='native-ts'
  local processed=doc.meta['course-core-processed']==true
  local configuration=plain(doc.meta['project-download'])
- ---@type DownloadRequest
+ ---@type DownloadStoredRequest
  local request={source=context.source,resources=pandoc.List(),configuration=configuration,native=native}
  if processed then request.courseProcessed=true end
- ---@type {[integer]: DownloadResolvedLink|nil}
+ ---@type {[number]: DownloadResolvedLink|nil}
  local decisions={}
  if #requests>0 then
   local batch={source=context.source,native=native,courseProcessed=processed,configuration=configuration,exercises=exercises,artifactContext=plain(doc.meta['course-artifact-context']),requests=requests}
@@ -75,15 +75,16 @@ end},{Pandoc=function(doc)
   local result=runJsonFilter(carrier,pandoc.path.join({dir,'native-ts/late-filter.sh'}),{FORMAT})
   local encoded=result.meta['project-download-native-result']
   if not encoded then fail('Отсутствует native Download result') end
-  ---@type DownloadResolvedBatch
-  local resolved=pandoc.json.decode(pandoc.utils.stringify(encoded))
-  if resolved.source~=context.source or type(resolved.links)~='table' or type(resolved.request)~='table' or resolved.request.source~=context.source or #resolved.links~=visibleCount then fail('Чужой или неполный Download result') end
-  for _,link in ipairs(resolved.links) do
+  -- Собственный TS producer возвращает объект; поля ещё не считаются проверенными.
+  local resolved=pandoc.json.decode(pandoc.utils.stringify(encoded)) --[[@as DownloadResultCandidate]]
+  if resolved.source~=context.source or type(resolved.links)~='table' or type(resolved.request)~='table' or (resolved.request --[[@as {source: unknown}]]).source~=context.source or #resolved.links~=visibleCount then fail('Чужой или неполный Download result') end
+  for _,link in ipairs(resolved.links --[[@as DownloadLinkCandidate[]]]) do
    if type(link.ordinal)~='number' or decisions[link.ordinal] or type(link.href)~='string' or type(link.text)~='string' then fail('Повреждённый Download result ordinal') end
+   ---@cast link DownloadResolvedLink
    decisions[link.ordinal]=link
   end
   for i=1,visibleCount do if not decisions[requests[i].ordinal] then fail('Пропущен Download result ordinal') end end
-  request=resolved.request
+  request=resolved.request --[[@as DownloadStoredRequest]]
   ---@param span pandoc.Span
   ---@return pandoc.Link|nil
   local function replace(span)

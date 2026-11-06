@@ -22,7 +22,7 @@ return {{Pandoc=function(doc)
  metadata(doc.meta)
  ---@param node DownloadAttributed
  local function attribute(node)
-  if node.classes then for _,c in ipairs(node.classes) do if reserved[c] then fail() end end end
+  if node.classes then for _,c in ipairs(node.classes --[[@as string[]]]) do if reserved[c] then fail() end end end
   if node.attributes then for key in pairs(node.attributes) do if fields[key] then fail() end end end
  end
  ---@type DownloadAttributeFilter

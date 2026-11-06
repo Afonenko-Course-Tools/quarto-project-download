@@ -3,7 +3,14 @@
 -- Bundled API объявляет корень namespace как безымянную таблицу. Именованный
 -- класс связывает её существующие library-поля, не меняя их сигнатуры.
 ---@class pandoc
+---@field json DownloadPandocJson
 pandoc = {}
+
+-- JSON API принимает динамические значения; decode сам по себе не даёт
+-- полномочий считать результат проверенным Download request.
+---@class DownloadPandocJson
+---@field encode fun(value: unknown): string
+---@field decode fun(value: string): unknown
 
 -- Все Inline имеют native tag t; bundled базовый класс пропускает это поле.
 ---@class pandoc.Inline
@@ -58,22 +65,24 @@ pandoc = {}
 ---@field [string|integer] DownloadJson
 
 ---@class DownloadResolvedLink
----@field ordinal integer
+---@field ordinal number
 ---@field href string
 ---@field text string
 
----@class DownloadRequest
----@field source string
----@field resources string[]
----@field configuration DownloadJson
----@field native boolean
----@field courseProcessed? boolean
----@field artifacts? {exerciseId: string, kind: 'starter'|'full'|'conditions'}[]
+---@class DownloadResultCandidate
+---@field source unknown
+---@field links unknown
+---@field request unknown
 
----@class DownloadResolvedBatch
+---@class DownloadLinkCandidate
+---@field ordinal unknown
+---@field href unknown
+---@field text unknown
+
+-- Lua проверяет только source request; остальные поля сохраняются в wire JSON.
+---@class DownloadStoredRequest
 ---@field source string
----@field links DownloadResolvedLink[]
----@field request DownloadRequest
+---@field courseProcessed? unknown
 
 -- Quarto extended Callout остаётся native-узлом: здесь только реально читаемые
 -- поля, включая публичный Attr, отсутствующий в bundled callout.lua.
