@@ -78,7 +78,7 @@ end},{Pandoc=function(doc)
   -- Собственный TS producer возвращает объект; поля ещё не считаются проверенными.
   local resolved=pandoc.json.decode(pandoc.utils.stringify(encoded)) --[[@as DownloadResultCandidate]]
   if resolved.source~=context.source or type(resolved.links)~='table' or type(resolved.request)~='table' or (resolved.request --[[@as {source: unknown}]]).source~=context.source or #resolved.links~=visibleCount then fail('Чужой или неполный Download result') end
-  for _,link in ipairs(resolved.links --[[@as DownloadLinkCandidate[]]]) do
+  for _,link in ipairs(resolved.links --[[@as DownloadLinkCandidate[] ]]) do
    if type(link.ordinal)~='number' or decisions[link.ordinal] or type(link.href)~='string' or type(link.text)~='string' then fail('Повреждённый Download result ordinal') end
    ---@cast link DownloadResolvedLink
    decisions[link.ordinal]=link
