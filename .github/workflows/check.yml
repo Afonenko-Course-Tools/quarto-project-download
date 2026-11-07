@@ -60,29 +60,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: d21ddfdc9e4fde58145275751dccfc1c997777df # Core: согласованный native API и функциональные файлы
+          ref: 8aba3b47df161c98645f3fc268adefc2e96ef8d3 # Core: согласованный native API и функциональные файлы
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "d21ddfdc9e4fde58145275751dccfc1c997777df"
+          test "$(git -C core-fixture rev-parse HEAD)" = "8aba3b47df161c98645f3fc268adefc2e96ef8d3"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog
-          ref: 541a44836cf5ec934a101059cbee77c9ff47d134 # QRC: согласованный native API ссылок
+          ref: 0b62c6501d716a634e0d1e3fcc3d21e41142b5a1 # QRC: согласованный native API ссылок
           path: qrc-fixture
           persist-credentials: false
       - name: Проверить закреплённый QRC
-        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "541a44836cf5ec934a101059cbee77c9ff47d134"
+        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "0b62c6501d716a634e0d1e3fcc3d21e41142b5a1"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-prairielearn
-          ref: fcd3320eb6dcbe0fde897ecafafcb9c0b31fb9fc # PL: согласованный public API; полный CI проверяется отдельно
+          ref: 8c1f03fb6f137320f1f7c43cab4122a18a9fa052 # PL: согласованный public API; полный CI проверяется отдельно
           path: pl-fixture
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
-        run: test "$(git -C pl-fixture rev-parse HEAD)" = "fcd3320eb6dcbe0fde897ecafafcb9c0b31fb9fc"
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "8c1f03fb6f137320f1f7c43cab4122a18a9fa052"
       - name: Строгая проверка собственного Lua
         run: quarto run tools/check-types.ts --lua
       - name: ShellCheck и синтаксис каждого собственного shell-файла
