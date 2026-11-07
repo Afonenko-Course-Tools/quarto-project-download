@@ -278,7 +278,7 @@ CORE=/path/to/quarto-course QRC=/path/to/quarto-reference-catalog PL=/path/to/qu
 ```
 
 [Строгие проверки TS, Lua и shell](docs/typechecking.md) охватывают конечный
-состав собственного кода и исполняемых fixtures.
+состав собственного кода и исполняемых тестовых программ.
 
 Для статической проверки native-цепи нужны фактические публичные типы `CORE`/`PL`/`QRC`; ссылки только на типы стираются, поэтому обычные resources исполняются без Core.
 
