@@ -158,7 +158,7 @@ r = resolveDownloadRequests(batch("constructor", {
   configuration: { resources: { constructor: { path: "/materials" } } },
 }));
 equal(r.request.resources, ["constructor"]);
-assert(r.links[0].href === "../_downloads/constructor.zip", "Объявленный constructor потерян");
+assert(r.links[0]?.href === "../_downloads/constructor.zip", "Объявленный constructor потерян");
 checks++;
 r = resolveDownloadRequests(batch("exr-a", {
   requests: [{

@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 import { resourceFiles } from "../_extensions/project-download/infrastructure/files.ts";
 import { clearOwned } from "../_extensions/project-download/infrastructure/runtime.ts";
 import { zip } from "../_extensions/project-download/domain/zip.ts";
@@ -21,7 +22,7 @@ try{
  await Deno.writeTextFile(root+"/parent/snapshot/data/secret.csv","2");
  await Deno.writeTextFile(root+"/parent/snapshot/.gitignore","secret.csv\n");
  const snapshot=await resourceFiles(root+"/parent/snapshot",{path:"/data"});
- assert(snapshot.length===1 && snapshot[0].name==="a.csv","Копия проекта внутри игнорируемого каталога родителя");
+ assert(snapshot.length===1 && required(snapshot[0]).name==="a.csv","Копия проекта внутри игнорируемого каталога родителя");
  const entries=await resourceFiles(root,{path:"/materials",include:["**/*.csv","**/*.md"]});
  assert(entries.length===2 && entries.some(e=>e.name==="sub/Пример.md"),"Gitignore с отрицанием и вложенными правилами");
  const bytes=zip(entries);assert(bytes.every((b,i)=>b===zip(entries)[i]),"ZIP должен быть воспроизводимым");

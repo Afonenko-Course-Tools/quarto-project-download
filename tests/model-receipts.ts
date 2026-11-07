@@ -9,9 +9,9 @@ try {
  await Deno.writeTextFile(root+'/index.qmd','# Probe\n');
  await Deno.writeTextFile(root+'/_quarto.yml','project: {type: website, output-dir: _site}\ncourse: {view: full}\nproject-download: {course-model: true}\n');
  await Deno.writeTextFile(root+'/_generated/project-download/requests/index.qmd/request.json',JSON.stringify({source:'index.qmd',resources:[],artifacts:[{exerciseId:'exr-probe',kind:'full'}]}));
- const run:any={schema:'course-native-run-v1',projectRoot:root,outputDirectory:root+'/_site',profiles:[],documents:[{source:'index.qmd',course:{view:'full'},projects:[{exerciseId:'exr-probe',source:'index.qmd',projectRoot:'projects/probe',bankMember:false,statementVisibility:'open',artifactPolicy:{student:'starter',full:'full',conditions:true}}]}]};
+ const run={schema:'course-native-run-v1',projectRoot:root,outputDirectory:root+'/_site',profiles:[],documents:[{source:'index.qmd',course:{view:'full'},projects:[{exerciseId:'exr-probe',source:'index.qmd',projectRoot:'projects/probe',bankMember:false,statementVisibility:'open',artifactPolicy:{student:'starter',full:'full',conditions:true}}]}]};
  let refused=false;
- try { await finish(root,{run,evaluateResources:async()=>({files:[]}),resolveArtifact} as never); }
+ try { await Reflect.apply(finish, undefined, [root,{run,evaluateResources:async()=>({files:[]}),resolveArtifact}]); }
  catch(error) { refused=String(error).includes('DOWNLOAD.CONFIG_INVALID') && String(error).includes('публичную операцию Core'); }
  if(!refused || privateResolverCalled) throw Error('Private NativeRun/resolver не являются текущей public operation');
  for(const path of [root+'/_site/_downloads/exr-probe-full.zip']) {

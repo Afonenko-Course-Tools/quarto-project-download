@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 import { dirname, fromFileUrl, join } from "stdlib/path";
 import { strict as assert } from "node:assert";
 import {
@@ -8,7 +9,7 @@ import {
 const repo = dirname(dirname(fromFileUrl(import.meta.url)));
 const root = await Deno.makeTempDir({ prefix: "download-request-paths-" });
 const longName = "я".repeat(110) + ".qmd";
-const sources = ["index.qmd", "nested/" + longName];
+const sources: [string, string] = ["index.qmd", "nested/" + longName];
 const directory = join(root, "_generated/project-download/requests");
 const requestPath = (source: string) => join(directory, source, "request.json");
 const put = async (path: string, value: string) => {
@@ -47,7 +48,7 @@ try {
     JSON.stringify({ source: sources[0], resources: [] }),
   );
   assert.deepEqual(
-    (await inspectOwnedRequests(root, sources)).files[0].resources,
+    required((await inspectOwnedRequests(root, sources)).files[0]).resources,
     [],
   );
   const keep = join(root, "_generated/project-download/keep.txt");
@@ -64,7 +65,7 @@ try {
       "nested//page.qmd",
       "nested/../index.qmd",
       "nested\\page.qmd",
-    ]
+    ] as const
   ) {
     await assert.rejects(
       () => inspectOwnedRequests(root, [source]),
@@ -84,7 +85,7 @@ try {
         sources[1] + "/request.json",
         JSON.stringify({ source: sources[1], resources: [], extra: true }),
       ],
-    ]
+    ] as const
   ) {
     await reset();
     await put(join(directory, path), value);

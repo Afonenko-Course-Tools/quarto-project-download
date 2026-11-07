@@ -1,3 +1,4 @@
+import { required } from "./required.ts";
 import { strict as assert } from "node:assert";
 import type { ArtifactFiles } from "../_extensions/course-core/public.ts";
 import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
@@ -8,7 +9,7 @@ if (!core) throw Error("CORE должен указывать на проверя
 const installed = await Deno.makeTempDir({ prefix: "download-package-files-" });
 await Deno.mkdir(join(installed, "_extensions"));
 for (
-  const [source, name] of [[core, "course-core"], [repo, "project-download"]]
+  const [source, name] of [[core, "course-core"], [repo, "project-download"]] as const
 ) {
   const result = await new Deno.Command("cp", {
     args: [
@@ -72,33 +73,33 @@ test("Caller не меняет bytes и target после начала упак�
   const expected = await packageArtifact(original);
   const borrowed = artifactFiles();
   const pending = packageArtifact(borrowed);
-  borrowed.files[0].bytes.fill(42);
-  borrowed.files[0].target = "other.txt";
-  borrowed.files.push({ ...borrowed.files[0], target: "extra.txt" });
+  required(borrowed.files[0]).bytes.fill(42);
+  required(borrowed.files[0]).target = "other.txt";
+  borrowed.files.push({ ...required(borrowed.files[0]), target: "extra.txt" });
   assert.deepEqual(await pending, expected);
 });
 
 test("Упаковка отвергает чужую аудиторию, небезопасный target и collisions", async () => {
   const audience = artifactFiles();
-  audience.files[0].audience = "full";
+  required(audience.files[0]).audience = "full";
   await assert.rejects(
     () => packageArtifact(audience),
     /DOWNLOAD.FILES_INVALID/,
   );
   const escape = artifactFiles();
-  escape.files[0].target = "../private";
+  required(escape.files[0]).target = "../private";
   await assert.rejects(
     () => packageArtifact(escape),
     /DOWNLOAD.FILES_INVALID/,
   );
   const duplicate = artifactFiles();
-  duplicate.files.push({ ...duplicate.files[0] });
+  duplicate.files.push({ ...required(duplicate.files[0]) });
   await assert.rejects(
     () => packageArtifact(duplicate),
     /DOWNLOAD.FILES_INVALID/,
   );
   const ancestor = artifactFiles();
-  ancestor.files.push({ ...ancestor.files[0], target: "README.md/nested.txt" });
+  ancestor.files.push({ ...required(ancestor.files[0]), target: "README.md/nested.txt" });
   await assert.rejects(
     () => packageArtifact(ancestor),
     /DOWNLOAD.FILES_INVALID/,

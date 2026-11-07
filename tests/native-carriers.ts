@@ -8,7 +8,8 @@ const repo = dirname(dirname(fromFileUrl(import.meta.url))),
 function assert(v: unknown, m: string) {
   if (!v) throw Error(m);
 }
-const rows: any[] = [];
+interface Row { name: string; exit: number; callbackLogOccurrences: number; ms: number; mainSha256?: string }
+const rows: Row[] = [];
 try {
   await copy(
     join(Deno.env.get("NATIVE_CARRIER_BASE") ?? repo, "_extensions"),
@@ -62,19 +63,20 @@ try {
         stderr: "piped",
       }).output(),
       stderr = td.decode(p.stderr);
-    rows.push({
+    const row: Row = {
       name,
       exit: p.code,
       callbackLogOccurrences:
         (stderr.match(/DOWNLOAD_TEST_CALLBACK/g) ?? []).length,
       ms: performance.now() - t,
-    });
+    };
+    rows.push(row);
     if (error) {
       assert(!p.success && stderr.includes(error), name + ": " + stderr);
       return;
     }
     assert(p.success, name + ": " + stderr);
-    const requests = [];
+    const requests: unknown[] = [];
     requests.push(JSON.parse(
       await Deno.readTextFile(
         join(
@@ -85,14 +87,16 @@ try {
     ));
     assert(
       requests.length === 1 &&
+        typeof requests[0] === "object" && requests[0] !== null &&
+        "resources" in requests[0] &&
         JSON.stringify(requests[0].resources) ===
           JSON.stringify(expectedRequest ? [expectedRequest] : []) &&
-        !requests[0].artifacts,
+        !("artifacts" in requests[0]),
       name + ": stringify создал resource request",
     );
     const html = await Deno.readTextFile(join(root, "_site/index.html"));
     const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
-    rows.at(-1).mainSha256 = Array.from(
+    row.mainSha256 = Array.from(
       new Uint8Array(
         await crypto.subtle.digest("SHA-256", new TextEncoder().encode(main)),
       ),
@@ -114,7 +118,7 @@ try {
   );
   await Deno.writeTextFile(
     join(root, "_extensions/echo/echo.lua"),
-    "return {echo=function(args)return pandoc.Str(pandoc.utils.stringify(args[1])) end}",
+    await Deno.readTextFile(join(repo, "tests/fixtures/echo.lua")),
   );
   await run("Code missing resource/no config", "`" + call + "`");
   await run(
@@ -130,7 +134,7 @@ try {
       ["bad-id", '{{< project-download Bad text="Текст" >}}'],
       ["bad-kind", '{{< project-download missing kind=other text="Текст" >}}'],
       ["bad-key", '{{< project-download missing unknown=1 text="Текст" >}}'],
-    ]
+    ] as const
   ) await run(name, "`" + call + "`", "DOWNLOAD.REQUEST_INVALID");
   await run("inline missing resource", call, "DOWNLOAD.CONFIG_INVALID");
   await run(
@@ -173,7 +177,7 @@ try {
   );
   await Deno.writeTextFile(
     join(root, "erase.lua"),
-    "return {{Span=function(s)if s.classes:includes('project-download-raw-request') or s.classes:includes('project-download-request') then return {} end end}}",
+    await Deno.readTextFile(join(repo, "tests/fixtures/erase.lua")),
   );
   await Deno.writeTextFile(
     join(root, "_quarto.yml"),

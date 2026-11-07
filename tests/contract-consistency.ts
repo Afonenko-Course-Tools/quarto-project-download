@@ -12,7 +12,11 @@ async function copy(from: string, to: string) {
   }
 }
 async function check(root: string) {
-  const imports: Record<string, string> = {};
+  const imports: Record<string, string> = {
+    "project-download/": toFileUrl(
+      join(root, "_extensions/project-download") + "/",
+    ).href,
+  };
   for (const key of ["stdlib/path", "stdlib/fs"]) {
     imports[key] = import.meta.resolve(key).replace(
       /^https:\/\/jsr\.io\/@std\/(path|fs)\/([^/]+)\/mod\.ts$/,
@@ -24,7 +28,7 @@ async function check(root: string) {
       ["course-core", "CORE"],
       ["course-prairielearn", "PL"],
       ["reference-catalog", "QRC"],
-    ]
+    ] as const
   ) {
     const source = Deno.env.get(variable);
     if (!source) throw Error(`${variable} required for actual public types`);
@@ -48,7 +52,7 @@ async function check(root: string) {
     if (!extension) throw Error(`${variable}: public.ts not found`);
     const target = toFileUrl(extension + "/").href;
     imports[toFileUrl(join(root, "_extensions", name) + "/").href] = target;
-    if (name === "course-core") imports["course-core/"] = target;
+    imports[name + "/"] = target;
   }
   await Deno.writeTextFile(map, JSON.stringify({ imports }));
   return await new Deno.Command(Deno.execPath(), {

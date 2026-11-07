@@ -3,7 +3,7 @@ import { dirname, fromFileUrl, join } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url))),
   base = Deno.env.get("DOWNLOAD_BASE"),
   root = await Deno.makeTempDir({ prefix: "download-cost-" }),
-  rows: any[] = [],
+  rows: {name: string; requests: number; fullWalkLogOccurrences: number; ms: number; earlyTS: number; lateTS: number; tool: string; stdoutBytes: number; stderrBytes: number}[] = [],
   q = Deno.env.get("QUARTO") ?? "/opt/quarto/bin/quarto";
 if (!base) throw Error("DOWNLOAD_BASE обязателен для paired measurement");
 function assert(v: unknown, m: string) {
@@ -20,12 +20,10 @@ try {
   const observer = join(root, "quarto-observer.sh");
   await Deno.writeTextFile(
     observer,
-    `#!/usr/bin/env bash\nset -euo pipefail\nprintf '%s\\n' "$*" >> "$DOWNLOAD_COST_LOG"\nexec ${
-      JSON.stringify(q)
-    } "$@"\n`,
+    await Deno.readTextFile(join(repo, "tests/fixtures/quarto-observer.sh")),
   );
   await Deno.chmod(observer, 0o700);
-  for (const [name, source] of [["before", base], ["after", repo]]) {
+  for (const [name, source] of [["before", base], ["after", repo]] as const) {
     if (
       Deno.env.get("DOWNLOAD_COST_SELECT") &&
       name !== Deno.env.get("DOWNLOAD_COST_SELECT")
@@ -46,11 +44,20 @@ try {
       ) {
         const path = join(root, "_extensions/project-download", file),
           source = await Deno.readTextFile(path);
+        const bodies = [
+          "function(node,filter)return node:walk(filter)end",
+          "function(node,filter)return (node.walk --[[@as DownloadDocumentWalk]])(node,filter)end",
+        ];
+        const matches = bodies.filter((body) => source.includes(body));
+        const body = matches[0];
+        if (matches.length !== 1 || !body || source.split(body).length !== 2) {
+          throw Error(`Не найдена единственная точка измерения walk: ${name}/${file}`);
+        }
         await Deno.writeTextFile(
           path,
-          source.replaceAll(
-            "function(node,filter)return node:walk(filter)end",
-            "function(node,filter)io.stderr:write('DOWNLOAD_TEST_WALK\\n');return node:walk(filter)end",
+          source.replace(
+            body,
+            body.replace("return ", "io.stderr:write('DOWNLOAD_TEST_WALK\\n');return "),
           ),
         );
       }
@@ -69,6 +76,7 @@ try {
           cwd: root,
           env: {
             QUARTO: observer,
+            DOWNLOAD_REAL_QUARTO: q,
             DOWNLOAD_COST_LOG: log,
           },
           stdout: "piped",

@@ -6,7 +6,7 @@ const repo = dirname(dirname(fromFileUrl(import.meta.url))),
 if (!core) throw Error("CORE обязателен");
 const root = await Deno.makeTempDir({ prefix: "download-phase-" }),
   td = new TextDecoder(),
-  rows: any[] = [];
+  rows: {name: string; format: string; exit: number}[] = [];
 function assert(v: unknown, m: string) {
   if (!v) throw Error(m);
 }
@@ -45,10 +45,10 @@ try {
   const content =
     `# Наблюдение\n\n::: {#exr-demo difficulty=introductory course-role=demonstration statement-visibility=open project="/projects/demo"}\nPUBLIC_DEMO\n\n{{< project-download exr-demo >}}\n\n::: {.solution}\nPUBLIC_SOLUTION\n:::\n:::\n\n::: {#exr-format difficulty=introductory statement-visibility=open project="/projects/format"}\nFORMAT_EXERCISE\n\n::: {.content-visible when-format=revealjs}\nFORMAT_ONLY\n\n{{< project-download exr-format >}}\n:::\n:::\n\n::: {#exr-private difficulty=introductory statement-visibility=restricted project="/projects/private"}\nPRIVATE_STATEMENT\n\n{{< project-download exr-private >}}\n\n::: {.solution}\nPRIVATE_SOLUTION\n:::\n:::\n`;
   await Deno.writeTextFile(join(root, "index.qmd"), content);
-  const Core = await import(
+  const Core: typeof import("course-core/public.ts") = await import(
       toFileUrl(join(root, "_extensions/course-core/public.ts")).href
     ),
-    capture = await import(
+    capture: typeof import("course-core/document/project-capture.ts") = await import(
       toFileUrl(
         join(root, "_extensions/course-core/document/project-capture.ts"),
       ).href
@@ -80,7 +80,7 @@ try {
       ["course-core, project-download", "html", "student"],
       ["project-download, course-core", "revealjs", "student"],
       ["project-download, course-core", "html", "author"],
-    ]
+    ] as const
   ) {
     if (
       Deno.args.includes("--html-student") &&
@@ -105,17 +105,19 @@ try {
       );
     }
     const base = join(root, "_generated/course-spec/native-ts"),
-      pointer = JSON.parse(await Deno.readTextFile(join(base, "active.json"))),
-      earlyPath = (await files(pointer.directory)).find((p) =>
+      pointer: unknown = JSON.parse(await Deno.readTextFile(join(base, "active.json")));
+    if (typeof pointer !== "object" || pointer === null || !("directory" in pointer) || typeof pointer.directory !== "string") throw Error("Некорректный active pointer");
+    const earlyPath = (await files(pointer.directory)).find((p) =>
         p.endsWith(".early.json")
       );
     assert(earlyPath, "early absent");
-    const early = JSON.parse(await Deno.readTextFile(earlyPath!)),
+    const contracts: typeof import("course-core/document/contracts.ts") = await import(toFileUrl(join(root, "_extensions/course-core/document/contracts.ts")).href);
+    const early = contracts.EarlyDocumentSchema.parse(JSON.parse(await Deno.readTextFile(earlyPath!))),
       facts = capture.collectNativeProjectFacts(early, root);
     assert(
-      facts.projects.length === 3 && facts.projects.some((p: any) =>
+      facts.projects.length === 3 && facts.projects.some((p) =>
         p.exerciseId === "exr-private" && p.statementVisibility === "restricted"
-      ) && facts.projects.every((p: any) =>
+      ) && facts.projects.every((p) =>
         p.bankMember === true
       ),
       "raw hidden project facts lost",

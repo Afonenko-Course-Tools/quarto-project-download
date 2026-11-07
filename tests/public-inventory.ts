@@ -1,7 +1,8 @@
+import { required } from "./required.ts";
 // Реальный public Core producer и временная установленная раскладка; не полный курс.
 import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url)));
-const api = await import(
+const api: typeof import("../_extensions/project-download/public.ts") | undefined = await import(
   toFileUrl(join(repo, "_extensions/project-download/public.ts")).href
 ).catch(() => undefined);
 const assert = (value: unknown, message: string) => {
@@ -58,13 +59,13 @@ try {
     join(qrcSource, "_extensions/reference-catalog"),
     join(extensions, "reference-catalog"),
   );
-  const core = await import(
+  const core: typeof import("course-core/public.ts") = await import(
     toFileUrl(join(extensions, "course-core/public.ts")).href
   );
-  const download = await import(
+  const download: typeof import("../_extensions/project-download/public.ts") = await import(
     toFileUrl(join(extensions, "project-download/public.ts")).href
   );
-  const qrc = await import(
+  const qrc: typeof import("reference-catalog/public.ts") = await import(
     toFileUrl(join(extensions, "reference-catalog/public.ts")).href
   );
   const native = join(extensions, "course-core/native-ts");
@@ -97,7 +98,7 @@ try {
   );
   await put(
     "generate.lua",
-    "return {{Pandoc=function(doc) local f=assert(io.open('generated.svg','wb')); f:write('<svg xmlns=\"http://www.w3.org/2000/svg\"><text>GENERATED_RESOURCE</text></svg>'); f:close(); return doc end}}\n",
+    await Deno.readTextFile(join(repo, "tests/fixtures/generate-resource.lua")),
   );
   const config = await Deno.readTextFile(join(root, "_quarto.yml"));
   await put(
@@ -129,7 +130,7 @@ try {
       projection: "student",
       outputDirectory: join(root, "_site"),
     },
-    async (operation: any) => {
+    async (operation) => {
       await operation.validateRelease({ expectedSources: ["index.qmd"] });
       const condition = operation.condition({
         source: "index.qmd",
@@ -167,8 +168,8 @@ try {
         directories: ["projects/demo"],
         profiles: [],
         format: "html",
-      }], async (batch: any) => {
-        const plan = await core.planProject(batch.groups[0].contexts[0], {
+      }], async (batch) => {
+        const plan = await core.planProject(required(required(batch.groups[0]).contexts[0]), {
           audience: "student",
         });
         const inventory = await core.materializeProject(plan, condition, {
@@ -212,8 +213,8 @@ try {
         );
         const borrowed = structuredClone(inventory);
         const pending = download.packageArtifact(borrowed);
-        borrowed.files[0].bytes.fill(0);
-        borrowed.files[0].target = "caller-changed.txt";
+        required(borrowed.files[0]).bytes.fill(0);
+        required(borrowed.files[0]).target = "caller-changed.txt";
         const frozen = await pending;
         assert(
           frozen.length === packed.length &&
@@ -221,14 +222,14 @@ try {
           "Caller изменил bytes/target во время lazy import",
         );
         const ancestor = structuredClone(inventory);
-        ancestor.files[0].target = "collision";
-        ancestor.files[1].target = "collision/nested.txt";
+        required(ancestor.files[0]).target = "collision";
+        required(ancestor.files[1]).target = "collision/nested.txt";
         await refused(
           () => download.packageArtifact(ancestor),
           "DOWNLOAD.FILES_INVALID",
         );
         const wrongAudience = structuredClone(inventory);
-        wrongAudience.files[0].audience = "full";
+        required(wrongAudience.files[0]).audience = "full";
         await refused(
           () => download.packageArtifact(wrongAudience),
           "DOWNLOAD.FILES_INVALID",
@@ -238,7 +239,7 @@ try {
           "DOWNLOAD.FILES_INVALID",
         );
         const escape = structuredClone(inventory);
-        escape.files[0].target = "../private";
+        required(escape.files[0]).target = "../private";
         await refused(
           () => download.packageArtifact(escape),
           "DOWNLOAD.FILES_INVALID",

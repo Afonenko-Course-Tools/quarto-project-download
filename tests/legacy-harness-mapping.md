@@ -1,22 +1,25 @@
-# Перенос прежних проверок на публичный native путь
+# Перенос прежних проверок на публичный нативный путь
 
-Штатный `tools/check.sh` запускает каждый актуальный suite один раз. Старые
-private carrier и legacy hooks не становятся authority нового native-ts API.
-Предыдущие исходники сохранены в Git и явно помечены неканоническими; это не
-заявление о совместимости нового пути со старым внутренним API.
+Штатный `tools/check.sh` запускает каждый актуальный набор тестов один раз.
+Прежние приватные носители данных и обработчики не дают полномочий новому
+`native-ts` API. Неиспользуемые программы приватной обвязки `install-context.ts`,
+`model-installed.ts` и `native-installed.ts` удалены из активного состава после
+сверки прямых вызовов и штатного CI; исходники сохранены в Git. Совместимость
+нового пути со старым внутренним API не заявляется.
 
 | Прежняя проверка | Действующая гарантия и контроль |
 | --- | --- |
-| model-receipts: injected NativeRun → full receipt | Теперь явный отказ без private resolver/ZIP/receipt в model-receipts; настоящий trusted student/full audience — public-runtime и public-inventory |
-| Удалённый `native`: fabricated resources/publicExercises/current profile; исходник в Git history | public-runtime: actual operation, profile/projection/document/output bindings, подготовленные bytes и одноразовую публикацию; public-inventory: owner target/audience/resource guards |
-| native-installed: selected current docs, privacy и private resources | public-runtime: настоящая временная namespaced установка/native hooks, starter/full/resource ZIP, текущие changed bytes; public-inventory: private/generated resources и exact inventory; ownership: выбранные source requests и empty capture |
-| model-installed: metadata/common files, README, origins, deterministic ZIP | public-inventory: actual project metadata, common build files, include-local-base/README, crossdoc/public/import refs, generated resource и exact package bytes; public-runtime: final href/self ZIP, одноразовую запись и full reference |
-| install-context: independent ordinary resources | render/ownership и runtime-batch no-core-ordinary: actual install/hooks/render, профили, resource ZIP без Core/CUE. Модельный native путь namespaced проверяет public-runtime, public-inventory вызывает public DTO consumer |
-| runtime-batch default | Alias public-runtime: canonical запускает public-runtime только один раз |
+| `model-receipts`: внедрённый `NativeRun` → полная квитанция | `model-receipts`: явный отказ без приватного разрешителя, ZIP и квитанции; `public-runtime` и `public-inventory`: подлинная доверенная аудитория student/full |
+| Удалённый `native`: вымышленные `resources`, `publicExercises` и текущий профиль; исходник в Git | `public-runtime`: подлинная операция, привязки профиля/проекции/документа/выхода, подготовленные байты и одноразовая публикация; `public-inventory`: проверки владельца, цели, аудитории и ресурсов |
+| `native-installed`: выбранные текущие документы, приватность и закрытые ресурсы | `public-runtime`: настоящая временная установка в пространстве имён и нативные обработчики, ZIP стартера/full/ресурсов, текущие изменённые байты; `public-inventory`: закрытые и сгенерированные ресурсы, точный состав; `ownership`: выбранные исходные заявки и пустой захват |
+| `model-installed`: метаданные, общие файлы, README, происхождение, детерминированный ZIP | `public-inventory`: действительные метаданные проекта, общие файлы сборки, локальная база включения/README, междокументные/публичные/импортированные ссылки, сгенерированный ресурс и точные байты пакета; `public-runtime`: конечный `href`, ZIP со ссылкой на себя, одноразовая запись и ссылка полной выдачи |
+| `install-context`: независимые обычные ресурсы | `render`, `ownership` и `runtime-batch no-core-ordinary`: настоящие установка/обработчики/рендер, профили и ZIP ресурсов без Core/CUE. Модельный нативный путь в пространстве имён проверяет `public-runtime`; `public-inventory` вызывает публичного потребителя DTO |
+| `runtime-batch` по умолчанию | Другое имя `public-runtime`: штатный набор запускает `public-runtime` только один раз |
 
-Legacy native materializer Git seed/CLI и старые conditions index.html не
-объявляются положительным результатом нового native A1: соответствующие
-выпускные gates остаются открытыми; owner Core определяет новые inventory и
-README bytes. Обычные ресурсы, public owner provenance и закрытые guards не
-ослабляются ради старых fixtures. Полный курс и установленная production
-композиция проверяются отдельно.
+Прежние механизмы материализации, заполнение Git через CLI и старый
+`index.html` в старой выдаче условий не объявляются положительным результатом нового
+нативного A1. Соответствующие выпускные проверки остаются открытыми; владелец
+Core определяет новый состав файлов и байты README. Обычные ресурсы,
+публичное происхождение владельца и закрытые проверки не ослабляются ради
+старых тестовых программ. Полный курс и установленная рабочая композиция
+проверяются отдельно.
