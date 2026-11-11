@@ -10,10 +10,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      XDG_CACHE_HOME: ${{ runner.temp }}/course-download-cache
       PERFORMANCE: ${{ github.workspace }}/.ci/performance
       COURSE_PERFORMANCE_SOURCE: ${{ github.workspace }}/.ci/performance
-      LUA_LANGUAGE_SERVER: ${{ runner.temp }}/course-download-luals/bin/lua-language-server
     strategy:
       fail-fast: false
       matrix:
@@ -24,9 +22,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Подготовить доступный кеш Quarto
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/course-download-cache
+          LUA_LANGUAGE_SERVER: ${{ runner.temp }}/course-download-luals/bin/lua-language-server
         run: |
           mkdir -p -- "$XDG_CACHE_HOME"
           test -w "$XDG_CACHE_HOME"
+          printf 'XDG_CACHE_HOME=%s\n' "$XDG_CACHE_HOME" >> "$GITHUB_ENV"
+          printf 'LUA_LANGUAGE_SERVER=%s\n' "$LUA_LANGUAGE_SERVER" >> "$GITHUB_ENV"
       - name: Проверить точный commit исходников
         env:
           EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
