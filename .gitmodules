@@ -1,0 +1,12 @@
+[submodule "quarto-course-performance"]
+	path = tests/dependencies/quarto-course-performance
+	url = https://github.com/Afonenko-Course-Tools/quarto-course-performance.git
+[submodule "quarto-course"]
+	path = tests/dependencies/quarto-course
+	url = https://github.com/Afonenko-Course-Tools/quarto-course.git
+[submodule "quarto-reference-catalog"]
+	path = tests/dependencies/quarto-reference-catalog
+	url = https://github.com/Afonenko-Course-Tools/quarto-reference-catalog.git
+[submodule "quarto-course-prairielearn"]
+	path = tests/dependencies/quarto-course-prairielearn
+	url = https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn.git

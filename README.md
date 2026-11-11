@@ -5,7 +5,7 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
-Контракт этого ref — кандидат 3.5.0. Публичный native путь использует Core
+Контракт этого ref — кандидат 3.6.0. Публичный native путь использует Core
 `withNativePublication` и готовые функциональные файлы Core.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
@@ -19,7 +19,7 @@ Private NativeRun fallback удалён; обычные resources сохраня
 Выпущенную версию устанавливайте по неизменяемому тегу после его публикации:
 
 ```sh
-quarto add Afonenko-Course-Tools/quarto-project-download@v3.3.1
+quarto add Afonenko-Course-Tools/quarto-project-download@v3.6.0
 ```
 
 Установка пассивна. Подключите фильтр, обработчики и ресурсы явно:
@@ -344,11 +344,10 @@ Main 3.2.2 добавил контекст наблюдения ABI 1 и пер�
 процессам. Эти изменения сохранены в 3.3.0 вместе с публичным native путём B3;
 private `NativeRun` fallback из прежнего моста не возвращается.
 
-Точные контрольные commits зависимости задаются [CI](.github/workflows/check.yml)
-того же Git ref. Целевой публичный договор — Core 9 и QRC 3.2; результаты старых
-матриц не переносятся на новую связку. До публикации `v3.4.0` устанавливайте
-целиком локальный checkout кандидата. Полный CI, установленный курс и выпуск
-проверяются отдельно.
+Исходники интеграционных проверок задаются gitlinks в `tests/dependencies`
+того же Git ref; CI записывает фактические HEAD. До публикации `v3.6.0`
+устанавливайте целиком локальный checkout кандидата. Полный CI, установленный
+курс и выпуск проверяются отдельно.
 
 ## История контракта 3.2.0
 
@@ -384,3 +383,22 @@ inline и авторские callout сохраняют структуру.
 ## Собственные стадии 3.4.1
 
 [Подготовка, ZIP и финализация](docs/releases/2026-11-02-own-stage-progress-341.md) сообщают начало, завершение/ошибку, время и уже доступные числа материалов и архивов в stderr. Новых обходов или native-вызовов нет; штатный `--quiet` подавляет progress.
+
+## Исходники для разработки
+
+Прямые submodules в `tests/dependencies` фиксируют исходники tooling и интеграционных
+fixtures. Инициализируйте только этот уровень:
+
+```sh
+git submodule update --init
+export PERFORMANCE="$PWD/tests/dependencies/quarto-course-performance"
+export COURSE_PERFORMANCE_SOURCE="$PERFORMANCE"
+export CORE="$PWD/tests/dependencies/quarto-course"
+export QRC="$PWD/tests/dependencies/quarto-reference-catalog"
+export PL="$PWD/tests/dependencies/quarto-course-prairielearn"
+```
+
+Gitlink — единственный selector редакции исходников; CI читает фактические HEAD
+для evidence. Эти fixtures не входят в runtime пакет. Установку расширений в
+проект выполняет штатный `quarto add` из выбранного checkout. Для отдельной
+интеграционной проверки можно явно задать другие исходные каталоги через env.
