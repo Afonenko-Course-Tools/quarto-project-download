@@ -82,5 +82,10 @@
     "tests/install-context.ts",
     "tests/model-installed.ts",
     "tests/native-installed.ts"
+  ],
+  "node": [
+    "eslint.config.mjs",
+    "tools/check-quality-controls.mjs",
+    "tools/check-quality.mjs"
   ]
 }

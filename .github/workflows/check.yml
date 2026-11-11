@@ -10,10 +10,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      XDG_CACHE_HOME: ${{ github.workspace }}/.ci/course-download-cache
       PERFORMANCE: ${{ github.workspace }}/.ci/performance
       COURSE_PERFORMANCE_SOURCE: ${{ github.workspace }}/.ci/performance
-      LUA_LANGUAGE_SERVER: ${{ github.workspace }}/.ci/luals/bin/lua-language-server
     strategy:
       fail-fast: false
       matrix:
@@ -24,28 +22,37 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Подготовить доступный кеш Quarto
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/course-download-cache
+          LUA_LANGUAGE_SERVER: ${{ runner.temp }}/course-download-luals/bin/lua-language-server
         run: |
           mkdir -p -- "$XDG_CACHE_HOME"
           test -w "$XDG_CACHE_HOME"
+          printf 'XDG_CACHE_HOME=%s\n' "$XDG_CACHE_HOME" >> "$GITHUB_ENV"
+          printf 'LUA_LANGUAGE_SERVER=%s\n' "$LUA_LANGUAGE_SERVER" >> "$GITHUB_ENV"
       - name: Проверить точный commit исходников
         env:
           EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           git rev-parse HEAD
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.7.14
       - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
           version: ${{ matrix.quarto }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-performance
-          ref: 0781f03a11f461691d7ce116f2c53bb5d8af68d7
+          ref: bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e
           path: .ci/performance
           persist-credentials: false
       - name: Проверить закреплённый Performance и установить LuaLS
         run: |
-          test "$(git -C "$PERFORMANCE" rev-parse HEAD)" = "0781f03a11f461691d7ce116f2c53bb5d8af68d7"
-          bash "$PERFORMANCE/tools/setup-lua-ci.sh" "$GITHUB_WORKSPACE/.ci/luals"
+          test "$(git -C "$PERFORMANCE" rev-parse HEAD)" = "bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e"
+          bash "$PERFORMANCE/tools/setup-mv-ci.sh" "$RUNNER_TEMP/course-gnu-mv" >> "$GITHUB_PATH"
+          bash "$PERFORMANCE/tools/setup-lua-ci.sh" "$RUNNER_TEMP/course-download-luals"
       - name: Установить закреплённый ShellCheck
         run: |
           tool_dir="$RUNNER_TEMP/shellcheck-0.11.0"
@@ -60,29 +67,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 8aba3b47df161c98645f3fc268adefc2e96ef8d3 # Core: согласованный native API и функциональные файлы
+          ref: 5c2b551724471ff7637aad1068f22c5f7998a687 # Core: согласованный native API и функциональные файлы
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "8aba3b47df161c98645f3fc268adefc2e96ef8d3"
+          test "$(git -C core-fixture rev-parse HEAD)" = "5c2b551724471ff7637aad1068f22c5f7998a687"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog
-          ref: 0b62c6501d716a634e0d1e3fcc3d21e41142b5a1 # QRC: согласованный native API ссылок
+          ref: f23797829c42b8333d5ba02469b64531f394911d # QRC: согласованный native API ссылок
           path: qrc-fixture
           persist-credentials: false
       - name: Проверить закреплённый QRC
-        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "0b62c6501d716a634e0d1e3fcc3d21e41142b5a1"
+        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "f23797829c42b8333d5ba02469b64531f394911d"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-prairielearn
-          ref: 8c1f03fb6f137320f1f7c43cab4122a18a9fa052 # PL: согласованный public API; полный CI проверяется отдельно
+          ref: 7e30f5d8a1cfeb0cef78ba72fa11a53cb92a20c1 # PL: согласованный public API; полный CI проверяется отдельно
           path: pl-fixture
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
-        run: test "$(git -C pl-fixture rev-parse HEAD)" = "8c1f03fb6f137320f1f7c43cab4122a18a9fa052"
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "7e30f5d8a1cfeb0cef78ba72fa11a53cb92a20c1"
       - name: Строгая проверка собственного Lua
         run: quarto run tools/check-types.ts --lua
       - name: ShellCheck и синтаксис каждого собственного shell-файла
@@ -107,6 +114,19 @@ jobs:
             tools/check.sh; do
             bash -n "$script"
           done
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '26.10.0'
+          package-manager-cache: false
+      - name: Полный production quality и отрицательные контроли
+        env:
+          CORE: ${{ github.workspace }}/core-fixture
+          QRC: ${{ github.workspace }}/qrc-fixture
+          PL: ${{ github.workspace }}/pl-fixture
+        run: |
+          npm ci --ignore-scripts
+          npm run check-quality
+          npm run check-quality:controls
       - name: Полный контракт Download и native installed model artifacts
         env:
           CORE: ${{ github.workspace }}/core-fixture

@@ -1,3 +1,4 @@
+import { fromFileUrl } from "stdlib/path";
 import { configuration } from "../_extensions/project-download/domain/config.ts";
 import { zip } from "../_extensions/project-download/domain/zip.ts";
 import { publish } from "../_extensions/project-download/application/publish.ts";
@@ -111,7 +112,9 @@ try {
   const fake = root + "/fake-quarto";
   await Deno.writeTextFile(
     fake,
-    await Deno.readTextFile(new URL("./fixtures/foreign-tool-failure.sh", import.meta.url)),
+    await Deno.readTextFile(
+      new URL("./fixtures/foreign-tool-failure.sh", import.meta.url),
+    ),
   );
   await Deno.chmod(fake, 0o755);
   const previous = Deno.env.get("QUARTO");
@@ -154,6 +157,23 @@ try {
     if (previous === undefined) Deno.env.delete("QUARTO");
     else Deno.env.set("QUARTO", previous);
   }
+  await Deno.writeTextFile(fake, "#!/bin/sh\nprintf '{'\n");
+  Deno.env.set("QUARTO", fake);
+  try {
+    const failure = await refuses(
+      () => finish(root),
+      "DOWNLOAD.CONFIG_INVALID",
+      [root, "inspect"],
+    );
+    assert(
+      failure.cause instanceof SyntaxError,
+      "Inspect потерял исходный JSON cause",
+    );
+  } finally {
+    if (previous === undefined) Deno.env.delete("QUARTO");
+    else Deno.env.set("QUARTO", previous);
+  }
+  await Deno.writeTextFile(fake, await Deno.readTextFile(new URL("./fixtures/foreign-tool-failure.sh", import.meta.url)));
   // Существующие исключения программиста не становятся внешней диагностикой.
   try {
     await finish({} as unknown as string);
@@ -189,10 +209,12 @@ try {
   }
   const runner = Deno.env.get("QUARTO_TEST_BIN") || Deno.env.get("QUARTO") ||
     "quarto";
-  const pre = new URL(
-    "../_extensions/project-download/entrypoints/post.ts",
-    import.meta.url,
-  ).pathname;
+  const pre = fromFileUrl(
+    new URL(
+      "../_extensions/project-download/entrypoints/post.ts",
+      import.meta.url,
+    ),
+  );
   const cli = await new Deno.Command(runner, {
     args: ["run", pre],
     cwd: root,
@@ -221,10 +243,21 @@ try {
   const git = fakeBin + "/git";
   await Deno.writeTextFile(
     git,
-    await Deno.readTextFile(new URL("./fixtures/git-failure.sh", import.meta.url)),
+    await Deno.readTextFile(
+      new URL("./fixtures/git-failure.sh", import.meta.url),
+    ),
   );
   await Deno.chmod(git, 0o755);
   await Deno.writeTextFile(root + "/data/sample.csv", "1,2");
+  const many = root + "/many";
+  await Deno.mkdir(many);
+  // Список совпадений превышает буфер stdout, пока Git ещё читает stdin.
+  for (let i = 0; i < 700; i++) {
+    await Deno.writeTextFile(
+      many + "/" + String(i).padStart(4, "0") + "-" + "x".repeat(230) + ".csv",
+      "1",
+    );
+  }
   const path = Deno.env.get("PATH")!;
   Deno.env.set("PATH", fakeBin + ":" + path);
   try {
@@ -249,18 +282,11 @@ try {
         "Git failure keeps both streams",
       );
     }
-    const many = root + "/many";
-    await Deno.mkdir(many);
-    for (let i = 0; i < 400; i++) {
-      await Deno.writeTextFile(
-        many + "/" + String(i).padStart(4, "0") + "-" + "x".repeat(230) +
-          ".csv",
-        "1",
-      );
-    }
     await Deno.writeTextFile(
       git,
-      await Deno.readTextFile(new URL("./fixtures/git-early-failure.sh", import.meta.url)),
+      await Deno.readTextFile(
+        new URL("./fixtures/git-early-failure.sh", import.meta.url),
+      ),
     );
     try {
       await resourceFiles(root, { path: "/many" });
@@ -282,7 +308,9 @@ try {
     }
     await Deno.writeTextFile(
       git,
-      await Deno.readTextFile(new URL("./fixtures/git-warning.sh", import.meta.url)),
+      await Deno.readTextFile(
+        new URL("./fixtures/git-warning.sh", import.meta.url),
+      ),
     );
     const files = await resourceFiles(root, { path: "/data" });
     assert(
@@ -292,6 +320,16 @@ try {
   } finally {
     Deno.env.set("PATH", path);
   }
+  await Deno.writeTextFile(
+    root + "/.gitignore",
+    "/many/*.csv\n!/many/allowed.csv\n",
+  );
+  await Deno.writeTextFile(many + "/allowed.csv", "2");
+  const selected = await resourceFiles(root, { path: "/many" });
+  assert(
+    selected.length === 1 && selected[0]?.name === "allowed.csv",
+    "Git отбирает разрешённый файл при большом списке игнорируемых путей",
+  );
   console.log(
     "PASS Download named context, ZIP boundary, unavailable profile, foreign process streams/exit",
   );
