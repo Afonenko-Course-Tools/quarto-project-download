@@ -5,7 +5,7 @@
 читаются из того же тега, что и код. Изменения main после выпущенного тега —
 **unreleased**. Минимум — Quarto 1.11.5. Учебная интеграция использует публичный TS-контракт Core 9; внешнего валидатора схем не требуется.
 
-Контракт этого ref — кандидат 3.6.0. Публичный native путь использует Core
+Публичный native путь использует Core
 `withNativePublication` и готовые функциональные файлы Core.
 Private NativeRun fallback удалён; обычные resources сохраняют независимость от Core.
 Для разработки установите целиком текущий checkout: `quarto add /path/to/quarto-project-download --no-prompt`.
@@ -16,7 +16,7 @@ Private NativeRun fallback удалён; обычные resources сохраня
 
 ## Подключение
 
-Выпущенную версию устанавливайте по неизменяемому тегу после его публикации:
+Установите выбранный опубликованный выпуск по неизменяемому тегу:
 
 ```sh
 quarto add Afonenko-Course-Tools/quarto-project-download@v3.6.0
