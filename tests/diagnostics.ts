@@ -1,3 +1,4 @@
+import { fromFileUrl } from "stdlib/path";
 import { configuration } from "../_extensions/project-download/domain/config.ts";
 import { zip } from "../_extensions/project-download/domain/zip.ts";
 import { publish } from "../_extensions/project-download/application/publish.ts";
@@ -189,10 +190,9 @@ try {
   }
   const runner = Deno.env.get("QUARTO_TEST_BIN") || Deno.env.get("QUARTO") ||
     "quarto";
-  const pre = new URL(
-    "../_extensions/project-download/entrypoints/post.ts",
-    import.meta.url,
-  ).pathname;
+  const pre = fromFileUrl(
+    new URL("../_extensions/project-download/entrypoints/post.ts", import.meta.url),
+  );
   const cli = await new Deno.Command(runner, {
     args: ["run", pre],
     cwd: root,
@@ -225,6 +225,15 @@ try {
   );
   await Deno.chmod(git, 0o755);
   await Deno.writeTextFile(root + "/data/sample.csv", "1,2");
+  const many = root + "/many";
+  await Deno.mkdir(many);
+  // Список совпадений превышает буфер stdout, пока Git ещё читает stdin.
+  for (let i = 0; i < 700; i++) {
+    await Deno.writeTextFile(
+      many + "/" + String(i).padStart(4, "0") + "-" + "x".repeat(230) + ".csv",
+      "1",
+    );
+  }
   const path = Deno.env.get("PATH")!;
   Deno.env.set("PATH", fakeBin + ":" + path);
   try {
@@ -247,15 +256,6 @@ try {
         failure.stdout?.includes("GIT_STDOUT_ID") &&
           failure.stderr?.includes("GIT_STDERR_ID"),
         "Git failure keeps both streams",
-      );
-    }
-    const many = root + "/many";
-    await Deno.mkdir(many);
-    for (let i = 0; i < 400; i++) {
-      await Deno.writeTextFile(
-        many + "/" + String(i).padStart(4, "0") + "-" + "x".repeat(230) +
-          ".csv",
-        "1",
       );
     }
     await Deno.writeTextFile(
@@ -292,6 +292,13 @@ try {
   } finally {
     Deno.env.set("PATH", path);
   }
+  await Deno.writeTextFile(root + "/.gitignore", "/many/*.csv\n!/many/allowed.csv\n");
+  await Deno.writeTextFile(many + "/allowed.csv", "2");
+  const selected = await resourceFiles(root, { path: "/many" });
+  assert(
+    selected.length === 1 && selected[0]?.name === "allowed.csv",
+    "Git отбирает разрешённый файл при большом списке игнорируемых путей",
+  );
   console.log(
     "PASS Download named context, ZIP boundary, unavailable profile, foreign process streams/exit",
   );
