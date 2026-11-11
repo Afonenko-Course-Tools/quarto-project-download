@@ -10,10 +10,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      XDG_CACHE_HOME: ${{ github.workspace }}/.ci/course-download-cache
+      XDG_CACHE_HOME: ${{ runner.temp }}/course-download-cache
       PERFORMANCE: ${{ github.workspace }}/.ci/performance
       COURSE_PERFORMANCE_SOURCE: ${{ github.workspace }}/.ci/performance
-      LUA_LANGUAGE_SERVER: ${{ github.workspace }}/.ci/luals/bin/lua-language-server
+      LUA_LANGUAGE_SERVER: ${{ runner.temp }}/course-download-luals/bin/lua-language-server
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +49,7 @@ jobs:
         run: |
           test "$(git -C "$PERFORMANCE" rev-parse HEAD)" = "bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e"
           bash "$PERFORMANCE/tools/setup-mv-ci.sh" "$RUNNER_TEMP/course-gnu-mv" >> "$GITHUB_PATH"
-          bash "$PERFORMANCE/tools/setup-lua-ci.sh" "$GITHUB_WORKSPACE/.ci/luals"
+          bash "$PERFORMANCE/tools/setup-lua-ci.sh" "$RUNNER_TEMP/course-download-luals"
       - name: Установить закреплённый ShellCheck
         run: |
           tool_dir="$RUNNER_TEMP/shellcheck-0.11.0"
