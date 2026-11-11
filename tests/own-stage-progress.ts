@@ -82,6 +82,28 @@ try {
       assert(saved === (stage === "save"), "После ранней ошибки сохранение не вызывается");
     }
     stderr.length = 0;
+    let prepared = 0;
+    await publish({ resources: {}, "course-model": true }, [], {
+      requests: async () => [
+        { source: "nested/first.qmd", resources: [], artifacts: [{ exerciseId: "exr-first", kind: "full" }] },
+        { source: "second.qmd", resources: [], artifacts: [{ exerciseId: "exr-second", kind: "full" }] },
+      ],
+      courseResource: async () => { throw Error("unused"); },
+      modelArtifact: async (artifact, source) => {
+        if (!quiet) {
+          assert(has(`Подготовка материалов: ${source} / ${artifact.exerciseId} (full), готово=${prepared}/2`), "До долгой работы видны фактические документ/комплект и уже завершённый счётчик");
+          assert(!has(`artifacts=${prepared + 1}/2`), "Незавершённый комплект не посчитан");
+        }
+        prepared++;
+        return { kind: "full", files: [{ name: "README.txt", bytes }] };
+      },
+      files: async () => { throw Error("unused"); },
+      save: async () => {
+        assert(quiet || has("artifacts=2/2, source=second.qmd, id=exr-second, kind=full"), "Готовые материалы имеют source/ID/kind и processed/total");
+      },
+    });
+    assert(quiet ? stderr.length === 0 : has("archive=exr-first-full.zip") && has("archive=exr-second-full.zip"), "Упаковка называет фактически готовый архив и соблюдает quiet");
+    stderr.length = 0;
     const materialFailure = Error("Ошибка чтения обычных материалов");
     await failed(() => publish(config, [], {
       ...ports,

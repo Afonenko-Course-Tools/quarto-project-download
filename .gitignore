@@ -3,3 +3,8 @@ _generated/
 _site/
 _downloads/
 examples/**/_extensions/
+
+/node_modules/
+
+# Quarto/Deno cache lock локального запуска; package-lock линтера хранится отдельно.
+/deno.lock

@@ -112,7 +112,9 @@ try {
   const fake = root + "/fake-quarto";
   await Deno.writeTextFile(
     fake,
-    await Deno.readTextFile(new URL("./fixtures/foreign-tool-failure.sh", import.meta.url)),
+    await Deno.readTextFile(
+      new URL("./fixtures/foreign-tool-failure.sh", import.meta.url),
+    ),
   );
   await Deno.chmod(fake, 0o755);
   const previous = Deno.env.get("QUARTO");
@@ -155,6 +157,23 @@ try {
     if (previous === undefined) Deno.env.delete("QUARTO");
     else Deno.env.set("QUARTO", previous);
   }
+  await Deno.writeTextFile(fake, "#!/bin/sh\nprintf '{'\n");
+  Deno.env.set("QUARTO", fake);
+  try {
+    const failure = await refuses(
+      () => finish(root),
+      "DOWNLOAD.CONFIG_INVALID",
+      [root, "inspect"],
+    );
+    assert(
+      failure.cause instanceof SyntaxError,
+      "Inspect потерял исходный JSON cause",
+    );
+  } finally {
+    if (previous === undefined) Deno.env.delete("QUARTO");
+    else Deno.env.set("QUARTO", previous);
+  }
+  await Deno.writeTextFile(fake, await Deno.readTextFile(new URL("./fixtures/foreign-tool-failure.sh", import.meta.url)));
   // Существующие исключения программиста не становятся внешней диагностикой.
   try {
     await finish({} as unknown as string);
@@ -191,7 +210,10 @@ try {
   const runner = Deno.env.get("QUARTO_TEST_BIN") || Deno.env.get("QUARTO") ||
     "quarto";
   const pre = fromFileUrl(
-    new URL("../_extensions/project-download/entrypoints/post.ts", import.meta.url),
+    new URL(
+      "../_extensions/project-download/entrypoints/post.ts",
+      import.meta.url,
+    ),
   );
   const cli = await new Deno.Command(runner, {
     args: ["run", pre],
@@ -221,7 +243,9 @@ try {
   const git = fakeBin + "/git";
   await Deno.writeTextFile(
     git,
-    await Deno.readTextFile(new URL("./fixtures/git-failure.sh", import.meta.url)),
+    await Deno.readTextFile(
+      new URL("./fixtures/git-failure.sh", import.meta.url),
+    ),
   );
   await Deno.chmod(git, 0o755);
   await Deno.writeTextFile(root + "/data/sample.csv", "1,2");
@@ -260,7 +284,9 @@ try {
     }
     await Deno.writeTextFile(
       git,
-      await Deno.readTextFile(new URL("./fixtures/git-early-failure.sh", import.meta.url)),
+      await Deno.readTextFile(
+        new URL("./fixtures/git-early-failure.sh", import.meta.url),
+      ),
     );
     try {
       await resourceFiles(root, { path: "/many" });
@@ -282,7 +308,9 @@ try {
     }
     await Deno.writeTextFile(
       git,
-      await Deno.readTextFile(new URL("./fixtures/git-warning.sh", import.meta.url)),
+      await Deno.readTextFile(
+        new URL("./fixtures/git-warning.sh", import.meta.url),
+      ),
     );
     const files = await resourceFiles(root, { path: "/data" });
     assert(
@@ -292,7 +320,10 @@ try {
   } finally {
     Deno.env.set("PATH", path);
   }
-  await Deno.writeTextFile(root + "/.gitignore", "/many/*.csv\n!/many/allowed.csv\n");
+  await Deno.writeTextFile(
+    root + "/.gitignore",
+    "/many/*.csv\n!/many/allowed.csv\n",
+  );
   await Deno.writeTextFile(many + "/allowed.csv", "2");
   const selected = await resourceFiles(root, { path: "/many" });
   assert(

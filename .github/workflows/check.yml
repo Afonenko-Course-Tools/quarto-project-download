@@ -33,18 +33,22 @@ jobs:
         run: |
           git rev-parse HEAD
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.7.14
       - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
           version: ${{ matrix.quarto }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-performance
-          ref: 0781f03a11f461691d7ce116f2c53bb5d8af68d7
+          ref: codex/technical-closure-20261111
           path: .ci/performance
           persist-credentials: false
       - name: Проверить закреплённый Performance и установить LuaLS
         run: |
-          test "$(git -C "$PERFORMANCE" rev-parse HEAD)" = "0781f03a11f461691d7ce116f2c53bb5d8af68d7"
+          test "$(git -C "$PERFORMANCE" rev-parse HEAD)" = "$(git -C "$PERFORMANCE" rev-parse refs/remotes/origin/codex/technical-closure-20261111)"
+          bash "$PERFORMANCE/tools/setup-mv-ci.sh" "$RUNNER_TEMP/course-gnu-mv" >> "$GITHUB_PATH"
           bash "$PERFORMANCE/tools/setup-lua-ci.sh" "$GITHUB_WORKSPACE/.ci/luals"
       - name: Установить закреплённый ShellCheck
         run: |
@@ -60,29 +64,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course
-          ref: 8aba3b47df161c98645f3fc268adefc2e96ef8d3 # Core: согласованный native API и функциональные файлы
+          ref: codex/technical-closure-20261111 # Core: согласованный native API и функциональные файлы
           path: core-fixture
           persist-credentials: false
       - name: Проверить закреплённый Core
         run: |
           git -C core-fixture rev-parse HEAD
-          test "$(git -C core-fixture rev-parse HEAD)" = "8aba3b47df161c98645f3fc268adefc2e96ef8d3"
+          test "$(git -C core-fixture rev-parse HEAD)" = "$(git -C core-fixture rev-parse refs/remotes/origin/codex/technical-closure-20261111)"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-reference-catalog
-          ref: 0b62c6501d716a634e0d1e3fcc3d21e41142b5a1 # QRC: согласованный native API ссылок
+          ref: codex/technical-closure-20261111 # QRC: согласованный native API ссылок
           path: qrc-fixture
           persist-credentials: false
       - name: Проверить закреплённый QRC
-        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "0b62c6501d716a634e0d1e3fcc3d21e41142b5a1"
+        run: test "$(git -C qrc-fixture rev-parse HEAD)" = "$(git -C qrc-fixture rev-parse refs/remotes/origin/codex/technical-closure-20261111)"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/quarto-course-prairielearn
-          ref: 8c1f03fb6f137320f1f7c43cab4122a18a9fa052 # PL: согласованный public API; полный CI проверяется отдельно
+          ref: codex/technical-closure-20261111 # PL: согласованный public API; полный CI проверяется отдельно
           path: pl-fixture
           persist-credentials: false
       - name: Проверить закреплённый PrairieLearn
-        run: test "$(git -C pl-fixture rev-parse HEAD)" = "8c1f03fb6f137320f1f7c43cab4122a18a9fa052"
+        run: test "$(git -C pl-fixture rev-parse HEAD)" = "$(git -C pl-fixture rev-parse refs/remotes/origin/codex/technical-closure-20261111)"
       - name: Строгая проверка собственного Lua
         run: quarto run tools/check-types.ts --lua
       - name: ShellCheck и синтаксис каждого собственного shell-файла
@@ -107,6 +111,19 @@ jobs:
             tools/check.sh; do
             bash -n "$script"
           done
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '26.10.0'
+          package-manager-cache: false
+      - name: Полный production quality и отрицательные контроли
+        env:
+          CORE: ${{ github.workspace }}/core-fixture
+          QRC: ${{ github.workspace }}/qrc-fixture
+          PL: ${{ github.workspace }}/pl-fixture
+        run: |
+          npm ci --ignore-scripts
+          npm run check-quality
+          npm run check-quality:controls
       - name: Полный контракт Download и native installed model artifacts
         env:
           CORE: ${{ github.workspace }}/core-fixture

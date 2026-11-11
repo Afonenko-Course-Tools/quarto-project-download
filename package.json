@@ -1,0 +1,15 @@
+{
+  "name": "quarto-project-download-quality",
+  "private": true,
+  "scripts": {
+    "check-quality": "node tools/check-quality.mjs",
+    "check-quality:controls": "node tools/check-quality-controls.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "dependency-cruiser": "18.7.2",
+    "eslint": "^9.39.1",
+    "typescript-eslint": "^8.72.2",
+    "typescript": "6.0.3"
+  }
+}
