@@ -2,7 +2,7 @@
 type: index
 component: project-download
 status: current
-version: 3.5.0
+version: 3.6.0
 ---
 
 # Спецификации Download
@@ -25,7 +25,7 @@ vocabulary, architecture, reference и plan; `component` указывает вл
 Download владеет resource selection, ZIP и temporary requests/ownership. Обычные resources независимы от Core; Core владеет только явно подключённым учебным мостом и своей public resource policy.
 
 Версия пакета определяется [descriptor](../_extensions/project-download/_extension.yml) того же Git ref.
-Целевой Quarto — 1.11.5; кандидат Download 3.5.0 использует публичный
+Целевой Quarto — 1.11.5; кандидат Download 3.6.0 использует публичный
 native TS-договор Core 9 без внешнего валидатора схем. Обычные resources независимы от Core;
 функциональные `ArtifactFiles`, public/private policy и native operation принадлежат Core.
 Изменения main после выпущенного тега — **unreleased**.
@@ -48,8 +48,8 @@ source ref не заявляется установленным или выпу�
 окружения через `childEnv` и `clearEnv: true`. Identity/off/недоступный режим/
 отсутствующий агент сохраняют прежние разрешения и наследование env. Новый общий runtime и полное семантическое покрытие не
 вводятся. Историческая ABI-матрица не задаёт текущие component pins.
-Текущий CI закрепляет опубликованные Core6086228f (9.1.1), QRC798f8c0d (3.2.0) и Cdf8bd4aa (9.0.1);
-межкомпонентный installed состав, hosted CI и новый выпуск требуют отдельных проверок.
+CI использует прямые Git submodules из `tests/dependencies`; фактические HEAD
+попадают в журнал проверки. Проверки установленного состава выполняются отдельно.
 
 ## Ранняя owner-фаза
 
