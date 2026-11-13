@@ -88,9 +88,7 @@ try {
       (file) =>
         file &&
         existsSync(file) &&
-        !/(^|\/)(vendor|node_modules|generated|_generated|dependencies)(\/|$)/.test(
-          file,
-        ) &&
+        !/(^|\/)(vendor|node_modules|generated|_generated)(\/|$)/.test(file) &&
         !/^_extensions\/project-download\/observability\/bridge\.(ts|lua)$/.test(
           file,
         ),
