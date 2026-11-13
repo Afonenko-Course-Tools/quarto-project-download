@@ -6,7 +6,7 @@ const repo = dirname(dirname(fromFileUrl(import.meta.url))),
 if (!core) throw Error("CORE обязателен");
 const root = await Deno.makeTempDir({ prefix: "download-phase-" }),
   td = new TextDecoder(),
-  rows: {name: string; format: string; exit: number}[] = [];
+  rows: { name: string; format: string; exit: number }[] = [];
 function assert(v: unknown, m: string) {
   if (!v) throw Error(m);
 }
@@ -14,7 +14,7 @@ async function files(dir: string): Promise<string[]> {
   const out: string[] = [];
   for await (const e of Deno.readDir(dir)) {
     const p = join(dir, e.name);
-    if (e.isDirectory) out.push(...await files(p));
+    if (e.isDirectory) out.push(...(await files(p)));
     else out.push(p);
   }
   return out;
@@ -42,17 +42,17 @@ try {
       }}\ncourse-core-projection: ${projection}\nexercise-bank: true\nproject-download: {course-model: true}\n`,
     );
   }
-  const content =
-    `# Наблюдение\n\n::: {#exr-demo difficulty=introductory course-role=demonstration statement-visibility=open project="/projects/demo"}\nPUBLIC_DEMO\n\n{{< project-download exr-demo >}}\n\n::: {.solution}\nPUBLIC_SOLUTION\n:::\n:::\n\n::: {#exr-format difficulty=introductory statement-visibility=open project="/projects/format"}\nFORMAT_EXERCISE\n\n::: {.content-visible when-format=revealjs}\nFORMAT_ONLY\n\n{{< project-download exr-format >}}\n:::\n:::\n\n::: {#exr-private difficulty=introductory statement-visibility=restricted project="/projects/private"}\nPRIVATE_STATEMENT\n\n{{< project-download exr-private >}}\n\n::: {.solution}\nPRIVATE_SOLUTION\n:::\n:::\n`;
+  const content = `# Наблюдение\n\n::: {#exr-demo difficulty=introductory course-role=demonstration statement-visibility=open project="/projects/demo"}\nPUBLIC_DEMO\n\n{{< project-download exr-demo >}}\n\n::: {.solution}\nPUBLIC_SOLUTION\n:::\n:::\n\n::: {#exr-format difficulty=introductory statement-visibility=open project="/projects/format"}\nFORMAT_EXERCISE\n\n::: {.content-visible when-format=revealjs}\nFORMAT_ONLY\n\n{{< project-download exr-format >}}\n:::\n:::\n\n::: {#exr-private difficulty=introductory statement-visibility=restricted project="/projects/private"}\nPRIVATE_STATEMENT\n\n{{< project-download exr-private >}}\n\n::: {.solution}\nPRIVATE_SOLUTION\n:::\n:::\n`;
   await Deno.writeTextFile(join(root, "index.qmd"), content);
   const Core: typeof import("course-core/public.ts") = await import(
       toFileUrl(join(root, "_extensions/course-core/public.ts")).href
     ),
-    capture: typeof import("course-core/document/project-capture.ts") = await import(
-      toFileUrl(
-        join(root, "_extensions/course-core/document/project-capture.ts"),
-      ).href
-    );
+    capture: typeof import("course-core/document/project-capture.ts") =
+      await import(
+        toFileUrl(
+          join(root, "_extensions/course-core/document/project-capture.ts"),
+        ).href
+      );
   async function run(
     name: string,
     format = "html",
@@ -74,19 +74,19 @@ try {
     );
     return r;
   }
-  for (
-    const [order, format, projection] of [
-      ["project-download, course-core", "html", "student"],
-      ["course-core, project-download", "html", "student"],
-      ["project-download, course-core", "revealjs", "student"],
-      ["project-download, course-core", "html", "author"],
-    ] as const
-  ) {
+  for (const [order, format, projection] of [
+    ["project-download, course-core", "html", "student"],
+    ["course-core, project-download", "html", "student"],
+    ["project-download, course-core", "revealjs", "student"],
+    ["project-download, course-core", "html", "author"],
+  ] as const) {
     if (
       Deno.args.includes("--html-student") &&
-      (order !== "project-download, course-core" || projection !== "student" ||
+      (order !== "project-download, course-core" ||
+        projection !== "student" ||
         format !== "html")
-    ) continue;
+    )
+      continue;
     await config(order, projection, format);
     await run(order + "/" + projection, format);
     const html = await Deno.readTextFile(join(root, "_site/index.html"));
@@ -105,21 +105,37 @@ try {
       );
     }
     const base = join(root, "_generated/course-spec/native-ts"),
-      pointer: unknown = JSON.parse(await Deno.readTextFile(join(base, "active.json")));
-    if (typeof pointer !== "object" || pointer === null || !("directory" in pointer) || typeof pointer.directory !== "string") throw Error("Некорректный active pointer");
-    const earlyPath = (await files(pointer.directory)).find((p) =>
-        p.endsWith(".early.json")
+      pointer: unknown = JSON.parse(
+        await Deno.readTextFile(join(base, "active.json")),
       );
+    if (
+      typeof pointer !== "object" ||
+      pointer === null ||
+      !("directory" in pointer) ||
+      typeof pointer.directory !== "string"
+    )
+      throw Error("Некорректный active pointer");
+    const earlyPath = (await files(pointer.directory)).find((p) =>
+      p.endsWith(".early.json"),
+    );
     assert(earlyPath, "early absent");
-    const contracts: typeof import("course-core/document/contracts.ts") = await import(toFileUrl(join(root, "_extensions/course-core/document/contracts.ts")).href);
-    const early = contracts.EarlyDocumentSchema.parse(JSON.parse(await Deno.readTextFile(earlyPath!))),
+    const contracts: typeof import("course-core/document/contracts.ts") =
+      await import(
+        toFileUrl(join(root, "_extensions/course-core/document/contracts.ts"))
+          .href
+      );
+    const early = contracts.EarlyDocumentSchema.parse(
+        JSON.parse(await Deno.readTextFile(earlyPath!)),
+      ),
       facts = capture.collectNativeProjectFacts(early, root);
     assert(
-      facts.projects.length === 3 && facts.projects.some((p) =>
-        p.exerciseId === "exr-private" && p.statementVisibility === "restricted"
-      ) && facts.projects.every((p) =>
-        p.bankMember === true
-      ),
+      facts.projects.length === 3 &&
+        facts.projects.some(
+          (p) =>
+            p.exerciseId === "exr-private" &&
+            p.statementVisibility === "restricted",
+        ) &&
+        facts.projects.every((p) => p.bankMember === true),
       "raw hidden project facts lost",
     );
   }
@@ -134,16 +150,20 @@ try {
     false,
     "DOWNLOAD.REQUEST_INVALID",
   );
-  let invoked = false, error = "";
+  let invoked = false,
+    error = "";
   try {
-    await Core.withCurrentNativeOperation({
-      root,
-      profiles: [],
-      projection: "student",
-      outputDirectory: join(root, "_site"),
-    }, async () => {
-      invoked = true;
-    });
+    await Core.withCurrentNativeOperation(
+      {
+        root,
+        profiles: [],
+        projection: "student",
+        outputDirectory: join(root, "_site"),
+      },
+      async () => {
+        invoked = true;
+      },
+    );
   } catch (e) {
     error = String(e);
   }

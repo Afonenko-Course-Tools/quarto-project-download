@@ -8,9 +8,10 @@ const core = Deno.env.get("CORE");
 if (!core) throw Error("CORE должен указывать на проверяемый Source Core");
 const installed = await Deno.makeTempDir({ prefix: "download-package-files-" });
 await Deno.mkdir(join(installed, "_extensions"));
-for (
-  const [source, name] of [[core, "course-core"], [repo, "project-download"]] as const
-) {
+for (const [source, name] of [
+  [core, "course-core"],
+  [repo, "project-download"],
+] as const) {
   const result = await new Deno.Command("cp", {
     args: [
       "-R",
@@ -20,10 +21,11 @@ for (
   }).output();
   if (!result.success) throw Error("Не удалось установить " + name);
 }
-const { packageArtifact }:
-  typeof import("../_extensions/project-download/public.ts") = await import(
-    toFileUrl(join(installed, "_extensions/project-download/public.ts")).href
-  );
+const {
+  packageArtifact,
+}: typeof import("../_extensions/project-download/public.ts") = await import(
+  toFileUrl(join(installed, "_extensions/project-download/public.ts")).href
+);
 const cases: { name: string; run: () => Promise<void> }[] = [];
 function test(name: string, run: () => Promise<void>) {
   cases.push({ name, run });
@@ -32,12 +34,14 @@ function test(name: string, run: () => Promise<void>) {
 const artifactFiles = (): ArtifactFiles => ({
   exerciseId: "exr-package",
   audience: "student",
-  files: [{
-    target: "README.md",
-    audience: "student",
-    reason: "Готовые bytes для упаковки",
-    bytes: new Uint8Array([0, 1, 128, 255]),
-  }],
+  files: [
+    {
+      target: "README.md",
+      audience: "student",
+      reason: "Готовые bytes для упаковки",
+      bytes: new Uint8Array([0, 1, 128, 255]),
+    },
+  ],
 });
 
 test("ZIP принимает функциональные файлы без сертификатов и сохраняет точные bytes", async () => {
@@ -88,10 +92,7 @@ test("Упаковка отвергает чужую аудиторию, неб�
   );
   const escape = artifactFiles();
   required(escape.files[0]).target = "../private";
-  await assert.rejects(
-    () => packageArtifact(escape),
-    /DOWNLOAD.FILES_INVALID/,
-  );
+  await assert.rejects(() => packageArtifact(escape), /DOWNLOAD.FILES_INVALID/);
   const duplicate = artifactFiles();
   duplicate.files.push({ ...required(duplicate.files[0]) });
   await assert.rejects(
@@ -99,7 +100,10 @@ test("Упаковка отвергает чужую аудиторию, неб�
     /DOWNLOAD.FILES_INVALID/,
   );
   const ancestor = artifactFiles();
-  ancestor.files.push({ ...required(ancestor.files[0]), target: "README.md/nested.txt" });
+  ancestor.files.push({
+    ...required(ancestor.files[0]),
+    target: "README.md/nested.txt",
+  });
   await assert.rejects(
     () => packageArtifact(ancestor),
     /DOWNLOAD.FILES_INVALID/,
@@ -166,21 +170,19 @@ test("ZIP сохраняет README, src и бинарные resources; private 
   try {
     const student = await packageArtifact(files);
     await Deno.writeFile(root + "/student.zip", student);
-    for (
-      const [name, expected] of [
-        [
-          "README.md",
-          new TextEncoder().encode(
-            "# Условие\n\n[Источник](https://example.test/task)\n",
-          ),
-        ],
-        [
-          "src/main/java/Task.java",
-          new TextEncoder().encode("class Task {}\r\n"),
-        ],
-        ["resources/data.bin", new Uint8Array([0, 255, 13, 10, 128])],
-      ] as const
-    ) {
+    for (const [name, expected] of [
+      [
+        "README.md",
+        new TextEncoder().encode(
+          "# Условие\n\n[Источник](https://example.test/task)\n",
+        ),
+      ],
+      [
+        "src/main/java/Task.java",
+        new TextEncoder().encode("class Task {}\r\n"),
+      ],
+      ["resources/data.bin", new Uint8Array([0, 255, 13, 10, 128])],
+    ] as const) {
       const extracted = await new Deno.Command("unzip", {
         args: ["-p", root + "/student.zip", name],
       }).output();

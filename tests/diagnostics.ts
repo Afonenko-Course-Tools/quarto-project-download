@@ -103,9 +103,11 @@ try {
   );
   await refuses(
     () =>
-      publish({ resources: { data: { path: "/data", profiles: ["full"] } } }, [
-        "student",
-      ], ports),
+      publish(
+        { resources: { data: { path: "/data", profiles: ["full"] } } },
+        ["student"],
+        ports,
+      ),
     "DOWNLOAD.RESOURCE_UNAVAILABLE",
     ["lesson.qmd", "data", "student"],
   );
@@ -173,7 +175,12 @@ try {
     if (previous === undefined) Deno.env.delete("QUARTO");
     else Deno.env.set("QUARTO", previous);
   }
-  await Deno.writeTextFile(fake, await Deno.readTextFile(new URL("./fixtures/foreign-tool-failure.sh", import.meta.url)));
+  await Deno.writeTextFile(
+    fake,
+    await Deno.readTextFile(
+      new URL("./fixtures/foreign-tool-failure.sh", import.meta.url),
+    ),
+  );
   // Существующие исключения программиста не становятся внешней диагностикой.
   try {
     await finish({} as unknown as string);
@@ -207,8 +214,8 @@ try {
     if (priorTool === undefined) Deno.env.delete("QUARTO");
     else Deno.env.set("QUARTO", priorTool);
   }
-  const runner = Deno.env.get("QUARTO_TEST_BIN") || Deno.env.get("QUARTO") ||
-    "quarto";
+  const runner =
+    Deno.env.get("QUARTO_TEST_BIN") || Deno.env.get("QUARTO") || "quarto";
   const pre = fromFileUrl(
     new URL(
       "../_extensions/project-download/entrypoints/post.ts",
@@ -222,8 +229,8 @@ try {
     stdout: "piped",
     stderr: "piped",
   }).output();
-  const cliText = new TextDecoder().decode(cli.stdout) +
-    new TextDecoder().decode(cli.stderr);
+  const cliText =
+    new TextDecoder().decode(cli.stdout) + new TextDecoder().decode(cli.stderr);
   assert(
     !cli.success && cliText.includes("23"),
     "CLI завершился неуспешно и сохранил foreign exit",
@@ -272,7 +279,8 @@ try {
         stderr?: string;
       };
       assert(
-        failure.name === "ExternalToolFailure" && failure.tool === "git" &&
+        failure.name === "ExternalToolFailure" &&
+          failure.tool === "git" &&
           failure.exitCode === 17,
         "Git failure keeps type/tool/exit",
       );
@@ -299,7 +307,8 @@ try {
         stderr?: string;
       };
       assert(
-        failure.name === "ExternalToolFailure" && failure.exitCode === 19 &&
+        failure.name === "ExternalToolFailure" &&
+          failure.exitCode === 19 &&
           failure.stdout?.includes("GIT_EARLY_STDOUT") &&
           failure.stderr?.includes("GIT_EARLY_STDERR"),
         "Ранний отказ Git сохраняет exit и оба потока при закрытом stdin: " +

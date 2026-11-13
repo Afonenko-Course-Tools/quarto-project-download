@@ -1,5 +1,6 @@
 import { dirname, fromFileUrl, join } from "stdlib/path";
-const root = dirname(dirname(fromFileUrl(import.meta.url))), rows = [];
+const root = dirname(dirname(fromFileUrl(import.meta.url))),
+  rows = [];
 {
   const p = await new Deno.Command("/opt/quarto/bin/tools/x86_64/pandoc", {
     args: [
@@ -15,7 +16,8 @@ const root = dirname(dirname(fromFileUrl(import.meta.url))), rows = [];
     stderr: "piped",
   }).spawn();
   await p.stdin.close();
-  const r = await p.output(), s = new TextDecoder().decode(r.stderr);
+  const r = await p.output(),
+    s = new TextDecoder().decode(r.stderr);
   if (!r.success || !s.includes("BUFFER_CONTROLS")) throw Error(s);
   rows.push({ exit: r.code, stderr: s });
 }
