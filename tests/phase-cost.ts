@@ -57,12 +57,12 @@ try {
         const path = join(root, "_extensions/project-download", file),
           source = await Deno.readTextFile(path);
         const bodies = [
-          "function(node,filter)return node:walk(filter)end",
-          "function(node,filter)return (node.walk --[[@as DownloadDocumentWalk]])(node,filter)end",
+          /function\(node,\s*filter\)\s*return node:walk\(filter\)\s*end/g,
+          /function\(node,\s*filter\)\s*return \(node\.walk --\[\[@as DownloadDocumentWalk\]\]\)\(node,\s*filter\)\s*end/g,
         ];
-        const matches = bodies.filter((body) => source.includes(body));
-        const body = matches[0];
-        if (matches.length !== 1 || !body || source.split(body).length !== 2) {
+        const matches = bodies.flatMap((body) => [...source.matchAll(body)]);
+        const body = matches[0]?.[0];
+        if (matches.length !== 1 || !body) {
           throw Error(
             `Не найдена единственная точка измерения walk: ${name}/${file}`,
           );

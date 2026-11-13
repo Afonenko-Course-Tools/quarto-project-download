@@ -1,0 +1,22 @@
+extends: default
+rules:
+  document-start: disable
+  line-length: disable
+  # Оформлением владеет Prettier; yamllint проверяет синтаксис и повтор ключей.
+  braces: disable
+  brackets: disable
+  colons: disable
+  commas: disable
+  comments: disable
+  comments-indentation: disable
+  empty-lines: disable
+  empty-values: disable
+  hyphens: disable
+  indentation: disable
+  key-ordering: disable
+  new-line-at-end-of-file: disable
+  new-lines: disable
+  octal-values: disable
+  quoted-strings: disable
+  trailing-spaces: disable
+  truthy: disable
