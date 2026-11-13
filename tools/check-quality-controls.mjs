@@ -153,6 +153,18 @@ try {
   /** @type {[string, string, string, RegExp][]} */
   const discovered = [
     [
+      "new-toml-syntax",
+      "__quality_negative.toml",
+      "quality = [\n",
+      /expected|invalid|syntax/i,
+    ],
+    [
+      "new-toml-format",
+      "__quality_negative.toml",
+      "quality=true\n",
+      /not properly formatted|not formatted|formatting/i,
+    ],
+    [
       "new-helper-types",
       "tools/__quality_negative.mjs",
       '/** @type {number} */\nexport const value = "invalid";\n',

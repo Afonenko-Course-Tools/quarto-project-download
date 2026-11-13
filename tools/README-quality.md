@@ -59,8 +59,8 @@ Dependency-cruiser проверяет разрешаемый статическ�
 
 Собственные файлы форматируются одним владельцем: Prettier для TS/JS/CJS/MJS/JSON/YAML
 (`embeddedLanguageFormatting: off`), StyLua для Lua, shfmt (`-i 2 -ci`) для shell,
-Ruff format для появившихся Python. `check-quality` обнаруживает новые tracked и
-untracked файлы через Git; вручную перечислять их в CI не требуется. Markdown,
+Ruff format для появившихся Python, Taplo для TOML. `check-quality` обнаруживает
+новые tracked и untracked файлы через Git; вручную перечислять их в CI не требуется. Markdown,
 QMD, учебные материалы, зависимости и canonical bridge Performance не форматируются
 этим gate. Копии bridge обновляются только из канонического источника Performance.
 
@@ -72,7 +72,8 @@ workflow и встроенный shell. Единственное исключе�
 `git submodule foreach`, где `$sm_path` раскрывает дочерний Git shell.
 
 Стандартные CLI должны быть доступны в PATH: `prettier`, `stylua`, `shfmt`,
-`luacheck`, `shellcheck`, `yamllint`, `actionlint`, LuaLS и имеющиеся Quarto/Deno.
+`luacheck`, `shellcheck`, `yamllint`, `actionlint`, `taplo`, LuaLS и имеющиеся
+Quarto/Deno.
 Для нового Python нужны `ruff format --check` и `ruff check`.
 Отсутствие или ненулевой выход инструмента блокирует проверку. Отрицательные
 контроли проверяют реальный отказ инструмента и диагностики новых MJS/Lua/shell/
@@ -84,3 +85,15 @@ typed ESLint. Структурные ограничения и production depend
 подавлений в инструментах нет.
 `typecheck/coverage.json` описывает текущую поставку, а языковые gates обнаруживают
 новые файлы самостоятельно, сохраняя явное делегирование двух мостов Performance.
+
+Собственные `.toml`, включая `stylua.toml`, автоматически проходят
+`taplo lint --no-schema` и `taplo fmt --check`: синтаксис и единое форматирование
+проверяются без сетевого поиска схем. Новые временные TOML с ошибкой синтаксиса
+и нарушением формата входят в отрицательные контроли. Для записи формата
+используется штатный `taplo fmt`.
+
+ESLint 10 и scoped npm overrides для `minimatch` устраняют предупреждения
+и известные уязвимости дерева tooling. Lockfile получен штатным чистым разрешением
+npm; совместимость подтверждается typed ESLint, typecheck и отрицательными
+контролями. `npm ci --ignore-scripts`, `npm ls --all` и `npm audit` должны
+завершаться успешно без предупреждений устаревших пакетов и audit findings.

@@ -98,6 +98,11 @@ try {
     /\.(?:ts|js|cjs|mjs|json|ya?ml)$/.test(file),
   );
   if (formatted.length) console.log(run("prettier", ["--check", ...formatted]));
+  const toml = owned.filter((file) => file.endsWith(".toml"));
+  if (toml.length) {
+    console.log(run("taplo", ["lint", "--no-schema", ...toml]));
+    console.log(run("taplo", ["fmt", "--check", ...toml]));
+  }
   const lua = owned.filter((file) => file.endsWith(".lua"));
   if (lua.length) {
     console.log(run("stylua", ["--check", ".luacheckrc", ...lua]));

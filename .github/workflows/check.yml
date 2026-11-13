@@ -71,7 +71,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes shfmt yamllint luarocks
-          npm install --global prettier@3.8.1
+          npm install --global prettier@3.8.1 @taplo/cli@0.7.0
           cargo install stylua --version 2.6.0 --locked
           sudo luarocks install luacheck 1.2.0
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
