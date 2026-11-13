@@ -8,7 +8,13 @@ const repo = dirname(dirname(fromFileUrl(import.meta.url))),
 function assert(v: unknown, m: string) {
   if (!v) throw Error(m);
 }
-interface Row { name: string; exit: number; callbackLogOccurrences: number; ms: number; mainSha256?: string }
+interface Row {
+  name: string;
+  exit: number;
+  callbackLogOccurrences: number;
+  ms: number;
+  mainSha256?: string;
+}
 const rows: Row[] = [];
 try {
   await copy(
@@ -41,18 +47,22 @@ try {
     if (
       Deno.env.get("NATIVE_CARRIER_BASE") &&
       name.startsWith("authored reserved")
-    ) return;
+    )
+      return;
     if (
       Deno.env.get("CARRIER_CASE") &&
       !name.includes(Deno.env.get("CARRIER_CASE")!)
-    ) return;
+    )
+      return;
     await Deno.remove(join(root, "_generated"), { recursive: true }).catch(
       () => {},
     );
     await Deno.writeTextFile(
       join(root, "index.qmd"),
-      (metadata ? "---\ntitle: '" + body + "'\n---\n" : "") + "# Носитель\n\n" +
-        (metadata ? "Текст" : body) + "\n",
+      (metadata ? "---\ntitle: '" + body + "'\n---\n" : "") +
+        "# Носитель\n\n" +
+        (metadata ? "Текст" : body) +
+        "\n",
     );
     const t = performance.now(),
       p = await new Deno.Command(q, {
@@ -66,8 +76,8 @@ try {
     const row: Row = {
       name,
       exit: p.code,
-      callbackLogOccurrences:
-        (stderr.match(/DOWNLOAD_TEST_CALLBACK/g) ?? []).length,
+      callbackLogOccurrences: (stderr.match(/DOWNLOAD_TEST_CALLBACK/g) ?? [])
+        .length,
       ms: performance.now() - t,
     };
     rows.push(row);
@@ -77,17 +87,20 @@ try {
     }
     assert(p.success, name + ": " + stderr);
     const requests: unknown[] = [];
-    requests.push(JSON.parse(
-      await Deno.readTextFile(
-        join(
-          root,
-          "_generated/project-download/requests/index.qmd/request.json",
+    requests.push(
+      JSON.parse(
+        await Deno.readTextFile(
+          join(
+            root,
+            "_generated/project-download/requests/index.qmd/request.json",
+          ),
         ),
       ),
-    ));
+    );
     assert(
       requests.length === 1 &&
-        typeof requests[0] === "object" && requests[0] !== null &&
+        typeof requests[0] === "object" &&
+        requests[0] !== null &&
         "resources" in requests[0] &&
         JSON.stringify(requests[0].resources) ===
           JSON.stringify(expectedRequest ? [expectedRequest] : []) &&
@@ -103,8 +116,10 @@ try {
       (b) => b.toString(16).padStart(2, "0"),
     ).join("");
     assert(
-      (name.startsWith("nested") || name.startsWith("Math") ||
-        name === "shortcodes off" || html.includes("Текст")) &&
+      (name.startsWith("nested") ||
+        name.startsWith("Math") ||
+        name === "shortcodes off" ||
+        html.includes("Текст")) &&
         !html.includes("project-download-raw-request") &&
         !html.includes("data-project-download-ordinal"),
       name + ": carrier leak/text",
@@ -129,13 +144,12 @@ try {
     "attribute missing resource/no config",
     '[Текст]{title="' + call + '"}',
   );
-  for (
-    const [name, call] of [
-      ["bad-id", '{{< project-download Bad text="Текст" >}}'],
-      ["bad-kind", '{{< project-download missing kind=other text="Текст" >}}'],
-      ["bad-key", '{{< project-download missing unknown=1 text="Текст" >}}'],
-    ] as const
-  ) await run(name, "`" + call + "`", "DOWNLOAD.REQUEST_INVALID");
+  for (const [name, call] of [
+    ["bad-id", '{{< project-download Bad text="Текст" >}}'],
+    ["bad-kind", '{{< project-download missing kind=other text="Текст" >}}'],
+    ["bad-key", '{{< project-download missing unknown=1 text="Текст" >}}'],
+  ] as const)
+    await run(name, "`" + call + "`", "DOWNLOAD.REQUEST_INVALID");
   await run("inline missing resource", call, "DOWNLOAD.CONFIG_INVALID");
   await run(
     "metadata native syntax refusal",

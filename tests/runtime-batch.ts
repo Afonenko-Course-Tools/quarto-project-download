@@ -44,10 +44,11 @@ if (Deno.args[0] !== "no-core-ordinary") {
     }).output();
     if (
       !extracted.success ||
-      !new TextDecoder().decode(extracted.stdout).includes(
-        "PUBLIC_WITHOUT_CORE",
-      )
-    ) throw Error("NoCore потерял resource bytes");
+      !new TextDecoder()
+        .decode(extracted.stdout)
+        .includes("PUBLIC_WITHOUT_CORE")
+    )
+      throw Error("NoCore потерял resource bytes");
     console.log("PASS no-core-ordinary actual native pre/post без Core");
   } finally {
     await Deno.remove(root, { recursive: true });

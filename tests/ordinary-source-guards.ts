@@ -16,7 +16,10 @@ try {
     join(root, "data/filter with spaces.lua"),
     await Deno.readTextFile(join(repo, "tests/fixtures/empty-filter.lua")),
   );
-  await Deno.writeTextFile(join(root, "data/filter string.lua"), await Deno.readTextFile(join(repo, "tests/fixtures/empty-filter.lua")));
+  await Deno.writeTextFile(
+    join(root, "data/filter string.lua"),
+    await Deno.readTextFile(join(repo, "tests/fixtures/empty-filter.lua")),
+  );
   await Deno.writeTextFile(join(root, "data/course style.css"), "body {}\n");
   await Deno.writeTextFile(join(root, "data/public.csv"), "42\n");
   await Deno.writeTextFile(
@@ -39,15 +42,13 @@ format:
     "_generated/project-download/requests/index.qmd",
   );
   await Deno.mkdir(directory, { recursive: true });
-  for (
-    const name of [
-      "filter with spaces.lua",
-      "filter string.lua",
-      "hook with spaces.ts",
-      "course style.css",
-      "public.csv",
-    ]
-  ) {
+  for (const name of [
+    "filter with spaces.lua",
+    "filter string.lua",
+    "hook with spaces.ts",
+    "course style.css",
+    "public.csv",
+  ]) {
     await Deno.writeTextFile(
       join(directory, "request.json"),
       JSON.stringify({
@@ -68,9 +69,7 @@ format:
     } catch (cause) {
       error = String(cause);
     }
-    if (
-      publicFile ? !!error : !error.includes("RESOURCE.PRIVATE_OR_SOURCE")
-    ) {
+    if (publicFile ? !!error : !error.includes("RESOURCE.PRIVATE_OR_SOURCE")) {
       throw Error(name + ": " + error);
     }
   }

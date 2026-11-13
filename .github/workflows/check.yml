@@ -24,6 +24,8 @@ jobs:
       - name: Подготовить прямые исходники интеграционных проверок
         run: |
           git submodule update --init
+          # ShellCheck: $sm_path раскрывается самим git submodule foreach.
+          # shellcheck disable=SC2016
           git submodule foreach 'printf "%s " "$sm_path"; git rev-parse HEAD'
       - name: Подготовить доступный кеш Quarto
         env:
@@ -61,34 +63,19 @@ jobs:
           tar -xJf "$tool_dir/archive.tar.xz" --directory "$tool_dir" --strip-components=1
           "$tool_dir/shellcheck" --version
           printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
-      - name: Строгая проверка собственного Lua
-        run: quarto run tools/check-types.ts --lua
-      - name: ShellCheck и синтаксис каждого собственного shell-файла
-        run: |
-          shellcheck --severity=style \
-            _extensions/project-download/native-ts/late-filter.sh \
-            tests/fixtures/foreign-tool-failure.sh \
-            tests/fixtures/git-early-failure.sh \
-            tests/fixtures/git-env.sh \
-            tests/fixtures/git-failure.sh \
-            tests/fixtures/git-warning.sh \
-            tests/fixtures/quarto-observer.sh \
-            tools/check.sh
-          for script in \
-            _extensions/project-download/native-ts/late-filter.sh \
-            tests/fixtures/foreign-tool-failure.sh \
-            tests/fixtures/git-early-failure.sh \
-            tests/fixtures/git-env.sh \
-            tests/fixtures/git-failure.sh \
-            tests/fixtures/git-warning.sh \
-            tests/fixtures/quarto-observer.sh \
-            tools/check.sh; do
-            bash -n "$script"
-          done
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '26.10.0'
+          node-version: "26.10.0"
           package-manager-cache: false
+      - name: Подготовить стандартные инструменты качества
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shfmt yamllint luarocks
+          npm install --global prettier@3.8.1 @taplo/cli@0.7.0
+          cargo install stylua --version 2.6.0 --locked
+          sudo luarocks install luacheck 1.2.0
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          printf '%s\n' "$HOME/.cargo/bin" "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Полный production quality и отрицательные контроли
         env:
           CORE: ${{ github.workspace }}/tests/dependencies/quarto-course

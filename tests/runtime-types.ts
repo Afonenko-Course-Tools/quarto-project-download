@@ -7,12 +7,10 @@ import type {
 import "../_extensions/project-download/infrastructure/runtime.ts";
 import "../_extensions/project-download/application/package-artifact.ts";
 
-type NotAny<T> = 0 extends (1 & T) ? never : true;
+type NotAny<T> = 0 extends 1 & T ? never : true;
 type Core = SiblingModules["course-core"];
 type Artifact = Awaited<ReturnType<Core["materializeProject"]>>;
-type Resources = Awaited<
-  ReturnType<NativePublication["resourceFiles"]>
->;
+type Resources = Awaited<ReturnType<NativePublication["resourceFiles"]>>;
 const checked: [
   NotAny<Awaited<ReturnType<typeof sibling<"course-core">>>>,
   NotAny<Artifact>,

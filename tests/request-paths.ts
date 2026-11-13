@@ -57,36 +57,32 @@ try {
   assert.equal(await Deno.readTextFile(keep), "Соседний файл");
   assert.equal((await inspectOwnedRequests(root, sources)).files.length, 0);
 
-  for (
-    const source of [
-      "../escape.qmd",
-      "./index.qmd",
-      "/index.qmd",
-      "nested//page.qmd",
-      "nested/../index.qmd",
-      "nested\\page.qmd",
-    ] as const
-  ) {
+  for (const source of [
+    "../escape.qmd",
+    "./index.qmd",
+    "/index.qmd",
+    "nested//page.qmd",
+    "nested/../index.qmd",
+    "nested\\page.qmd",
+  ] as const) {
     await assert.rejects(
       () => inspectOwnedRequests(root, [source]),
       /DOWNLOAD\.(?:REQUEST|PATH)_INVALID/,
     );
   }
-  for (
-    const [path, value] of [
-      ["foreign.txt", "Чужой"],
-      ["0".repeat(40) + ".json", body(sources[0])],
-      ["unknown.qmd/request.json", body("unknown.qmd")],
-      ["nested/foreign.txt", "Чужой"],
-      [sources[1] + "/other.json", body(sources[1])],
-      [sources[1] + "/request.json", body(sources[0])],
-      [sources[1] + "/request.json", "{"],
-      [
-        sources[1] + "/request.json",
-        JSON.stringify({ source: sources[1], resources: [], extra: true }),
-      ],
-    ] as const
-  ) {
+  for (const [path, value] of [
+    ["foreign.txt", "Чужой"],
+    ["0".repeat(40) + ".json", body(sources[0])],
+    ["unknown.qmd/request.json", body("unknown.qmd")],
+    ["nested/foreign.txt", "Чужой"],
+    [sources[1] + "/other.json", body(sources[1])],
+    [sources[1] + "/request.json", body(sources[0])],
+    [sources[1] + "/request.json", "{"],
+    [
+      sources[1] + "/request.json",
+      JSON.stringify({ source: sources[1], resources: [], extra: true }),
+    ],
+  ] as const) {
     await reset();
     await put(join(directory, path), value);
     await refused();
@@ -118,13 +114,15 @@ try {
   if (Deno.args[0] !== "pure") {
     await Deno.mkdir(join(root, "_extensions"));
     assert.equal(
-      (await new Deno.Command("cp", {
-        args: [
-          "-R",
-          join(repo, "_extensions/project-download"),
-          join(root, "_extensions/project-download"),
-        ],
-      }).output()).success,
+      (
+        await new Deno.Command("cp", {
+          args: [
+            "-R",
+            join(repo, "_extensions/project-download"),
+            join(root, "_extensions/project-download"),
+          ],
+        }).output()
+      ).success,
       true,
     );
     await put(
@@ -150,9 +148,10 @@ try {
       produced.files.map((file) => file.path),
       sources.map(requestPath),
     );
-    assert.deepEqual(produced.files.map((file) => file.resources), [[], [
-      "materials",
-    ]]);
+    assert.deepEqual(
+      produced.files.map((file) => file.resources),
+      [[], ["materials"]],
+    );
     await clearOwnedRequests(root, sources);
     assert.equal((await inspectOwnedRequests(root, sources)).files.length, 0);
     console.log(
