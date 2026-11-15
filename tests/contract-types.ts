@@ -5,9 +5,9 @@ import {
   configuration,
   type Resource,
 } from "../_extensions/project-download/domain/config.ts";
-type NotAny<T> = 0 extends (1 & T) ? never : true;
+type NotAny<T> = 0 extends 1 & T ? never : true;
 const config = configuration({});
-const checked: NotAny<typeof config.resources[string]> = true;
+const checked: NotAny<(typeof config.resources)[string]> = true;
 const lawful: Resource = {
   path: "/data",
   include: null,

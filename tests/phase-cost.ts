@@ -3,7 +3,17 @@ import { dirname, fromFileUrl, join } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url))),
   base = Deno.env.get("DOWNLOAD_BASE"),
   root = await Deno.makeTempDir({ prefix: "download-cost-" }),
-  rows: {name: string; requests: number; fullWalkLogOccurrences: number; ms: number; earlyTS: number; lateTS: number; tool: string; stdoutBytes: number; stderrBytes: number}[] = [],
+  rows: {
+    name: string;
+    requests: number;
+    fullWalkLogOccurrences: number;
+    ms: number;
+    earlyTS: number;
+    lateTS: number;
+    tool: string;
+    stdoutBytes: number;
+    stderrBytes: number;
+  }[] = [],
   q = Deno.env.get("QUARTO") ?? "/opt/quarto/bin/quarto";
 if (!base) throw Error("DOWNLOAD_BASE обязателен для paired measurement");
 function assert(v: unknown, m: string) {
@@ -23,11 +33,15 @@ try {
     await Deno.readTextFile(join(repo, "tests/fixtures/quarto-observer.sh")),
   );
   await Deno.chmod(observer, 0o700);
-  for (const [name, source] of [["before", base], ["after", repo]] as const) {
+  for (const [name, source] of [
+    ["before", base],
+    ["after", repo],
+  ] as const) {
     if (
       Deno.env.get("DOWNLOAD_COST_SELECT") &&
       name !== Deno.env.get("DOWNLOAD_COST_SELECT")
-    ) continue;
+    )
+      continue;
     await Deno.remove(join(root, "_extensions/project-download"), {
       recursive: true,
     }).catch(() => {});
@@ -36,28 +50,31 @@ try {
       join(root, "_extensions/project-download"),
     );
     {
-      for (
-        const file of [
-          "filter.lua",
-          ...(name === "after" ? ["native-ts/early-filter.lua"] : []),
-        ]
-      ) {
+      for (const file of [
+        "filter.lua",
+        ...(name === "after" ? ["native-ts/early-filter.lua"] : []),
+      ]) {
         const path = join(root, "_extensions/project-download", file),
           source = await Deno.readTextFile(path);
         const bodies = [
-          "function(node,filter)return node:walk(filter)end",
-          "function(node,filter)return (node.walk --[[@as DownloadDocumentWalk]])(node,filter)end",
+          /function\(node,\s*filter\)\s*return node:walk\(filter\)\s*end/g,
+          /function\(node,\s*filter\)\s*return \(node\.walk --\[\[@as DownloadDocumentWalk\]\]\)\(node,\s*filter\)\s*end/g,
         ];
-        const matches = bodies.filter((body) => source.includes(body));
-        const body = matches[0];
-        if (matches.length !== 1 || !body || source.split(body).length !== 2) {
-          throw Error(`Не найдена единственная точка измерения walk: ${name}/${file}`);
+        const matches = bodies.flatMap((body) => [...source.matchAll(body)]);
+        const body = matches[0]?.[0];
+        if (matches.length !== 1 || !body) {
+          throw Error(
+            `Не найдена единственная точка измерения walk: ${name}/${file}`,
+          );
         }
         await Deno.writeTextFile(
           path,
           source.replace(
             body,
-            body.replace("return ", "io.stderr:write('DOWNLOAD_TEST_WALK\\n');return "),
+            body.replace(
+              "return ",
+              "io.stderr:write('DOWNLOAD_TEST_WALK\\n');return ",
+            ),
           ),
         );
       }
@@ -66,7 +83,8 @@ try {
       await Deno.writeTextFile(
         join(root, "index.qmd"),
         "# Пакет\n\n" +
-          Array(n).fill("{{< project-download data >}}").join("\n\n") + "\n",
+          Array(n).fill("{{< project-download data >}}").join("\n\n") +
+          "\n",
       );
       const log = join(root, "calls.log");
       await Deno.writeTextFile(log, "");
@@ -83,14 +101,15 @@ try {
           stderr: "piped",
         }).output();
       assert(r.success, new TextDecoder().decode(r.stderr));
-      const calls = (await Deno.readTextFile(log)).trim().split("\n").filter(
-          Boolean,
-        ),
+      const calls = (await Deno.readTextFile(log))
+          .trim()
+          .split("\n")
+          .filter(Boolean),
         early = calls.filter((c) =>
-          c.includes("/native-ts/early-filter.ts")
+          c.includes("/native-ts/early-filter.ts"),
         ).length,
         late = calls.filter((c) =>
-          c.includes("/native-ts/late-filter.ts")
+          c.includes("/native-ts/late-filter.ts"),
         ).length;
       if (name === "after") {
         assert(
@@ -101,9 +120,9 @@ try {
       rows.push({
         name,
         requests: n,
-        fullWalkLogOccurrences:
-          (new TextDecoder().decode(r.stderr).match(/DOWNLOAD_TEST_WALK/g) ??
-            []).length,
+        fullWalkLogOccurrences: (
+          new TextDecoder().decode(r.stderr).match(/DOWNLOAD_TEST_WALK/g) ?? []
+        ).length,
         ms: performance.now() - t,
         earlyTS: early,
         lateTS: late,

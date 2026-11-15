@@ -67,7 +67,10 @@ project-download:
       !html.includes("private-data"),
     "Относительная ссылка и отбор профиля",
   );
-  assert(/class="project-download"[^>]*>Скачать материалы<\/a>/.test(html), "Empty caption must produce an accessible link name");
+  assert(
+    /class="project-download"[^>]*>Скачать материалы<\/a>/.test(html),
+    "Empty caption must produce an accessible link name",
+  );
   // Координатор может переопределить output-dir за пределами исходников.
   const outside = await Deno.makeTempDir({ prefix: "download-output-" });
   try {
@@ -93,7 +96,12 @@ project-download:
   );
   const invalid = await render("student", false);
   const diagnostics = new TextDecoder().decode(invalid.stderr);
-  assert(diagnostics.includes("DOWNLOAD.RESOURCE_UNAVAILABLE") && diagnostics.includes("nested/page.qmd") && diagnostics.includes("missing"), "Нативный guard содержит ID, исходник и ресурс: "+diagnostics);
+  assert(
+    diagnostics.includes("DOWNLOAD.RESOURCE_UNAVAILABLE") &&
+      diagnostics.includes("nested/page.qmd") &&
+      diagnostics.includes("missing"),
+    "Нативный guard содержит ID, исходник и ресурс: " + diagnostics,
+  );
   absent = false;
   try {
     await Deno.stat(root + "/_site/_downloads/public-data.zip");
@@ -101,10 +109,21 @@ project-download:
     absent = true;
   }
   assert(absent, "Старый архив пережил ошибку новой сборки");
-  await Deno.writeTextFile(root+"/nested/page.qmd", "# Ошибка параметра\n\n{{< project-download public-data unknown=1 >}}\n");
-  const invalidParameter=await render("student",false);
-  const parameterDiagnostics=new TextDecoder().decode(invalidParameter.stderr);
-  assert(parameterDiagnostics.includes("DOWNLOAD.REQUEST_INVALID") && parameterDiagnostics.includes("unknown") && parameterDiagnostics.includes("nested/page.qmd"),"Shortcode guard завершает рендер и сохраняет ID/поле/исходник: "+parameterDiagnostics);
+  await Deno.writeTextFile(
+    root + "/nested/page.qmd",
+    "# Ошибка параметра\n\n{{< project-download public-data unknown=1 >}}\n",
+  );
+  const invalidParameter = await render("student", false);
+  const parameterDiagnostics = new TextDecoder().decode(
+    invalidParameter.stderr,
+  );
+  assert(
+    parameterDiagnostics.includes("DOWNLOAD.REQUEST_INVALID") &&
+      parameterDiagnostics.includes("unknown") &&
+      parameterDiagnostics.includes("nested/page.qmd"),
+    "Shortcode guard завершает рендер и сохраняет ID/поле/исходник: " +
+      parameterDiagnostics,
+  );
   console.log(
     "Quarto: независимость от Core, вложенные ссылки, full → student, очистка после ошибки проверены.",
   );

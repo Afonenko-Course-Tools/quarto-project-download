@@ -15,13 +15,11 @@ const put = async (p: string, s: string) => {
 let success = false;
 try {
   await Deno.mkdir(join(root, ext), { recursive: true });
-  for (
-    const [source, name] of [
-      [core, "course-core"],
-      [qrc, "reference-catalog"],
-      [repo, "project-download"],
-    ] as const
-  ) {
+  for (const [source, name] of [
+    [core, "course-core"],
+    [qrc, "reference-catalog"],
+    [repo, "project-download"],
+  ] as const) {
     const c = await new Deno.Command("cp", {
       args: ["-R", join(source, "_extensions", name), join(root, ext, name)],
     }).output();
@@ -33,9 +31,12 @@ try {
   );
   await put(
     "index.qmd",
-    ["a", "b"].map((n) =>
-      `::: {#exr-${n} project="projects/${n}" difficulty=introductory statement-visibility=open}\nУсловие ${n}.\n\n{{< project-download exr-${n} kind=starter >}}\n:::\n`
-    ).join("\n"),
+    ["a", "b"]
+      .map(
+        (n) =>
+          `::: {#exr-${n} project="projects/${n}" difficulty=introductory statement-visibility=open}\nУсловие ${n}.\n\n{{< project-download exr-${n} kind=starter >}}\n:::\n`,
+      )
+      .join("\n"),
   );
   for (const n of ["a", "b"]) {
     await put(
@@ -55,23 +56,35 @@ try {
     },
   ).output();
   assert(rendered.success, "producer failed");
-  const Down: typeof import("../_extensions/project-download/public.ts") = await import(
-    toFileUrl(join(root, ext, "project-download/public.ts")).href
-  );
+  const Down: typeof import("../_extensions/project-download/public.ts") =
+    await import(toFileUrl(join(root, ext, "project-download/public.ts")).href);
   const Core: typeof import("course-core/public.ts") = await import(
     toFileUrl(join(root, ext, "course-core/public.ts")).href
   );
-  let draft: import("../_extensions/project-download/public.ts").PreparedDownloads | undefined;
+  let draft:
+    | import("../_extensions/project-download/public.ts").PreparedDownloads
+    | undefined;
   try {
-    const prepared = await Core.withNativePublication({
-      root, outputDirectory: join(root, "_site"), profiles: [], projection: "student",
-    }, undefined, async (publication) => {
-      draft = await Down.prepareNativeDownloads(publication, {});
-      return draft;
-    });
+    const prepared = await Core.withNativePublication(
+      {
+        root,
+        outputDirectory: join(root, "_site"),
+        profiles: [],
+        projection: "student",
+      },
+      undefined,
+      async (publication) => {
+        draft = await Down.prepareNativeDownloads(publication, {});
+        return draft;
+      },
+    );
     await prepared.publish();
   } catch (cause) {
-    try { await draft?.discard(); } catch { /* Сохраняем причину отказа. */ }
+    try {
+      await draft?.discard();
+    } catch {
+      /* Сохраняем причину отказа. */
+    }
     throw cause;
   }
 

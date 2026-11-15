@@ -30,10 +30,13 @@ checks++;
 for (const kind of ["starter", "full", "conditions"]) {
   equal(
     decodeDownloadRequest(
-      args("exr-demo", [{ key: "kind", value: kind }, {
-        key: "text",
-        value: "Подпись",
-      }]),
+      args("exr-demo", [
+        { key: "kind", value: kind },
+        {
+          key: "text",
+          value: "Подпись",
+        },
+      ]),
       "lesson.qmd",
     ),
     { resource: "exr-demo", text: "Подпись", kind },
@@ -52,12 +55,19 @@ for (const id of ["../escape", "Bad", "", "a/b"]) {
     "DOWNLOAD.REQUEST_INVALID",
   );
 }
-for (
-  const named of [[{ key: "unknown", value: "x" }], [{
-    key: "kind",
-    value: "invalid",
-  }], [{ key: "kind", value: "full" }, { key: "kind", value: "starter" }]]
-) {
+for (const named of [
+  [{ key: "unknown", value: "x" }],
+  [
+    {
+      key: "kind",
+      value: "invalid",
+    },
+  ],
+  [
+    { key: "kind", value: "full" },
+    { key: "kind", value: "starter" },
+  ],
+]) {
   refuses(
     () => decodeDownloadRequest(args("exr-a", named), "lesson.qmd"),
     "DOWNLOAD.REQUEST_INVALID",
@@ -80,11 +90,13 @@ const batch = (resource = "exr-a", extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 let r = resolveDownloadRequests(batch());
-equal(r.links, [{
-  ordinal: 0,
-  href: "../_downloads/exr-a-starter.zip",
-  text: "Скачать заготовку",
-}]);
+equal(r.links, [
+  {
+    ordinal: 0,
+    href: "../_downloads/exr-a-starter.zip",
+    text: "Скачать заготовку",
+  },
+]);
 equal(r.request.artifacts, [{ exerciseId: "exr-a", kind: "starter" }]);
 checks++;
 r = resolveDownloadRequests(batch("exr-a", { view: "full" }));
@@ -102,18 +114,22 @@ checks++;
 r = resolveDownloadRequests(
   batch("data", {
     configuration: { resources: { data: { path: "/data" } } },
-    requests: [{
-      ordinal: 0,
-      ...args("data", [{ key: "text", value: "" }]),
-      inline: true,
-    }],
+    requests: [
+      {
+        ordinal: 0,
+        ...args("data", [{ key: "text", value: "" }]),
+        inline: true,
+      },
+    ],
   }),
 );
-equal(r.links, [{
-  ordinal: 0,
-  href: "../_downloads/data.zip",
-  text: "Скачать материалы",
-}]);
+equal(r.links, [
+  {
+    ordinal: 0,
+    href: "../_downloads/data.zip",
+    text: "Скачать материалы",
+  },
+]);
 equal(r.request.resources, ["data"]);
 checks++;
 refuses(
@@ -121,11 +137,13 @@ refuses(
     resolveDownloadRequests(
       batch("data", {
         configuration: { resources: { data: { path: "/data" } } },
-        requests: [{
-          ordinal: 0,
-          ...args("data", [{ key: "kind", value: "full" }]),
-          inline: true,
-        }],
+        requests: [
+          {
+            ordinal: 0,
+            ...args("data", [{ key: "kind", value: "full" }]),
+            inline: true,
+          },
+        ],
       }),
     ),
   "DOWNLOAD.REQUEST_INVALID",
@@ -150,37 +168,57 @@ refuses(
 );
 // Имена prototype не являются объявлением ресурса; законный own ID не запрещён.
 for (const id of ["missing", "constructor"]) {
-  refuses(() => resolveDownloadRequests(batch(id, {
-    configuration: { resources: {} },
-  })), "DOWNLOAD.RESOURCE_UNAVAILABLE");
+  refuses(
+    () =>
+      resolveDownloadRequests(
+        batch(id, {
+          configuration: { resources: {} },
+        }),
+      ),
+    "DOWNLOAD.RESOURCE_UNAVAILABLE",
+  );
 }
-r = resolveDownloadRequests(batch("constructor", {
-  configuration: { resources: { constructor: { path: "/materials" } } },
-}));
+r = resolveDownloadRequests(
+  batch("constructor", {
+    configuration: { resources: { constructor: { path: "/materials" } } },
+  }),
+);
 equal(r.request.resources, ["constructor"]);
-assert(r.links[0]?.href === "../_downloads/constructor.zip", "Объявленный constructor потерян");
+assert(
+  r.links[0]?.href === "../_downloads/constructor.zip",
+  "Объявленный constructor потерян",
+);
 checks++;
-r = resolveDownloadRequests(batch("exr-a", {
-  requests: [{
-    ordinal: 0,
-    ...args("exr-a", [{ key: "kind", value: "conditions" }]),
-    inline: true,
-  }, {
-    ordinal: 1,
-    ...args("exr-a", [{ key: "kind", value: "conditions" }]),
-    inline: true,
-  }],
-}));
+r = resolveDownloadRequests(
+  batch("exr-a", {
+    requests: [
+      {
+        ordinal: 0,
+        ...args("exr-a", [{ key: "kind", value: "conditions" }]),
+        inline: true,
+      },
+      {
+        ordinal: 1,
+        ...args("exr-a", [{ key: "kind", value: "conditions" }]),
+        inline: true,
+      },
+    ],
+  }),
+);
 equal(r.request.artifacts, [{ exerciseId: "exr-a", kind: "conditions" }]);
 assert(r.links.length === 2, "Повторные ссылки должны сохраниться");
 checks++;
 // G1: законные stringify-only calls не требуют config/resource/kind resolution.
-for (
-  const named of [[], [{ key: "kind", value: "full" }], [{
-    key: "text",
-    value: "Текст",
-  }]]
-) {
+for (const named of [
+  [],
+  [{ key: "kind", value: "full" }],
+  [
+    {
+      key: "text",
+      value: "Текст",
+    },
+  ],
+]) {
   const b = batch("missing", {
     configuration: undefined,
     requests: [{ ordinal: 0, ...args("missing", named), inline: false }],

@@ -18,28 +18,27 @@ async function check(root: string) {
     ).href,
   };
   for (const key of ["stdlib/path", "stdlib/fs"]) {
-    imports[key] = import.meta.resolve(key).replace(
-      /^https:\/\/jsr\.io\/@std\/(path|fs)\/([^/]+)\/mod\.ts$/,
-      "jsr:@std/$1@$2",
-    ).replace("jsr:/", "jsr:");
+    imports[key] = import.meta
+      .resolve(key)
+      .replace(
+        /^https:\/\/jsr\.io\/@std\/(path|fs)\/([^/]+)\/mod\.ts$/,
+        "jsr:@std/$1@$2",
+      )
+      .replace("jsr:/", "jsr:");
   }
-  for (
-    const [name, variable] of [
-      ["course-core", "CORE"],
-      ["course-prairielearn", "PL"],
-      ["reference-catalog", "QRC"],
-    ] as const
-  ) {
+  for (const [name, variable] of [
+    ["course-core", "CORE"],
+    ["course-prairielearn", "PL"],
+    ["reference-catalog", "QRC"],
+  ] as const) {
     const source = Deno.env.get(variable);
     if (!source) throw Error(`${variable} required for actual public types`);
     let extension: string | undefined;
-    for (
-      const path of [
-        resolve(source, "_extensions", name),
-        resolve(source, "_extensions/Afonenko-Course-Tools", name),
-        resolve(source),
-      ]
-    ) {
+    for (const path of [
+      resolve(source, "_extensions", name),
+      resolve(source, "_extensions/Afonenko-Course-Tools", name),
+      resolve(source),
+    ]) {
       try {
         if ((await Deno.stat(join(path, "public.ts"))).isFile) {
           extension = await Deno.realPath(path);
@@ -96,7 +95,8 @@ try {
   const drift = await check(scratch),
     diagnostic = new TextDecoder().decode(drift.stderr);
   if (
-    drift.success || !diagnostic.includes("contract-types.ts") ||
+    drift.success ||
+    !diagnostic.includes("contract-types.ts") ||
     !diagnostic.includes("number")
   ) {
     throw Error(

@@ -402,3 +402,10 @@ Gitlink — единственный selector редакции исходник�
 для evidence. Эти fixtures не входят в runtime пакет. Установку расширений в
 проект выполняет штатный `quarto add` из выбранного checkout. Для отдельной
 интеграционной проверки можно явно задать другие исходные каталоги через env.
+
+
+Локальная среда Arch Linux и штатная установка инструментов описаны в
+[инструкции разработки Core](https://github.com/Afonenko-Course-Tools/quarto-course/blob/main/docs/development-arch.md).
+Проверки форматирования и всех языков запускаются существующей командой
+`npm run check-quality`; отрицательные контроли — `npm run check-quality:controls`.
+Подробнее: [покрытие инструментов](tools/README-quality.md).

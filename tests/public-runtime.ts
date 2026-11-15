@@ -1,6 +1,7 @@
 import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url)));
-const core = Deno.env.get("CORE"), qrc = Deno.env.get("QRC");
+const core = Deno.env.get("CORE"),
+  qrc = Deno.env.get("QRC");
 if (!core || !qrc) throw Error("Нужны immutable CORE и QRC");
 const root = await Deno.makeTempDir({ prefix: "download-public-runtime-" });
 const assert = (v: unknown, m: string) => {
@@ -28,7 +29,8 @@ async function render(expected = true, marker = "") {
     stdout: "piped",
     stderr: "piped",
   }).output();
-  const text = new TextDecoder().decode(result.stdout) +
+  const text =
+    new TextDecoder().decode(result.stdout) +
     new TextDecoder().decode(result.stderr);
   await Deno.mkdir(join(root, "_generated"), { recursive: true });
   await Deno.writeTextFile(join(root, "_generated/download-render.log"), text);
@@ -67,8 +69,7 @@ try {
     '<svg xmlns="http://www.w3.org/2000/svg"><text>PRIVATE_RESOURCE</text></svg>',
   );
   await put("other.qmd", "# Другая страница {#target}\n");
-  const statement =
-    `# Проверка\n\n::: {#exr-demo difficulty=introductory statement-visibility=open course-role=demonstration project="projects/demo"}\nУсловие. [Другая страница](other.qmd#target).\n\n{{< project-download exr-demo kind=starter >}}\n\n{{< project-download exr-demo kind=full >}}\n\n![Материал](assets/public.txt)\n\n::: {.solution}\nОткрытый пример решения.\n:::\n\n:::\n\n{{< project-download data >}}\n`;
+  const statement = `# Проверка\n\n::: {#exr-demo difficulty=introductory statement-visibility=open course-role=demonstration project="projects/demo"}\nУсловие. [Другая страница](other.qmd#target).\n\n{{< project-download exr-demo kind=starter >}}\n\n{{< project-download exr-demo kind=full >}}\n\n![Материал](assets/public.txt)\n\n::: {.solution}\nОткрытый пример решения.\n:::\n\n:::\n\n{{< project-download data >}}\n`;
   await put("index.qmd", statement);
   await render();
   const starter = join(root, "_site/_downloads/exr-demo-starter.zip"),
@@ -108,21 +109,21 @@ try {
     "Full artifact не содержит решения",
   );
   assert(
-    (await extract(join(root, "_site/_downloads/data.zip"), "public.txt"))
-      .includes("PUBLIC_RESOURCE_1"),
+    (
+      await extract(join(root, "_site/_downloads/data.zip"), "public.txt")
+    ).includes("PUBLIC_RESOURCE_1"),
     "Ordinary public resource потерян",
   );
   await put("assets/public.txt", "PUBLIC_RESOURCE_2\n");
   await render();
   assert(
-    (await extract(join(root, "_site/_downloads/data.zip"), "public.txt"))
-      .includes("PUBLIC_RESOURCE_2"),
+    (
+      await extract(join(root, "_site/_downloads/data.zip"), "public.txt")
+    ).includes("PUBLIC_RESOURCE_2"),
     "Повторный render вернул stale resource",
   );
   const Download: typeof import("../_extensions/project-download/public.ts") =
-    await import(
-      toFileUrl(join(root, ext, "project-download/public.ts")).href
-    );
+    await import(toFileUrl(join(root, ext, "project-download/public.ts")).href);
   const Core: typeof import("course-core/public.ts") = await import(
     toFileUrl(join(root, ext, "course-core/public.ts")).href
   );
@@ -166,7 +167,9 @@ try {
     } catch (cause) {
       try {
         await draft?.discard();
-      } catch { /* Сохраняем closing/writer cause. */ }
+      } catch {
+        /* Сохраняем closing/writer cause. */
+      }
       throw cause;
     }
   }
@@ -178,13 +181,16 @@ try {
     () => finishNative({ projection: "author" }),
     "OPERATION_BINDING",
   );
-  await refused(() =>
-    finishNative({
-      expectedDocuments: [
-        { source: "index.qmd", format: "revealjs" },
-        { source: "other.qmd", format: "html" },
-      ],
-    }), "OPERATION_BINDING");
+  await refused(
+    () =>
+      finishNative({
+        expectedDocuments: [
+          { source: "index.qmd", format: "revealjs" },
+          { source: "other.qmd", format: "html" },
+        ],
+      }),
+    "OPERATION_BINDING",
+  );
   await refused(
     () => finishNative({ outputDirectory: join(root, "_foreign-output") }),
     "OPERATION_BINDING",
@@ -221,16 +227,19 @@ try {
   const foreign = await Deno.makeTempDir({ prefix: "b2-foreign-" });
   await Deno.writeTextFile(join(foreign, "keep"), "FOREIGN");
   try {
-    await refused(() =>
-      finishNative({}, () => {
-        Deno.renameSync(
-          join(root, "_site/_downloads"),
-          join(root, "_site/_downloads-saved"),
-        );
-        Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
-      }), "DOWNLOAD.PATH_INVALID");
+    await refused(
+      () =>
+        finishNative({}, () => {
+          Deno.renameSync(
+            join(root, "_site/_downloads"),
+            join(root, "_site/_downloads-saved"),
+          );
+          Deno.symlinkSync(foreign, join(root, "_site/_downloads"));
+        }),
+      "DOWNLOAD.PATH_INVALID",
+    );
     assert(
-      await Deno.readTextFile(join(foreign, "keep")) === "FOREIGN" &&
+      (await Deno.readTextFile(join(foreign, "keep"))) === "FOREIGN" &&
         (await Array.fromAsync(Deno.readDir(foreign))).length === 1,
       "Повреждён чужой symlink destination",
     );

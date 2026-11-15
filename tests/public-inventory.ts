@@ -2,7 +2,9 @@ import { required } from "./required.ts";
 // Реальный public Core producer и временная установленная раскладка; не полный курс.
 import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
 const repo = dirname(dirname(fromFileUrl(import.meta.url)));
-const api: typeof import("../_extensions/project-download/public.ts") | undefined = await import(
+const api:
+  | typeof import("../_extensions/project-download/public.ts")
+  | undefined = await import(
   toFileUrl(join(repo, "_extensions/project-download/public.ts")).href
 ).catch(() => undefined);
 const assert = (value: unknown, message: string) => {
@@ -30,10 +32,9 @@ async function copy(source: string, target: string) {
   for await (const item of Deno.readDir(source)) {
     if (item.isDirectory) {
       await copy(join(source, item.name), join(target, item.name));
-    } else {await Deno.copyFile(
-        join(source, item.name),
-        join(target, item.name),
-      );}
+    } else {
+      await Deno.copyFile(join(source, item.name), join(target, item.name));
+    }
   }
 }
 async function refused(use: () => unknown, marker: string) {
@@ -62,9 +63,10 @@ try {
   const core: typeof import("course-core/public.ts") = await import(
     toFileUrl(join(extensions, "course-core/public.ts")).href
   );
-  const download: typeof import("../_extensions/project-download/public.ts") = await import(
-    toFileUrl(join(extensions, "project-download/public.ts")).href
-  );
+  const download: typeof import("../_extensions/project-download/public.ts") =
+    await import(
+      toFileUrl(join(extensions, "project-download/public.ts")).href
+    );
   const qrc: typeof import("reference-catalog/public.ts") = await import(
     toFileUrl(join(extensions, "reference-catalog/public.ts")).href
   );
@@ -144,17 +146,19 @@ try {
           targets: {},
         },
         baseUrl: "https://example.test/course/",
-        importedTargets: [{
-          namespace: "os",
-          id: "sec-memory",
-          page: "chapters/memory.html",
-          fragment: "sec-memory",
-          label: "Память",
-          labelHtml: "Память",
-          number: "1",
-          numberHtml: "1",
-          baseUrl: "https://example.test/os/",
-        }],
+        importedTargets: [
+          {
+            namespace: "os",
+            id: "sec-memory",
+            page: "chapters/memory.html",
+            fragment: "sec-memory",
+            label: "Память",
+            labelHtml: "Память",
+            number: "1",
+            numberHtml: "1",
+            baseUrl: "https://example.test/os/",
+          },
+        ],
         references: {
           "os:sec-memory": { key: "os:sec-memory", style: "external" },
         },
@@ -163,100 +167,111 @@ try {
           "other.qmd#target": "projects/other.html#target",
         },
       });
-      await operation.withProjectContexts([{
-        owner: root,
-        directories: ["projects/demo"],
-        profiles: [],
-        format: "html",
-      }], async (batch) => {
-        const plan = await core.planProject(required(required(batch.groups[0]).contexts[0]), {
-          audience: "student",
-        });
-        const inventory = await core.materializeProject(plan, condition, {
-          links,
-          resources: {
-            "generated.svg": {
-              path: "generated.svg",
-              target: "resources/generated.svg",
+      await operation.withProjectContexts(
+        [
+          {
+            owner: root,
+            directories: ["projects/demo"],
+            profiles: [],
+            format: "html",
+          },
+        ],
+        async (batch) => {
+          const plan = await core.planProject(
+            required(required(batch.groups[0]).contexts[0]),
+            {
+              audience: "student",
             },
-          },
-          submission: {
-            files: [{
-              name: "Main.java",
-              starterPath: "src/main/java/Main.java",
-            }],
-            instructions: "Сдайте Main.java.",
-          },
-        });
-        const beforeConsumer = JSON.stringify(batch.metrics);
-        const beforePlan = JSON.stringify(core.projectPlanMetrics(plan));
-        const consumerStart = performance.now();
-        const packed = await download.packageArtifact(inventory);
-        archive = packed;
-        artifact = inventory;
-        const again = await download.packageArtifact({
-          ...inventory,
-          files: [...inventory.files].reverse(),
-        });
-        assert(
-          packed.length === again.length &&
-            packed.every((byte: number, i: number) => byte === again[i]),
-          "Порядок inventory изменил ZIP",
-        );
-        await refused(
-          () =>
-            download.packageArtifact({
-              ...inventory,
-              files: [...inventory.files, inventory.files[0]],
+          );
+          const inventory = await core.materializeProject(plan, condition, {
+            links,
+            resources: {
+              "generated.svg": {
+                path: "generated.svg",
+                target: "resources/generated.svg",
+              },
+            },
+            submission: {
+              files: [
+                {
+                  name: "Main.java",
+                  starterPath: "src/main/java/Main.java",
+                },
+              ],
+              instructions: "Сдайте Main.java.",
+            },
+          });
+          const beforeConsumer = JSON.stringify(batch.metrics);
+          const beforePlan = JSON.stringify(core.projectPlanMetrics(plan));
+          const consumerStart = performance.now();
+          const packed = await download.packageArtifact(inventory);
+          archive = packed;
+          artifact = inventory;
+          const again = await download.packageArtifact({
+            ...inventory,
+            files: [...inventory.files].reverse(),
+          });
+          assert(
+            packed.length === again.length &&
+              packed.every((byte: number, i: number) => byte === again[i]),
+            "Порядок inventory изменил ZIP",
+          );
+          await refused(
+            () =>
+              download.packageArtifact({
+                ...inventory,
+                files: [...inventory.files, inventory.files[0]],
+              }),
+            "DOWNLOAD.FILES_INVALID",
+          );
+          const borrowed = structuredClone(inventory);
+          const pending = download.packageArtifact(borrowed);
+          required(borrowed.files[0]).bytes.fill(0);
+          required(borrowed.files[0]).target = "caller-changed.txt";
+          const frozen = await pending;
+          assert(
+            frozen.length === packed.length &&
+              frozen.every((byte: number, i: number) => byte === packed[i]),
+            "Caller изменил bytes/target во время lazy import",
+          );
+          const ancestor = structuredClone(inventory);
+          required(ancestor.files[0]).target = "collision";
+          required(ancestor.files[1]).target = "collision/nested.txt";
+          await refused(
+            () => download.packageArtifact(ancestor),
+            "DOWNLOAD.FILES_INVALID",
+          );
+          const wrongAudience = structuredClone(inventory);
+          required(wrongAudience.files[0]).audience = "full";
+          await refused(
+            () => download.packageArtifact(wrongAudience),
+            "DOWNLOAD.FILES_INVALID",
+          );
+          await refused(
+            () =>
+              download.packageArtifact(JSON.parse(JSON.stringify(inventory))),
+            "DOWNLOAD.FILES_INVALID",
+          );
+          const escape = structuredClone(inventory);
+          required(escape.files[0]).target = "../private";
+          await refused(
+            () => download.packageArtifact(escape),
+            "DOWNLOAD.FILES_INVALID",
+          );
+          assert(
+            JSON.stringify(batch.metrics) === beforeConsumer &&
+              JSON.stringify(core.projectPlanMetrics(plan)) === beforePlan,
+            "Consumer повторно выполнил Core inspect/обход/чтение исходников",
+          );
+          console.log(
+            JSON.stringify({
+              consumerMs: Math.round(performance.now() - consumerStart),
+              native: batch.metrics,
+              plan: core.projectPlanMetrics(plan),
             }),
-          "DOWNLOAD.FILES_INVALID",
-        );
-        const borrowed = structuredClone(inventory);
-        const pending = download.packageArtifact(borrowed);
-        required(borrowed.files[0]).bytes.fill(0);
-        required(borrowed.files[0]).target = "caller-changed.txt";
-        const frozen = await pending;
-        assert(
-          frozen.length === packed.length &&
-            frozen.every((byte: number, i: number) => byte === packed[i]),
-          "Caller изменил bytes/target во время lazy import",
-        );
-        const ancestor = structuredClone(inventory);
-        required(ancestor.files[0]).target = "collision";
-        required(ancestor.files[1]).target = "collision/nested.txt";
-        await refused(
-          () => download.packageArtifact(ancestor),
-          "DOWNLOAD.FILES_INVALID",
-        );
-        const wrongAudience = structuredClone(inventory);
-        required(wrongAudience.files[0]).audience = "full";
-        await refused(
-          () => download.packageArtifact(wrongAudience),
-          "DOWNLOAD.FILES_INVALID",
-        );
-        await refused(
-          () => download.packageArtifact(JSON.parse(JSON.stringify(inventory))),
-          "DOWNLOAD.FILES_INVALID",
-        );
-        const escape = structuredClone(inventory);
-        required(escape.files[0]).target = "../private";
-        await refused(
-          () => download.packageArtifact(escape),
-          "DOWNLOAD.FILES_INVALID",
-        );
-        assert(
-          JSON.stringify(batch.metrics) === beforeConsumer &&
-            JSON.stringify(core.projectPlanMetrics(plan)) === beforePlan,
-          "Consumer повторно выполнил Core inspect/обход/чтение исходников",
-        );
-        console.log(
-          JSON.stringify({
-            consumerMs: Math.round(performance.now() - consumerStart),
-            native: batch.metrics,
-            plan: core.projectPlanMetrics(plan),
-          }),
-        );
-      });
+          );
+        },
+      );
     },
   );
   await Deno.writeFile(join(root, "student.zip"), archive!);
@@ -271,9 +286,16 @@ try {
     stdout: "piped",
   }).output();
   assert(
-    new TextDecoder().decode(listed.stdout).trim().split("\n").sort().join(
-      "\n",
-    ) === artifact.files.map((file) => file.target).sort().join("\n"),
+    new TextDecoder()
+      .decode(listed.stdout)
+      .trim()
+      .split("\n")
+      .sort()
+      .join("\n") ===
+      artifact.files
+        .map((file) => file.target)
+        .sort()
+        .join("\n"),
     "Имена ZIP отличаются от inventory",
   );
   for (const file of artifact.files) {
@@ -292,19 +314,17 @@ try {
       ),
     "Download переписал README Core",
   );
-  for (
-    const expected of [
-      "Первый пункт",
-      "Второй пункт",
-      "Вход",
-      "Выход",
-      "Содержание сноски",
-      "Примечание native",
-      "#details",
-      "https://example.test/course/projects/other.html#target",
-      "https://example.test/os/chapters/memory.html#sec-memory",
-    ]
-  ) {
+  for (const expected of [
+    "Первый пункт",
+    "Второй пункт",
+    "Вход",
+    "Выход",
+    "Содержание сноски",
+    "Примечание native",
+    "#details",
+    "https://example.test/course/projects/other.html#target",
+    "https://example.test/os/chapters/memory.html#sec-memory",
+  ]) {
     assert(
       readme.includes(expected),
       "Core→QRC→Download потерял содержание/адрес: " + expected,
@@ -316,10 +336,11 @@ try {
   );
   assert(
     !artifact.files.some((file) =>
-      /private|reference|solution|closed-tests/.test(file.target)
-    ) && !artifact.files.some((file) =>
-      new TextDecoder().decode(file.bytes).includes("PRIVATE_RESOURCE")
-    ),
+      /private|reference|solution|closed-tests/.test(file.target),
+    ) &&
+      !artifact.files.some((file) =>
+        new TextDecoder().decode(file.bytes).includes("PRIVATE_RESOURCE"),
+      ),
     "Закрытый ресурс попал в student bytes",
   );
   console.log(
